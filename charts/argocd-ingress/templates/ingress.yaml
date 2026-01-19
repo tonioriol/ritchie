@@ -28,4 +28,6 @@ spec:
               service:
                 name: argocd-server
                 port:
-                  number: 443
+                  # Terminate TLS at Traefik and talk plain HTTP to ArgoCD.
+                  # The ArgoCD Service port 80 targets the HTTP listener (typically 8080 in the pod).
+                  number: 80
