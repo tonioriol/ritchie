@@ -8,7 +8,6 @@ metadata:
     {{- if .Values.tls.enabled }}
     cert-manager.io/cluster-issuer: {{ .Values.tls.issuer }}
     {{- end }}
-    # ArgoCD uses gRPC, so we need to handle HTTPS backend
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
