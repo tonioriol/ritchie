@@ -1,0 +1,10 @@
+# Environment files with secrets
+.env
+.env.*
+
+# Kubernetes config with credentials
+clusters/*/kubeconfig
+kubeconfig
+
+# Devbox local files
+.devbox/

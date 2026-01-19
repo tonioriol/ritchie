@@ -1,20 +1,24 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: acestream
+  name: argocd-ingress
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/tonioriol/ritchie
     targetRevision: main
-    path: charts/acestream
+    path: charts/argocd-ingress
+    helm:
+      values: |
+        # Override these values with your actual domain and email
+        host: argocd.example.com
+        letsencrypt:
+          email: admin@example.com
   destination:
     server: https://kubernetes.default.svc
-    namespace: media
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
+  "packages": [
+    "argocd@latest",
+    "kubectl@latest",
+    "kubernetes-helm@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'Ritchie devbox environment loaded'",
+      "echo 'ArgoCD CLI, kubectl, and helm are available'"
+    ]
+  }
+}

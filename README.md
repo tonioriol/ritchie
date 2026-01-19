@@ -1,132 +1,96 @@
 # ritchie
 
-Minimal notes for the `ritchie` server.
+Infrastructure documentation for two servers: the **neumann** k3s cluster (Hetzner) and the legacy **ritchie** server (DigitalOcean).
 
-## Connection
+---
 
-- Host: `ritchie.tonioriol.com`
-- IP: `188.226.140.165`
-- SSH user: `forge`
-- SSH port: `22`
-- Auth: `publickey` (password auth disabled)
+## Kubernetes Cluster: neumann
+
+Single-node k3s cluster on Hetzner Cloud, managed via `hetzner-k3s`.
+
+| Property | Value |
+|----------|-------|
+| Node IP | `5.75.129.215` |
+| Region | Nuremberg (`nbg1`) |
+| Instance | CX23 (2 vCPUs, 4 GB RAM) |
+| K8s version | v1.31.4+k3s1 |
+| Cost | ~€4/month |
+
+### Connection
 
 ```bash
-ssh forge@ritchie.tonioriol.com
+export KUBECONFIG=./clusters/neumann/kubeconfig
+kubectl get nodes -o wide
 ```
 
-### Force a specific local key (fallback)
+### ArgoCD
+
+| Property | Value |
+|----------|-------|
+| UI | `https://5.75.129.215:31796` |
+| Admin password | 1Password |
 
 ```bash
-ssh -i /Users/tr0n/.ssh/id_rsa_2 -o IdentitiesOnly=yes forge@ritchie.tonioriol.com
+kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-## Users
+### Deployed Applications
 
-Home directories under `/home`:
+| App | Namespace | Access |
+|-----|-----------|--------|
+| Acestream | `media` | `http://5.75.129.215:30878` |
 
-- `forge` (uid 1000, shell `/bin/bash`)
-- `syslog` (uid 104, shell `/bin/false`)
+### Cluster Management
 
-## Credentials source of truth
-
-Non-secret connection metadata is stored in 1Password item **“ritchie”** (category: Server, vault: Private).
-
-## Services Running
-
-### Web Server & Reverse Proxy
-
-- **Nginx** - Web server and reverse proxy
-- **PHP 7.1-FPM** - PHP FastCGI Process Manager
-
-### Databases
-
-- **MySQL** - MySQL Community Server (default port 3306)
-- **PostgreSQL 9.5** - PostgreSQL database server (default port 5432)
-
-### Caching & Queuing
-
-- **Redis** - Advanced key-value store (port 6379)
-- **Memcached** - In-memory cache daemon
-- **Beanstalkd** - Simple, fast work queue (port 11300)
-
-### Docker & Containerization
-
-- **Docker** - Docker daemon
-- **containerd** - Container runtime
-- **LXC/LXCFS** - Container support
-
-### Security & Monitoring
-
-- **Fail2Ban** - Intrusion prevention system
-- **SSH** - OpenBSD Secure Shell server (port 22)
-
-### System Services
-
-- **Supervisor** - Process control system (manages background jobs)
-- **Cron** - Task scheduler
-- **Sendmail** - Mail Transfer Agent (MTA)
-- **Syslog/rsyslog** - System logging
-
-### Other
-
-- **ACPI daemon** - ACPI event handling
-- **LVM2** - Logical Volume Management
-- **RAID/mdadm** - Software RAID monitoring
-- **iSCSI** - iSCSI initiator daemon
-
-## Hosted Sites
-
-### Nginx Virtual Hosts
-
-1. **ace.tonioriol.com** (HTTPS)
-   - Type: Reverse proxy
-   - Backend: Docker container `acestream-http-proxy`
-   - Port: 6878 (internal), proxied through HTTPS
-   - Notes: Streams via Acestream protocol with CORS headers enabled
-
-2. **boira.band** (HTTPS)
-   - Type: Laravel/PHP application
-   - Processor: PHP 7.1-FPM
-   - SSL: Self-signed certificate
-   - Managed by: Laravel Forge
-
-3. **bertomeuiglesias.com**
-   - Type: Laravel/PHP application
-   - Processor: PHP 7.1-FPM
-   - Managed by: Laravel Forge
-
-4. **lodrago.net**
-   - Type: Laravel/PHP application
-   - Processor: PHP 7.1-FPM
-   - Managed by: Laravel Forge
-
-5. **tonioriol.com**
-   - Type: Redirect (→ GitHub)
-   - HTTP redirection configured
-   - Laravel/Forge infrastructure available but not actively used
-
-6. **catch-all** site
-   - Default fallback for undefined hosts
-
-## Docker Containers
-
-```yaml
-Service: acestream-http-proxy
-Image: ghcr.io/martinbjeldbak/acestream-http-proxy
-Port: 6878
-Status: Running (up 8 weeks)
-Memory: 128-256MB reserved/limited
-Restart Policy: unless-stopped
+```bash
+cd clusters/neumann
+export HCLOUD_TOKEN=$(grep HCLOUD_TOKEN .env | cut -d= -f2)
+hetzner-k3s create --config cluster.yaml
+hetzner-k3s delete --config cluster.yaml --force
 ```
 
-Configuration: `/home/forge/acestream-http-proxy/docker-compose.yml`
+---
+
+## Legacy Server: ritchie
+
+Ubuntu 16.04 server managed by Laravel Forge (now manually maintained).
+
+| Property | Value |
+|----------|-------|
+| Host | `ritchie.tonioriol.com` |
+| IP | `188.226.140.165` |
+| SSH | `ssh forge@ritchie.tonioriol.com` |
+| Credentials | 1Password ("ritchie" item) |
+
+### Services
+
+- **Web**: Nginx + PHP 7.1-FPM
+- **Databases**: MySQL, PostgreSQL 9.5
+- **Caching**: Redis, Memcached, Beanstalkd
+- **Docker**: acestream-http-proxy container
+- **Security**: Fail2Ban, Supervisor
+
+### Hosted Sites
+
+| Domain | Type |
+|--------|------|
+| ace.tonioriol.com | Reverse proxy → acestream container |
+| boira.band | Laravel app |
+| bertomeuiglesias.com | Laravel app |
+| lodrago.net | Laravel app |
+| tonioriol.com | Redirect → GitHub |
+
+### Docker
+
+```bash
+# Acestream proxy
+cd /home/forge/acestream-http-proxy
+docker-compose up -d
+```
+
+---
 
 ## Notes
 
-- The server is running **Ubuntu 16.04** (legacy). Be cautious with upgrades/changes.
-- Managed by **Laravel Forge** (legacy setup, manually maintained now)
-- All sites use Nginx with PHP 7.1-FPM backend
-- SSL certificates: Let's Encrypt (ace.tonioriol.com), self-signed (boira.band)
-- Databases are accessible locally; check 1Password credentials
-- Supervisor manages background processes/workers
-- Fail2Ban provides automatic IP blocking for security threats
+- **neumann**: GitOps-driven via ArgoCD with auto-sync enabled
+- **ritchie**: Legacy Ubuntu 16.04; avoid major upgrades

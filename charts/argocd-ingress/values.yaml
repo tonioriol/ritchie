@@ -1,0 +1,9 @@
+host: argocd.example.com
+
+tls:
+  enabled: true
+  issuer: letsencrypt-prod
+
+letsencrypt:
+  email: admin@example.com
+  server: https://acme-v02.api.letsencrypt.org/directory

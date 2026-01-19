@@ -23,6 +23,8 @@ Set up a hetzner-k3s cluster named "neumann" on Hetzner Cloud. Use ArgoCD for Gi
 * `/Users/tr0n/Code/ritchie/clusters/neumann/cluster.yaml` - hetzner-k3s config (to create)
 * `/Users/tr0n/Code/ritchie/charts/acestream/` - Custom Helm chart (to create)
 * `/Users/tr0n/Code/ritchie/apps/acestream.yaml` - ArgoCD Application (to create)
+* `/Users/tr0n/Code/ritchie/.env` - Local secret env vars (gitignored)
+* `/Users/tr0n/Code/ritchie/.gitignore` - Ignores `.env` and generated kubeconfigs
 
 ---
 
@@ -85,7 +87,7 @@ worker_node_pools: []
 #### 1.2 Deploy cluster
 
 ```bash
-export HETZNER_TOKEN="your-token-here"
+export HCLOUD_TOKEN="your-token-here"
 cd /Users/tr0n/Code/ritchie/clusters/neumann
 hetzner-k3s create --config cluster.yaml
 ```
@@ -287,7 +289,7 @@ kubectl -n media logs -l app=acestream
 
 | Component | Type | Cost/Month |
 |-----------|------|------------|
-| Server | CX22 (2 vCPU, 4GB) | ~€4 |
+| Server | CX23 (2 vCPU, 4GB) | ~€4 |
 | Load Balancer | Not used (NodePort) | €0 |
 | **Total** | | **~€4** |
 
@@ -328,12 +330,59 @@ kubectl -n media logs -l app=acestream
   * ArgoCD = GitOps controller (replaces Helmfile/Flux CLI tools)
   * ArgoCD natively renders Helm charts - no separate helm commands needed
 
+* **2026-01-19 21:14 - Cluster provisioned successfully (neumann)**
+  * Persisted Hetzner API token locally via `/Users/tr0n/Code/ritchie/.env` and added `/Users/tr0n/Code/ritchie/.gitignore` entries to prevent committing secrets and generated kubeconfigs
+  * Discovered `hetzner-k3s` v2.4.5 expects `HCLOUD_TOKEN` (not `HETZNER_TOKEN`); validation error: "Hetzner API token is missing, please set it in the configuration file or in the environment variable HCLOUD_TOKEN"
+  * Updated `/Users/tr0n/Code/ritchie/clusters/neumann/cluster.yaml`:
+    * Fixed server type from `cx22` to `cx23` (verified via `hcloud server-type list`)
+    * Enabled single-node scheduling by setting `schedule_workloads_on_masters: true` (otherwise `hetzner-k3s` aborts with "At least one worker node pool is required in order to schedule workloads")
+    * Switched location from `fsn1` to `nbg1` after Hetzner API error `resource_unavailable: server location disabled`
+    * Added SSH key configuration for remote access
+    * Configured both IPv4 and IPv6 public networking
+    * Enabled private networking with subnet 10.0.0.0/16
+  * Ran cluster creation:
+    * `export HCLOUD_TOKEN=$(grep HCLOUD_TOKEN .env | cut -d '=' -f2) && cd /Users/tr0n/Code/ritchie/clusters/neumann && hetzner-k3s create --config cluster.yaml`
+    * Generated kubeconfig at `/Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig`
+  * Verified cluster readiness:
+    * `export KUBECONFIG=/Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig && kubectl get nodes -o wide`
+    * Confirmed single node `neumann-master1` in Ready state with roles control-plane,etcd,master
+    * Node has external IP 5.75.129.215 and internal IP 10.0.0.2
+
+* **2026-01-19 21:14 - ArgoCD installed and exposed via NodePort**
+  * Installed ArgoCD into `argocd` namespace:
+    * `kubectl create namespace argocd`
+    * `kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml`
+    * Waited for readiness: `kubectl -n argocd wait --for=condition=Ready pods --all --timeout=300s`
+  * Retrieved initial admin password:
+    * `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`
+  * Exposed ArgoCD server via NodePort:
+    * `kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'`
+    * Confirmed ports via `kubectl get svc argocd-server -n argocd` (HTTPS NodePort allocated on 31796)
+  * ArgoCD UI accessible at: `https://5.75.129.215:31796`
+
+* **2026-01-19 21:14 - Acestream deployed via ArgoCD Application**
+  * Confirmed `/Users/tr0n/Code/ritchie/apps/acestream.yaml` repoURL points to `https://github.com/tonioriol/ritchie`
+  * Applied ArgoCD Application:
+    * `kubectl apply -f /Users/tr0n/Code/ritchie/apps/acestream.yaml`
+  * Verified deployment:
+    * `kubectl -n media get pods` (acestream running)
+    * `kubectl -n media get svc` (NodePort 30878)
+  * Acestream service accessible at: `http://5.75.129.215:30878`
+  * Note: `argocd` CLI is not installed locally (`argocd: command not found`); operations can be performed via the ArgoCD UI or via `kubectl` against ArgoCD CRs
+
+* **2026-01-19 21:14 - Updated context.md with implementation details**
+  * Documented cluster provisioning with actual timestamps and configuration details
+  * Added ArgoCD installation and exposure steps with NodePort information
+  * Recorded acestream deployment via ArgoCD Application
+  * Updated next steps checklist to reflect completed tasks
+
 ---
 
 ## Next Steps
 
-- [ ] Set `HETZNER_TOKEN` environment variable
-- [ ] Run `hetzner-k3s create --config clusters/neumann/cluster.yaml`
-- [ ] Install ArgoCD on cluster (Phase 2 commands)
-- [ ] Update `apps/acestream.yaml` repoURL to actual GitHub URL
-- [ ] Apply ArgoCD Application: `kubectl apply -f apps/acestream.yaml`
+- [x] Provision cluster `neumann` via `hetzner-k3s` and generate kubeconfig
+- [x] Install ArgoCD and expose UI via NodePort
+- [x] Deploy acestream via ArgoCD Application
+- [ ] (Optional) Install ArgoCD CLI locally for convenience (`argocd app list`, `argocd app sync`)
+- [ ] (Recommended) Secure ArgoCD access (ingress + TLS, SSO, or IP allowlist); NodePort is currently open
+- [ ] (Recommended) Commit & push repo changes so ArgoCD remains fully GitOps-driven for future changes

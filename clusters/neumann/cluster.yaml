@@ -1,5 +1,4 @@
 ---
-hetzner_token: "${HETZNER_TOKEN}"
 cluster_name: neumann
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.31.4+k3s1
@@ -22,12 +21,12 @@ networking:
     enabled: true
     subnet: 10.0.0.0/16
 
-schedule_workloads_on_masters: false
+schedule_workloads_on_masters: true
 
 masters_pool:
-  instance_type: cx22
+  instance_type: cx23
   instance_count: 1
   locations:
-    - fsn1
+    - nbg1
 
 worker_node_pools: []

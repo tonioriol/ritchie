@@ -1,17 +1,21 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: acestream
+  name: cert-manager
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/tonioriol/ritchie
-    targetRevision: main
-    path: charts/acestream
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.16.3
+    helm:
+      values: |
+        crds:
+          enabled: true
   destination:
     server: https://kubernetes.default.svc
-    namespace: media
+    namespace: cert-manager
   syncPolicy:
     automated:
       prune: true
