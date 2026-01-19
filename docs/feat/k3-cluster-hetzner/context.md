@@ -376,6 +376,34 @@ kubectl -n media logs -l app=acestream
   * Recorded acestream deployment via ArgoCD Application
   * Updated next steps checklist to reflect completed tasks
 
+* **2026-01-19 23:55 - ArgoCD secured behind Traefik Ingress + Let's Encrypt**
+  * DNS:
+    * Created `A` record: `neumann.tonioriol.com` -> `5.75.129.215`
+  * Hetzner Cloud firewall (`neumann`):
+    * Added inbound TCP 80 (HTTP, required for cert-manager HTTP-01)
+    * Added inbound TCP 443 (HTTPS)
+  * Traefik (deployed via ArgoCD app):
+    * Switched from pure NodePort exposure to binding on host ports 80/443 so HTTP-01 works
+    * Configured:
+      * `hostNetwork: true`
+      * `ports.web.port: 80`, `ports.web.containerPort: 80`, `ports.web.hostPort: 80`
+      * `ports.websecure.port: 443`, `ports.websecure.containerPort: 443`, `ports.websecure.hostPort: 443`
+      * `podSecurityContext.runAsUser: 0` (required to bind privileged ports)
+      * `securityContext.capabilities.add: [NET_BIND_SERVICE]`
+  * cert-manager:
+    * `ClusterIssuer` `letsencrypt-prod` is Ready
+    * Issued certificate `argocd-server-tls` for `neumann.tonioriol.com`
+  * ArgoCD Ingress:
+    * Host: `neumann.tonioriol.com`
+    * TLS termination at Traefik using secret `argocd-server-tls`
+    * Backend routes to `argocd-server` Service port 80 (HTTP)
+  * Redirect-loop fix (TLS terminated at ingress):
+    * Added `manifests/argocd/argocd-cmd-params-cm.yaml` setting `server.insecure: "true"`
+    * Added `apps/argocd-config.yaml` to manage the config via ArgoCD
+    * Restarted `argocd-server` to apply the config
+  * Verified:
+    * `https://neumann.tonioriol.com` returns HTTP 200 and serves the ArgoCD UI
+
 ---
 
 ## Next Steps
@@ -384,5 +412,5 @@ kubectl -n media logs -l app=acestream
 - [x] Install ArgoCD and expose UI via NodePort
 - [x] Deploy acestream via ArgoCD Application
 - [ ] (Optional) Install ArgoCD CLI locally for convenience (`argocd app list`, `argocd app sync`)
-- [ ] (Recommended) Secure ArgoCD access (ingress + TLS, SSO, or IP allowlist); NodePort is currently open
-- [ ] (Recommended) Commit & push repo changes so ArgoCD remains fully GitOps-driven for future changes
+- [x] (Recommended) Secure ArgoCD access (ingress + TLS, SSO, or IP allowlist); NodePort is currently open
+- [x] (Recommended) Commit & push repo changes so ArgoCD remains fully GitOps-driven for future changes
