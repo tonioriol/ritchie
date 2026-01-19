@@ -11,14 +11,17 @@ spec:
     targetRevision: 34.4.1
     helm:
       values: |
-        # Use NodePort for simple single-node setup (no LoadBalancer)
+        # Bind Traefik directly to the node's :80/:443 so HTTP-01 challenges work.
+        # With NodePort only, cert-manager's self-check to http://<domain>:80 can fail.
+        hostNetwork: true
+
         service:
-          type: NodePort
+          type: ClusterIP
         ports:
           web:
-            nodePort: 30080
+            hostPort: 80
           websecure:
-            nodePort: 30443
+            hostPort: 443
         # Enable Kubernetes Ingress provider
         providers:
           kubernetesIngress:
