@@ -26,6 +26,12 @@ spec:
             port: 443
             containerPort: 443
             hostPort: 443
+
+        # Needed because Traefik runs as non-root by default, but must bind :80/:443.
+        securityContext:
+          capabilities:
+            add:
+              - NET_BIND_SERVICE
         # Enable Kubernetes Ingress provider
         providers:
           kubernetesIngress:
