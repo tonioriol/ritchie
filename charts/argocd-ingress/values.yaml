@@ -1,9 +1,9 @@
-host: argocd.example.com
+host: neumann.tonioriol.com
 
 tls:
   enabled: true
   issuer: letsencrypt-prod
 
 letsencrypt:
-  email: admin@example.com
+  email: tonioriol@gmail.com
   server: https://acme-v02.api.letsencrypt.org/directory

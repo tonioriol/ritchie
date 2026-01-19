@@ -11,10 +11,9 @@ spec:
     path: charts/argocd-ingress
     helm:
       values: |
-        # Override these values with your actual domain and email
-        host: argocd.example.com
+        host: neumann.tonioriol.com
         letsencrypt:
-          email: admin@example.com
+          email: tonioriol@gmail.com
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
