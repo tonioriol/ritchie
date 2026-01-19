@@ -1,0 +1,33 @@
+---
+hetzner_token: "${HETZNER_TOKEN}"
+cluster_name: neumann
+kubeconfig_path: "./kubeconfig"
+k3s_version: v1.31.4+k3s1
+
+networking:
+  ssh:
+    port: 22
+    use_agent: true
+    public_key_path: "~/.ssh/id_rsa.pub"
+    private_key_path: "~/.ssh/id_rsa"
+  allowed_networks:
+    ssh:
+      - 0.0.0.0/0
+    api:
+      - 0.0.0.0/0
+  public_network:
+    ipv4: true
+    ipv6: true
+  private_network:
+    enabled: true
+    subnet: 10.0.0.0/16
+
+schedule_workloads_on_masters: false
+
+masters_pool:
+  instance_type: cx22
+  instance_count: 1
+  locations:
+    - fsn1
+
+worker_node_pools: []

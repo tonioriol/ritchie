@@ -1,0 +1,5 @@
+apiVersion: v2
+name: acestream
+description: Acestream HTTP Proxy
+version: 0.1.0
+appVersion: "latest"

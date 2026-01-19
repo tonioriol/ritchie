@@ -1,0 +1,9 @@
+image:
+  repository: ghcr.io/martinbjeldbak/acestream-http-proxy
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: NodePort
+  port: 6878
+  nodePort: 30878
