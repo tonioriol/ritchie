@@ -68,3 +68,10 @@ Prefer managing this via ArgoCD:
 This keeps the cluster fully GitOps-driven and avoids drift.
 
 ## EVENT LOG
+
+* **2026-01-20 - Install metrics-server (GitOps via ArgoCD + Helm)**
+  * Added ArgoCD Application to install metrics-server into `kube-system`:
+    * `/Users/tr0n/Code/ritchie/apps/metrics-server.yaml`
+  * Notes (k3s TLS): enabled `--kubelet-insecure-tls` so `kubectl top` works reliably on k3s where kubelet certificates are often not verifiable from in-cluster clients.
+    * Tradeoff: kubelet certificate validation is skipped (HTTPS still used).
+    * If you later want strict TLS, remove `--kubelet-insecure-tls` from the Helm values and re-sync.
