@@ -404,6 +404,19 @@ kubectl -n media logs -l app=acestream
   * Verified:
     * `https://neumann.tonioriol.com` returns HTTP 200 and serves the ArgoCD UI
 
+* **2026-01-20 01:23 - Simplify GitOps manifests & confirm diffs vs baseline commit**
+  * Compared current `HEAD` against baseline commit `4cb1bc95da565e6df37208ea60d30861fc175535` to ensure the “ingress + TLS hardening” work remains readable and minimal.
+    * `git diff --stat 4cb1bc95da565e6df37208ea60d30861fc175535..HEAD`
+  * Applied a small simplification in `/Users/tr0n/Code/ritchie/apps/root.yaml`:
+    * Removed `spec.source.directory.recurse: false` (default behaviour is already non-recursive for `directory` sources).
+    * Committed as `51cb090` (keeps behaviour unchanged).
+  * Noted a suspicious “URL-like” path in the diff stat output; verified it does not exist on disk and is not tracked by git (no follow-up required).
+  * Sanity checks:
+    * `helm lint /Users/tr0n/Code/ritchie/charts/acestream`
+    * `helm lint /Users/tr0n/Code/ritchie/charts/argocd-ingress`
+  * Repo state:
+    * `main` is pushed to GitHub after `b5a7682` (previous simplify pass) and `51cb090` (root app simplification).
+
 ---
 
 ## Next Steps
@@ -411,6 +424,6 @@ kubectl -n media logs -l app=acestream
 - [x] Provision cluster `neumann` via `hetzner-k3s` and generate kubeconfig
 - [x] Install ArgoCD and expose UI via NodePort
 - [x] Deploy acestream via ArgoCD Application
-- [ ] (Optional) Install ArgoCD CLI locally for convenience (`argocd app list`, `argocd app sync`)
+- [x] (Optional) Install ArgoCD CLI locally for convenience (via devbox)
 - [x] (Recommended) Secure ArgoCD access (ingress + TLS, SSO, or IP allowlist); NodePort is currently open
 - [x] (Recommended) Commit & push repo changes so ArgoCD remains fully GitOps-driven for future changes
