@@ -376,9 +376,9 @@ kubectl -n media logs -l app=acestream
   * Recorded acestream deployment via ArgoCD Application
   * Updated next steps checklist to reflect completed tasks
 
-* **2026-01-19 23:55 - ArgoCD secured behind Traefik Ingress + Let's Encrypt**
+ * **2026-01-19 23:55 - ArgoCD secured behind Traefik Ingress + Let's Encrypt**
   * DNS:
-    * Created `A` record: `neumann.tonioriol.com` -> `5.75.129.215`
+    * Created `A` record: `neumann.tonioriol.com` -> `5.75.129.215` (TTL: 30s, DigitalOcean minimum)
   * Hetzner Cloud firewall (`neumann`):
     * Added inbound TCP 80 (HTTP, required for cert-manager HTTP-01)
     * Added inbound TCP 443 (HTTPS)
@@ -417,6 +417,26 @@ kubectl -n media logs -l app=acestream
   * Repo state:
     * `main` is pushed to GitHub after `b5a7682` (previous simplify pass) and `51cb090` (root app simplification).
 
+ * **2026-01-20 02:16 - Reduced DigitalOcean DNS TTL for neumann (doctl)**
+   * Goal: reduce propagation time for updates to `neumann.tonioriol.com` by setting TTL to DigitalOcean minimum (30s).
+   * Located the record and its current TTL:
+     * `doctl compute domain records list tonioriol.com --format ID,Type,Name,Data,TTL`
+   * Found record: `A neumann -> 5.75.129.215` with record ID `1805008488` and TTL `300`.
+   * First update attempt failed due to incorrect `doctl` syntax:
+     * Command: `doctl compute domain records update tonioriol.com 1805008488 --record-ttl 30`
+     * Error: `(records.update) command contains unsupported arguments`
+   * Root cause: `records update` does not accept record ID as a positional argument; must use `--record-id`.
+   * Updated TTL to 30s successfully:
+     * `doctl compute domain records update tonioriol.com --record-id 1805008488 --record-ttl 30`
+     * Verified output shows TTL `30` for record `1805008488`.
+
+ * **2026-01-20 02:22 - Updated ace.tonioriol.com DNS to point to neumann acestream proxy**
+   * Goal: route `ace.tonioriol.com` to the new acestream-http-proxy running on the `neumann` cluster.
+   * Updated DigitalOcean DNS `A` record:
+     * `ace.tonioriol.com` -> `5.75.129.215` (record ID `1777925433`, TTL `30s`)
+   * Command:
+     * `doctl compute domain records update tonioriol.com --record-id 1777925433 --record-data 5.75.129.215 --record-ttl 30`
+
 ---
 
 ## Next Steps
@@ -427,3 +447,4 @@ kubectl -n media logs -l app=acestream
 - [x] (Optional) Install ArgoCD CLI locally for convenience (via devbox)
 - [x] (Recommended) Secure ArgoCD access (ingress + TLS, SSO, or IP allowlist); NodePort is currently open
 - [x] (Recommended) Commit & push repo changes so ArgoCD remains fully GitOps-driven for future changes
+- [x] Reduce DigitalOcean DNS TTL for `neumann.tonioriol.com` to 30s (minimum)

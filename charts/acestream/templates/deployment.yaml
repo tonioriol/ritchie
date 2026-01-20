@@ -16,5 +16,10 @@ spec:
         - name: acestream
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # Required to allow access from outside the container network namespace.
+            # See upstream README: ALLOW_REMOTE_ACCESS=yes.
+            - name: ALLOW_REMOTE_ACCESS
+              value: "yes"
           ports:
             - containerPort: {{ .Values.service.port }}

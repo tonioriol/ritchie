@@ -7,3 +7,16 @@ service:
   type: NodePort
   port: 6878
   nodePort: 30878
+
+# Optional: provide a portless HTTPS endpoint (like the legacy ritchie nginx reverse-proxy)
+# by running an in-cluster nginx reverse proxy + Traefik Ingress.
+proxy:
+  enabled: true
+
+ingress:
+  enabled: true
+  host: ace.tonioriol.com
+  tls:
+    enabled: true
+    issuer: letsencrypt-prod
+    secretName: ace-tonioriol-com-tls
