@@ -11,12 +11,12 @@ spec:
     targetRevision: 34.4.1
     helm:
       values: |
-        # Bind Traefik directly to the node's :80/:443 so HTTP-01 challenges work.
-        # With NodePort only, cert-manager's self-check to http://<domain>:80 can fail.
+        # Bind Traefik directly to the node's :80/:443 so cert-manager HTTP-01 works.
         hostNetwork: true
 
         service:
           type: ClusterIP
+
         ports:
           web:
             port: 80
@@ -27,14 +27,12 @@ spec:
             containerPort: 443
             hostPort: 443
 
-        # Needed because Traefik runs as non-root by default, but must bind :80/:443.
+        # Bind :80/:443 (privileged ports): run as root and add NET_BIND_SERVICE.
         podSecurityContext:
           runAsUser: 0
           runAsGroup: 0
           runAsNonRoot: false
 
-        # The chart defaults to dropping ALL capabilities, which prevents binding :80/:443.
-        # Add back NET_BIND_SERVICE.
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -42,6 +40,7 @@ spec:
             drop: []
             add:
               - NET_BIND_SERVICE
+
         # Enable Kubernetes Ingress provider
         providers:
           kubernetesIngress:

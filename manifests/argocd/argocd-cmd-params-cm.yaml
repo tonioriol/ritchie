@@ -4,7 +4,5 @@ metadata:
   name: argocd-cmd-params-cm
   namespace: argocd
 data:
-  # When terminating TLS at the ingress (Traefik), ArgoCD must run in "insecure" mode
-  # to avoid HTTP->HTTPS redirect loops (ArgoCD would otherwise redirect because it sees plain HTTP from Traefik).
+  # TLS is terminated at Traefik; run ArgoCD server in insecure mode to avoid redirect loops.
   server.insecure: "true"
-

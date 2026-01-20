@@ -5,8 +5,8 @@ metadata:
   name: {{ .Values.tls.issuer }}
 spec:
   acme:
-    email: {{ .Values.letsencrypt.email }}
-    server: {{ .Values.letsencrypt.server }}
+    email: {{ .Values.letsencrypt.email | quote }}
+    server: {{ .Values.letsencrypt.server | quote }}
     privateKeySecretRef:
       name: {{ .Values.tls.issuer }}-account-key
     solvers:
