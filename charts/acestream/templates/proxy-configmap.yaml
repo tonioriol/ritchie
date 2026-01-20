@@ -4,6 +4,14 @@ metadata:
   name: {{ .Release.Name }}-proxy-nginx
 data:
   default.conf: |
+    # Some clients (and curl -I) send HEAD requests. The upstream Python HTTP server
+    # used by acestream-http-proxy may not implement HEAD for all endpoints, which
+    # can result in 501 responses. Convert HEAD -> GET when proxying.
+    map $request_method $acestream_proxy_method {
+      default $request_method;
+      HEAD    GET;
+    }
+
     server {
       listen 8080;
       server_name _;
@@ -39,6 +47,7 @@ data:
         proxy_buffering off;
         proxy_request_buffering off;
 
+        proxy_method $acestream_proxy_method;
         proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }};
         proxy_http_version 1.1;
 
