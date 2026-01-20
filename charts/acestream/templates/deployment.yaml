@@ -12,6 +12,8 @@ spec:
       labels:
         app: {{ .Release.Name }}
     spec:
+      securityContext:
+        runAsUser: {{ .Values.acestream.runAsUser }}
       containers:
         - name: acestream
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -21,5 +23,19 @@ spec:
             # See upstream README: ALLOW_REMOTE_ACCESS=yes.
             - name: ALLOW_REMOTE_ACCESS
               value: "yes"
+            # Pin AceStream engine version to match the legacy ritchie host.
+            - name: ACESTREAM_VERSION
+              value: {{ .Values.acestream.version | quote }}
+            # Ensure the engine uses the persisted state dir (also matches legacy).
+            - name: HOME
+              value: "/root"
+          securityContext:
+            privileged: {{ .Values.acestream.privileged }}
           ports:
             - containerPort: {{ .Values.service.port }}
+          volumeMounts:
+            - name: acestream-data
+              mountPath: {{ .Values.acestream.stateDir }}
+      volumes:
+        - name: acestream-data
+          emptyDir: {}

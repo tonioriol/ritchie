@@ -3,6 +3,16 @@ image:
   tag: latest
   pullPolicy: Always
 
+# Match the known-good legacy ritchie setup:
+# - run privileged
+# - persist engine state under /root/.ACEStream
+# - pin AceStream engine version
+acestream:
+  version: "3.2.3_ubuntu_22.04_x86_64_py3.10"
+  stateDir: "/root/.ACEStream"
+  privileged: true
+  runAsUser: 0
+
 service:
   type: NodePort
   port: 6878
