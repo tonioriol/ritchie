@@ -1,16 +1,15 @@
 image:
   repository: ghcr.io/martinbjeldbak/acestream-http-proxy
-  # Pin to the same image digest currently used on the legacy ritchie host
-  # (avoids behaviour changes from upstream "latest" updates).
-  tag: "latest@sha256:660398884fa2ab6058583a7e66c1a3b4ea1e0cd6764a9a30448f9f6d6563f36e"
+  # Switch back to upstream latest (per request) to test whether newer builds
+  # improve stream compatibility.
+  tag: latest
   pullPolicy: Always
 
 # Match the known-good legacy ritchie setup:
 # - run privileged
 # - persist engine state under /root/.ACEStream
-# - pin AceStream engine version
+# - do NOT pin AceStream engine version (let the image defaults decide)
 acestream:
-  version: "3.2.3_ubuntu_22.04_x86_64_py3.10"
   stateDir: "/root/.ACEStream"
   privileged: true
   runAsUser: 0

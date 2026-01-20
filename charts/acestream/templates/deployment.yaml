@@ -23,9 +23,6 @@ spec:
             # See upstream README: ALLOW_REMOTE_ACCESS=yes.
             - name: ALLOW_REMOTE_ACCESS
               value: "yes"
-            # Pin AceStream engine version to match the legacy ritchie host.
-            - name: ACESTREAM_VERSION
-              value: {{ .Values.acestream.version | quote }}
             # Ensure the engine uses the persisted state dir (also matches legacy).
             - name: HOME
               value: "/root"
