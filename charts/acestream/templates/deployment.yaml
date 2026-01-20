@@ -31,11 +31,22 @@ spec:
               value: "/root"
           securityContext:
             privileged: {{ .Values.acestream.privileged }}
+          # Legacy Docker setup runs privileged; also give the container access
+          # to the host's /dev/disk/by-id (AceStream probes it on startup).
+          # On k3s this path exists on the node but isn't present inside the pod
+          # unless we mount it.
           ports:
             - containerPort: {{ .Values.service.port }}
           volumeMounts:
             - name: acestream-data
               mountPath: {{ .Values.acestream.stateDir }}
+            - name: host-dev-disk-by-id
+              mountPath: /dev/disk/by-id
+              readOnly: true
       volumes:
         - name: acestream-data
           emptyDir: {}
+        - name: host-dev-disk-by-id
+          hostPath:
+            path: /dev/disk/by-id
+            type: Directory
