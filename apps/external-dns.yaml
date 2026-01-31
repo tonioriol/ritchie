@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/external-dns/
+    chart: external-dns
+    targetRevision: 1.20.0
+    helm:
+      values: |
+        provider:
+          name: digitalocean
+
+        # Limit DNS writes to neumann subdomains only (safety).
+        # This still manages records in the tonioriol.com zone.
+        domainFilters:
+          - neumann.tonioriol.com
+
+        sources:
+          - ingress
+
+        policy: upsert-only
+        registry: txt
+        txtOwnerId: neumann
+
+        # k3s + hostNetwork Traefik does not reliably publish LB status.
+        # Force A records to point at the single node IP.
+        extraArgs:
+          default-targets:
+            - 5.75.129.215
+
+        # DigitalOcean provider auth (Secret not committed to git)
+        env:
+          - name: DO_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-digitalocean
+                key: DO_TOKEN
+                # Intentionally required; create this Secret out-of-band.
+                # See docs/feat/external-dns/plan.md
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-dns
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: acestreamio
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tonioriol/ritchie
+    targetRevision: main
+    path: charts/acestreamio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: media
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

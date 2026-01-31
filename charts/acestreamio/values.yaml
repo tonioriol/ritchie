@@ -1,0 +1,26 @@
+image:
+  repository: ghcr.io/tonioriol/acestreamio
+  tag: main
+  pullPolicy: Always
+
+replicaCount: 1
+
+service:
+  port: 7000
+
+env:
+  # Used to generate absolute URLs for posters in catalog/meta responses.
+  addonUrl: "https://acestreamio.neumann.tonioriol.com"
+
+secret:
+  # Optional secret that may contain STREMIO_KEY (and any other env vars).
+  # The Deployment references it with optional: true so sync won't fail if absent.
+  name: acestreamio
+
+ingress:
+  enabled: true
+  host: acestreamio.neumann.tonioriol.com
+  tls:
+    enabled: true
+    issuer: letsencrypt-prod
+    secretName: acestreamio-neumann-tonioriol-com-tls

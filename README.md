@@ -39,6 +39,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 | App | Namespace | Access |
 |-----|-----------|--------|
 | Acestream | `media` | `http://5.75.129.215:30878` |
+| Acestreamio (Stremio addon) | `media` | `https://acestreamio.neumann.tonioriol.com/manifest.json` |
 
 ### Cluster Management
 
