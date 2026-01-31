@@ -4,10 +4,9 @@ image:
   pullPolicy: Always
 
 # Optional: use this when the GHCR package is private.
-#
 # Example:
-# imagePullSecrets:
-#   - name: ghcr-pull
+#   imagePullSecrets:
+#     - name: ghcr-pull
 imagePullSecrets: []
 
 replicaCount: 1

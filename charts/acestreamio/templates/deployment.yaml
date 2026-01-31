@@ -14,9 +14,9 @@ spec:
       labels:
         {{- include "acestreamio.labels" . | nindent 8 }}
     spec:
-      {{- if .Values.imagePullSecrets }}
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: acestreamio

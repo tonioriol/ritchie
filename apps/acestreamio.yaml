@@ -11,7 +11,8 @@ spec:
     path: charts/acestreamio
     helm:
       values: |
-        # Required if ghcr.io/tonioriol/acestreamio is private.
+        # Required when ghcr.io/tonioriol/acestreamio is private.
+        # Created out-of-band in the cluster as: media/ghcr-pull
         imagePullSecrets:
           - name: ghcr-pull
   destination:
