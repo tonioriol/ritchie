@@ -26,6 +26,10 @@ spec:
             # Ensure the engine uses the persisted state dir (also matches legacy).
             - name: HOME
               value: "/root"
+            # Reduce noisy/possibly harmful local DB usage (we don't need local indexing
+            # for our "manifest.m3u8 by infohash" use-case).
+            - name: USE_LOCAL_DB
+              value: "0"
           securityContext:
             privileged: {{ .Values.acestream.privileged }}
           # Legacy Docker setup runs privileged; also give the container access
