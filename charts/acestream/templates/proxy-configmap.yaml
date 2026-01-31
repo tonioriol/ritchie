@@ -4,14 +4,6 @@ metadata:
   name: {{ .Release.Name }}-proxy-nginx
 data:
   default.conf: |
-    # Some clients (and curl -I) send HEAD requests. The upstream Python HTTP server
-    # used by acestream-http-proxy may not implement HEAD for all endpoints, which
-    # can result in 501 responses. Convert HEAD -> GET when proxying.
-    map $request_method $acestream_proxy_method {
-      default $request_method;
-      HEAD    GET;
-    }
-
     server {
       listen 8080;
       server_name _;
@@ -21,6 +13,52 @@ data:
       sub_filter "https://$host:6878/" "https://$host/";
       sub_filter_once off;
       sub_filter_types *;
+
+      # Some clients (and curl -I) send HEAD requests. The upstream Python HTTP server
+      # used by acestream-http-proxy may not implement HEAD for all endpoints, which
+      # can result in 501 responses.
+      #
+      # Handle HLS playlists explicitly: proxy as GET even when the client uses HEAD.
+      location ~* \.m3u8$ {
+        # Remove any existing CORS headers from backend
+        proxy_hide_header Access-Control-Allow-Origin;
+        proxy_hide_header Access-Control-Allow-Methods;
+        proxy_hide_header Access-Control-Allow-Headers;
+
+        # Add our own CORS headers
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "*" always;
+        add_header Access-Control-Max-Age "1728000" always;
+
+        if ($request_method = OPTIONS) {
+          add_header Content-Length 0;
+          add_header Content-Type text/plain;
+          return 204;
+        }
+
+        # Increase timeouts for streaming
+        proxy_connect_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_buffering off;
+        proxy_request_buffering off;
+
+        proxy_method GET;
+        proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }};
+        proxy_http_version 1.1;
+
+        # Rewrite backend redirects (eg Location: http://$host:6878/...)
+        proxy_redirect http://$host:6878/ https://$host/;
+        proxy_redirect https://$host:6878/ https://$host/;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache_bypass $http_upgrade;
+      }
 
       location / {
         # Remove any existing CORS headers from backend
@@ -47,7 +85,6 @@ data:
         proxy_buffering off;
         proxy_request_buffering off;
 
-        proxy_method $acestream_proxy_method;
         proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }};
         proxy_http_version 1.1;
 
