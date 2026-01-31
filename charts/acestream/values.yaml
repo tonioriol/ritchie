@@ -19,6 +19,17 @@ service:
   port: 6878
   nodePort: 30878
 
+# AceStream benefits from inbound connectivity. Expose the engine's P2P/control
+# ports on the node via hostPort (see templates/deployment.yaml).
+#
+# Observed on neumann (engine logs + /proc/net/tcp):
+# - 8621: "LM" listen port
+# - 62062: i2i (instance-to-instance) port
+p2p:
+  enabled: true
+  port: 8621
+  i2iPort: 62062
+
 # Optional: provide a portless HTTPS endpoint (like the legacy ritchie nginx reverse-proxy)
 # by running an in-cluster nginx reverse proxy + Traefik Ingress.
 proxy:

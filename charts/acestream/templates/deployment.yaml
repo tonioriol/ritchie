@@ -37,7 +37,24 @@ spec:
           # On k3s this path exists on the node but isn't present inside the pod
           # unless we mount it.
           ports:
-            - containerPort: {{ .Values.service.port }}
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            {{- if .Values.p2p.enabled }}
+            # Improve inbound connectivity: bind P2P/control ports on the node.
+            - name: p2p-tcp
+              containerPort: {{ .Values.p2p.port }}
+              hostPort: {{ .Values.p2p.port }}
+              protocol: TCP
+            - name: p2p-udp
+              containerPort: {{ .Values.p2p.port }}
+              hostPort: {{ .Values.p2p.port }}
+              protocol: UDP
+            - name: i2i-tcp
+              containerPort: {{ .Values.p2p.i2iPort }}
+              hostPort: {{ .Values.p2p.i2iPort }}
+              protocol: TCP
+            {{- end }}
           volumeMounts:
             - name: acestream-data
               mountPath: {{ .Values.acestream.stateDir }}
