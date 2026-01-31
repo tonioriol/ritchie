@@ -17,6 +17,22 @@ kubectl -n external-dns create secret generic external-dns-digitalocean \
   | kubectl apply -f -
 ```
 
+### Where to keep the token
+
+There are 3 different “places” that often get confused:
+
+1) **Local developer shell** (for running `doctl` / `kubectl` from your laptop)
+   - Put `DO_TOKEN=...` in your local [`.env`](.env:1) (gitignored by [`.gitignore`](.gitignore:1))
+   - [`.envrc`](.envrc:1) already loads it via [`dotenv_if_exists`](.envrc:5)
+
+2) **Kubernetes runtime** (so ExternalDNS can talk to DigitalOcean)
+   - This is the **required** one: the `external-dns-digitalocean` Secret in the `external-dns` namespace.
+   - GitHub is not involved in runtime auth here.
+
+3) **GitHub Actions secrets** (only if you set up CI workflows)
+   - Not required for ArgoCD “auto deploy”: ArgoCD pulls manifests from git and reconciles in-cluster.
+   - Only needed if you build/push images in GitHub Actions, or if you want CI to run `doctl`.
+
 ## 2) DNS naming model
 
 We intentionally scope ExternalDNS to only manage subdomains under:
