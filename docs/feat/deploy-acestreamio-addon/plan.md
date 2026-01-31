@@ -93,3 +93,9 @@ Use:
 ```
 https://acestreamio.neumann.tonioriol.com/manifest.json
 ```
+
+## Playback troubleshooting notes
+
+- The addon only returns stream *URLs*. Actual playback depends on the Acestream engine + proxy being able to produce HLS playlists.
+- Some IDs will work and others will time out (this is expected; see the findings in [`docs/feat/fix-ace-neumann/context.md`](docs/feat/fix-ace-neumann/context.md:51)).
+- Some players probe `.m3u8` URLs with `HEAD`; the proxy config converts/handles this, but the engine itself may still not implement `HEAD`.
