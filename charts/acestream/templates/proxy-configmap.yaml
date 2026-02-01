@@ -8,6 +8,13 @@ data:
       listen 8080;
       server_name _;
 
+      # Upstream often returns absolute redirects including :6878 (engine port).
+      # :6878 is not reachable externally (we intentionally only expose HTTPS via Ingress),
+      # so rewrite those redirects to the public HTTPS host.
+      #
+      # This is particularly important for `/ace/getstream`, which 302s to `/content/...`.
+      proxy_redirect ~^https?://[^/]+:6878/(.*)$ https://{{ .Values.ingress.host }}/$1;
+
       # Legacy ritchie behaviour: fix backend-generated URLs that include :6878
       # NOTE: nginx sub_filter does not expand $host; use the configured public host explicitly.
       sub_filter "http://{{ .Values.ingress.host }}:6878/" "https://{{ .Values.ingress.host }}/";
