@@ -18,6 +18,10 @@ spec:
         - name: acestream
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.resources }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
           env:
             # Required to allow access from outside the container network namespace.
             # See upstream README: ALLOW_REMOTE_ACCESS=yes.
@@ -63,7 +67,12 @@ spec:
               readOnly: true
       volumes:
         - name: acestream-data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-data
+          {{- else }}
           emptyDir: {}
+          {{- end }}
         - name: host-dev-disk-by-id
           hostPath:
             path: /dev/disk/by-id

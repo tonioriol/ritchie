@@ -14,6 +14,25 @@ acestream:
   privileged: true
   runAsUser: 0
 
+# Persist AceStream state (recommended for stability across restarts).
+# k3s typically provides the "local-path" StorageClass.
+persistence:
+  enabled: true
+  storageClassName: "local-path"
+  accessModes:
+    - ReadWriteOnce
+  size: 10Gi
+  # existingClaim: ""  # set to use a pre-created PVC
+
+# CPU/memory tuning (helps reduce buffering caused by an under-provisioned engine).
+resources:
+  requests:
+    cpu: "1000m"
+    memory: "768Mi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
 service:
   type: NodePort
   port: 6878
@@ -34,6 +53,14 @@ p2p:
 # by running an in-cluster nginx reverse proxy + Traefik Ingress.
 proxy:
   enabled: true
+
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "32Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
 
 ingress:
   enabled: true
