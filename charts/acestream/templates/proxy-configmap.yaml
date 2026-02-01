@@ -270,6 +270,15 @@ data:
         proxy_buffering off;
         proxy_request_buffering off;
 
+        # Many clients (including Stremio) probe with HEAD before GET.
+        # The upstream Python HTTP server does not reliably implement HEAD for all endpoints
+        # (observed 501). Convert HEAD -> GET upstream.
+        set $upstream_method $request_method;
+        if ($request_method = HEAD) {
+          set $upstream_method GET;
+        }
+        proxy_method $upstream_method;
+
         proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }};
         proxy_http_version 1.1;
 
