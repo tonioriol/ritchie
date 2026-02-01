@@ -34,6 +34,12 @@ resources:
     cpu: "2000m"
     memory: "2Gi"
 
+# Deployment update strategy.
+# The engine binds hostPorts (P2P ports). RollingUpdate with surge can't schedule a second pod,
+# so we use Recreate to ensure hostPorts are freed before starting the new pod.
+updateStrategy:
+  type: Recreate
+
 service:
   type: NodePort
   port: 6878

@@ -4,6 +4,8 @@ metadata:
   name: {{ .Release.Name }}
 spec:
   replicas: 1
+  strategy:
+    type: {{ .Values.updateStrategy.type | default "RollingUpdate" }}
   selector:
     matchLabels:
       app: {{ .Release.Name }}
