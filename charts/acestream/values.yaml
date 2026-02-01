@@ -18,7 +18,8 @@ acestream:
 # k3s typically provides the "local-path" StorageClass.
 persistence:
   enabled: true
-  storageClassName: "local-path"
+  # neumann uses Hetzner CSI; default StorageClass is `hcloud-volumes`.
+  storageClassName: "hcloud-volumes"
   accessModes:
     - ReadWriteOnce
   size: 10Gi
