@@ -14,6 +14,94 @@ data:
       sub_filter_once off;
       sub_filter_types *;
 
+      # The engine returns a 302 from /ace/manifest.m3u8 to a per-stream playlist under /ace/m/…
+      # Some clients don't reliably follow redirects for HLS manifests.
+      # Follow the redirect inside nginx and return the playlist body directly.
+      location = /ace/manifest.m3u8 {
+        proxy_hide_header Access-Control-Allow-Origin;
+        proxy_hide_header Access-Control-Allow-Methods;
+        proxy_hide_header Access-Control-Allow-Headers;
+
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "*" always;
+        add_header Access-Control-Max-Age "1728000" always;
+
+        if ($request_method = OPTIONS) {
+          add_header Content-Length 0;
+          add_header Content-Type text/plain;
+          return 204;
+        }
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_buffering off;
+        proxy_request_buffering off;
+
+        # Convert HEAD probes to GET upstream.
+        proxy_method GET;
+
+        # Turn 30x into an internal redirect so we can fetch the target and return 200.
+        proxy_intercept_errors on;
+        error_page 301 302 303 307 308 = @follow_manifest;
+
+        proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }};
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache_bypass $http_upgrade;
+      }
+
+      location @follow_manifest {
+        proxy_hide_header Access-Control-Allow-Origin;
+        proxy_hide_header Access-Control-Allow-Methods;
+        proxy_hide_header Access-Control-Allow-Headers;
+
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "*" always;
+        add_header Access-Control-Max-Age "1728000" always;
+
+        if ($request_method = OPTIONS) {
+          add_header Content-Length 0;
+          add_header Content-Type text/plain;
+          return 204;
+        }
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_buffering off;
+        proxy_request_buffering off;
+
+        # Extract only the path from Location (engine tends to send absolute URLs).
+        set $ace_path "";
+        if ($upstream_http_location ~* "^https?://[^/]+(?<p>/.*)$") {
+          set $ace_path $p;
+        }
+
+        # If we couldn't parse a path, fail fast.
+        if ($ace_path = "") {
+          return 502;
+        }
+
+        proxy_method GET;
+        proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }}$ace_path;
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache_bypass $http_upgrade;
+      }
+
       # Some clients (and curl -I) send HEAD requests. The upstream Python HTTP server
       # used by acestream-http-proxy may not implement HEAD for all endpoints, which
       # can result in 501 responses.
