@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argocd-image-updater
+    targetRevision: 1.0.4
+    helm:
+      values: |
+        # Install Argo CD Image Updater as a controller in-cluster.
+        # It will update ArgoCD Application specs (write-back method "argocd"), not git.
+        namespaceOverride: argocd
+
+        config:
+          # ArgoCD Applications live in the argocd namespace in this repo.
+          argocd.namespace: argocd
+
+          # Registry configuration (needed for private GHCR).
+          registries:
+            - name: GitHub Container Registry
+              api_url: https://ghcr.io
+              prefix: ghcr.io
+              ping: yes
+              # Create this dockerconfigjson Secret out-of-band (not committed):
+              #   kubectl -n argocd create secret docker-registry ghcr-pull ...
+              credentials: pullsecret:argocd/ghcr-pull
+
+        # Manage images via ImageUpdater CRs (deployed below).
+        extraObjects:
+          - apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+            kind: ImageUpdater
+            metadata:
+              name: media-images
+              namespace: argocd
+            spec:
+              # Namespace where Argo CD Applications exist
+              namespace: argocd
+              applicationRefs:
+                - namePattern: acestreamio
+                  images:
+                    - alias: acestreamio
+                      # Track only semver-style release tags (e.g. v1.0.0).
+                      imageName: ghcr.io/tonioriol/acestreamio
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                        # Needed when GHCR is private. Must exist in argocd namespace.
+                        pullSecret: pullsecret:argocd/ghcr-pull
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

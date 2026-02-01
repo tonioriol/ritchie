@@ -1,6 +1,9 @@
 image:
   repository: ghcr.io/tonioriol/acestreamio
   tag: main
+  # Optional: pin by digest (recommended). If set, tag is ignored.
+  # Example: sha256:deadbeef...
+  digest: ""
   pullPolicy: Always
 
 # Optional: use this when the GHCR package is private.
@@ -17,6 +20,10 @@ service:
 env:
   # Used to generate absolute URLs for posters in catalog/meta responses.
   addonUrl: "https://acestreamio.neumann.tonioriol.com"
+  # Optional runtime tuning for the addon code (supported by ../acestreamio/addon.js)
+  proxyUrl: "https://ace.neumann.tonioriol.com"
+  enableLocalEngine: "false"
+  localUrl: "http://127.0.0.1:6878"
 
 secret:
   # Optional secret that may contain STREMIO_KEY (and any other env vars).

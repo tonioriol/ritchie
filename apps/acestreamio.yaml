@@ -3,6 +3,16 @@ kind: Application
 metadata:
   name: acestreamio
   namespace: argocd
+  annotations:
+    # Allow Argo CD Image Updater to patch Helm parameters on this Application.
+    # Image alias used below is "acestreamio".
+    argocd-image-updater.argoproj.io/image-list: acestreamio=ghcr.io/tonioriol/acestreamio
+    # Only deploy official releases (semver tags like v1.0.0).
+    argocd-image-updater.argoproj.io/acestreamio.update-strategy: semver
+    argocd-image-updater.argoproj.io/acestreamio.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+    # Helm value keys to patch
+    argocd-image-updater.argoproj.io/acestreamio.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/acestreamio.helm.image-tag: image.tag
 spec:
   project: default
   source:

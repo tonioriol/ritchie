@@ -14,6 +14,14 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
+  # Allow in-cluster automation to mutate certain parts of child Applications.
+  # Needed for Argo CD Image Updater when using write-back method "argocd" (no git commits).
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        # Argo CD Image Updater writes Helm overrides here.
+        - /spec/source/helm/parameters
   syncPolicy:
     automated:
       prune: true

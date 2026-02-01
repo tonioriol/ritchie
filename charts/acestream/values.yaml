@@ -37,8 +37,8 @@ proxy:
 
 ingress:
   enabled: true
-  host: ace.tonioriol.com
+  host: ace.neumann.tonioriol.com
   tls:
     enabled: true
     issuer: letsencrypt-prod
-    secretName: ace-tonioriol-com-tls
+    secretName: ace-neumann-tonioriol-com-tls
