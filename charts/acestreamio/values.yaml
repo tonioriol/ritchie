@@ -1,6 +1,8 @@
 image:
   repository: ghcr.io/tonioriol/acestreamio
-  tag: main
+  # Use a SemVer tag so Argo CD Image Updater (semver strategy) can compare versions.
+  # It will keep this updated in-cluster via Application helm.parameters.
+  tag: v1.2.0
   # Optional: pin by digest (recommended). If set, tag is ignored.
   # Example: sha256:deadbeef...
   digest: ""
