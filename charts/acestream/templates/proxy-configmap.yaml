@@ -9,8 +9,9 @@ data:
       server_name _;
 
       # Legacy ritchie behaviour: fix backend-generated URLs that include :6878
-      sub_filter "http://$host:6878/" "https://$host/";
-      sub_filter "https://$host:6878/" "https://$host/";
+      # NOTE: nginx sub_filter does not expand $host; use the configured public host explicitly.
+      sub_filter "http://{{ .Values.ingress.host }}:6878/" "https://{{ .Values.ingress.host }}/";
+      sub_filter "https://{{ .Values.ingress.host }}:6878/" "https://{{ .Values.ingress.host }}/";
       sub_filter_once off;
       sub_filter_types *;
 
@@ -147,9 +148,10 @@ data:
         proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }};
         proxy_http_version 1.1;
 
-        # Rewrite backend redirects (eg Location: http://$host:6878/...)
-        proxy_redirect http://$host:6878/ https://$host/;
-        proxy_redirect https://$host:6878/ https://$host/;
+        # Rewrite backend redirects (eg Location: http://<public-host>:6878/...)
+        # NOTE: proxy_redirect does not reliably expand variables in the match pattern.
+        proxy_redirect http://{{ .Values.ingress.host }}:6878/ https://{{ .Values.ingress.host }}/;
+        proxy_redirect https://{{ .Values.ingress.host }}:6878/ https://{{ .Values.ingress.host }}/;
 
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -223,9 +225,9 @@ data:
         proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }};
         proxy_http_version 1.1;
 
-        # Rewrite backend redirects (eg Location: http://$host:6878/...)
-        proxy_redirect http://$host:6878/ https://$host/;
-        proxy_redirect https://$host:6878/ https://$host/;
+        # Rewrite backend redirects (eg Location: http://<public-host>:6878/...)
+        proxy_redirect http://{{ .Values.ingress.host }}:6878/ https://{{ .Values.ingress.host }}/;
+        proxy_redirect https://{{ .Values.ingress.host }}:6878/ https://{{ .Values.ingress.host }}/;
 
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -264,9 +266,9 @@ data:
         proxy_pass http://{{ .Release.Name }}:{{ .Values.service.port }};
         proxy_http_version 1.1;
 
-        # Rewrite backend redirects (eg Location: http://$host:6878/...)
-        proxy_redirect http://$host:6878/ https://$host/;
-        proxy_redirect https://$host:6878/ https://$host/;
+        # Rewrite backend redirects (eg Location: http://<public-host>:6878/...)
+        proxy_redirect http://{{ .Values.ingress.host }}:6878/ https://{{ .Values.ingress.host }}/;
+        proxy_redirect https://{{ .Values.ingress.host }}:6878/ https://{{ .Values.ingress.host }}/;
 
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
