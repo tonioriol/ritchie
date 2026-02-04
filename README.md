@@ -49,6 +49,14 @@ Deploying changes:
 - It tracks `ghcr.io/tonioriol/acestreamio:vX.Y.Z` (SemVer tags)
 - When a new SemVer image is published, it patches the in-cluster ArgoCD `Application`, then ArgoCD rolls the `Deployment`
 
+### Acestreamio release process (addon repo)
+
+The addon repo (`tonioriol/acestreamio`) uses semantic-release on every push to `main`:
+
+1) Commit using Conventional Commits (e.g. `fix:`/`feat:`)
+2) GitHub Actions `Release` workflow computes SemVer, creates tag/release, and builds/pushes `ghcr.io/tonioriol/acestreamio:vX.Y.Z`
+3) ArgoCD Image Updater detects the new tag and rolls the deployment automatically
+
 ---
 
 ## legacy ritchie (DO)

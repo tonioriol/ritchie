@@ -18,6 +18,13 @@ This file provides guidance to agents when working with code in this repository.
   - (render check) `helm template test charts/acestream | kubectl apply --dry-run=server -f -`
 - Apply GitOps manifests (when needed): `kubectl apply -f apps/root.yaml` (ArgoCD will reconcile the rest).
 
+## Acestreamio release process (addon repo)
+
+- The addon repo (`tonioriol/acestreamio`) uses semantic-release on every push to `main`.
+- Use Conventional Commits (e.g. `fix:`/`feat:`) so semantic-release can compute SemVer.
+- The `Release` workflow creates the tag/release and builds `ghcr.io/tonioriol/acestreamio:vX.Y.Z`.
+- ArgoCD Image Updater in this repo detects the new SemVer tag and rolls the deployment automatically.
+
 ## Cluster/provisioning gotchas
 
 - `hetzner-k3s` uses `HCLOUD_TOKEN` (not `HETZNER_TOKEN`) per the event log in [`docs/feat/k3-cluster-hetzner/context.md`](docs/feat/k3-cluster-hetzner/context.md:333).
@@ -31,4 +38,3 @@ This file provides guidance to agents when working with code in this repository.
 ## Metrics-server (k3s TLS)
 
 - `kubectl top …` works because [`apps/metrics-server.yaml`](apps/metrics-server.yaml:1) injects `--kubelet-insecure-tls` (k3s kubelet certs are often not verifiable in-cluster).
-
