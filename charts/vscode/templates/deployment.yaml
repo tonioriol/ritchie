@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}
   labels:
-    {{- include "code-server.labels" . | nindent 4 }}
+    {{- include "vscode.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "code-server.labels" . | nindent 6 }}
+      {{- include "vscode.labels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "code-server.labels" . | nindent 8 }}
+        {{- include "vscode.labels" . | nindent 8 }}
     spec:
       containers:
-        - name: code-tunnel
+        - name: vscode-tunnel
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:

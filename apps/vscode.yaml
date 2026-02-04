@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/tonioriol/ritchie
     targetRevision: main
-    path: charts/code-server
+    path: charts/vscode
   destination:
     server: https://kubernetes.default.svc
     namespace: tools
