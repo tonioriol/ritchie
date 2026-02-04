@@ -33,7 +33,7 @@ spec:
                 curl -fsSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64" -o /tmp/vscode-cli.tar.gz
                 tar -xzf /tmp/vscode-cli.tar.gz -C {{ .Values.persistence.mountPath }}/vscode-cli
               fi
-              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel{{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}"
+              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel{{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}" --cli-data-dir "{{ .Values.persistence.mountPath }}/.vscode-cli"
           env:
             - name: HOME
               value: {{ .Values.persistence.mountPath | quote }}
