@@ -39,6 +39,8 @@ spec:
               value: {{ .Values.persistence.mountPath | quote }}
             - name: XDG_CONFIG_HOME
               value: {{ printf "%s/.config" .Values.persistence.mountPath | quote }}
+            - name: VSCODE_CLI_DATA_DIR
+              value: {{ printf "%s/.vscode-cli" .Values.persistence.mountPath | quote }}
             - name: VSCODE_AGENT_FOLDER
               value: {{ printf "%s/.vscode-server" .Values.persistence.mountPath | quote }}
             - name: VSCODE_CLI_DISABLE_KEYCHAIN_ENCRYPT
