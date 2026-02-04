@@ -33,7 +33,7 @@ spec:
                 curl -fsSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64" -o /tmp/vscode-cli.tar.gz
                 tar -xzf /tmp/vscode-cli.tar.gz -C {{ .Values.persistence.mountPath }}/vscode-cli
               fi
-              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel{{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}" --cli-data-dir "{{ .Values.persistence.mountPath }}/.vscode-cli"
+              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel{{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}" --cli-data-dir "{{ .Values.persistence.mountPath }}/.vscode-cli" --server-data-dir "{{ .Values.persistence.mountPath }}/.vscode-cli/servers"
           env:
             - name: HOME
               value: {{ .Values.persistence.mountPath | quote }}
@@ -42,7 +42,7 @@ spec:
             - name: VSCODE_CLI_DATA_DIR
               value: {{ printf "%s/.vscode-cli" .Values.persistence.mountPath | quote }}
             - name: VSCODE_AGENT_FOLDER
-              value: {{ printf "%s/.vscode-server" .Values.persistence.mountPath | quote }}
+              value: {{ printf "%s/.vscode-cli/servers" .Values.persistence.mountPath | quote }}
             - name: VSCODE_CLI_DISABLE_KEYCHAIN_ENCRYPT
               value: "1"
           volumeMounts:
