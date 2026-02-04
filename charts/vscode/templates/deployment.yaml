@@ -30,10 +30,11 @@ spec:
               fi
               mkdir -p {{ .Values.persistence.mountPath }}/vscode-cli
               if [ ! -x "{{ .Values.persistence.mountPath }}/vscode-cli/code" ]; then
-                curl -fsSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64" -o /tmp/vscode-cli.tar.gz
+                curl -fsSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64" -o /tmp/vscode-cli.tar.gz
                 tar -xzf /tmp/vscode-cli.tar.gz -C {{ .Values.persistence.mountPath }}/vscode-cli
               fi
-              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel{{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}" --cli-data-dir "{{ .Values.persistence.mountPath }}/.vscode-cli" --server-data-dir "{{ .Values.persistence.mountPath }}/.vscode-cli/servers"
+              mkdir -p {{ .Values.persistence.mountPath }}/.vscode-cli/servers/extensions
+              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel{{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}" --cli-data-dir "{{ .Values.persistence.mountPath }}/.vscode-cli" --server-data-dir "{{ .Values.persistence.mountPath }}/.vscode-cli/servers" --extensions-dir "{{ .Values.persistence.mountPath }}/.vscode-cli/servers/extensions"
           env:
             - name: HOME
               value: {{ .Values.persistence.mountPath | quote }}
