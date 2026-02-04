@@ -1,5 +1,5 @@
 {{- define "code-server.name" -}}
-code-server
+vscode
 {{- end -}}
 
 {{- define "code-server.labels" -}}

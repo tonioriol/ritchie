@@ -1,19 +1,15 @@
 image:
-  repository: ghcr.io/coder/code-server
-  tag: 4.95.1
+  repository: mcr.microsoft.com/devcontainers/universal
+  tag: 2
   pullPolicy: IfNotPresent
 
 replicaCount: 1
 
-service:
-  type: ClusterIP
-  port: 80
-  targetPort: 8080
-
-env:
-  passwordSecret:
-    name: code-server-auth
-    key: password
+tunnel:
+  name: code
+  provider: github
+  acceptLicense: true
+  logLevel: info
 
 persistence:
   enabled: true
@@ -21,7 +17,7 @@ persistence:
   accessModes:
     - ReadWriteOnce
   storageClassName: "hcloud-volumes"
-  mountPath: /home/coder
+  mountPath: /code
 
 resources:
   requests:
@@ -32,9 +28,4 @@ resources:
     memory: 1Gi
 
 ingress:
-  enabled: true
-  host: code.neumann.tonioriol.com
-  tls:
-    enabled: true
-    issuer: letsencrypt-prod
-    secretName: code-neumann-tonioriol-com-tls
+  enabled: false
