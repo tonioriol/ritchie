@@ -29,10 +29,10 @@ spec:
               fi
               mkdir -p {{ .Values.persistence.mountPath }}/vscode-cli
               if [ ! -x "{{ .Values.persistence.mountPath }}/vscode-cli/code" ]; then
-                curl -sL "https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64" -o /tmp/vscode-cli.tar.gz
+                curl -fsSL "https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64" -o /tmp/vscode-cli.tar.gz
                 tar -xzf /tmp/vscode-cli.tar.gz -C {{ .Values.persistence.mountPath }}/vscode-cli
               fi
-              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel {{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}" --provider "{{ .Values.tunnel.provider }}" --log "{{ .Values.tunnel.logLevel }}"
+              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel{{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}" --provider "{{ .Values.tunnel.provider }}" --log "{{ .Values.tunnel.logLevel }}"
           env:
             - name: VSCODE_AGENT_FOLDER
               value: {{ printf "%s/.vscode-server" .Values.persistence.mountPath | quote }}
