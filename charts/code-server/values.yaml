@@ -7,9 +7,7 @@ replicaCount: 1
 
 tunnel:
   name: code
-  provider: github
   acceptLicense: true
-  logLevel: info
 
 persistence:
   enabled: true
