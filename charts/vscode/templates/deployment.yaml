@@ -34,6 +34,10 @@ spec:
               fi
               "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel{{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}"
           env:
+            - name: HOME
+              value: {{ .Values.persistence.mountPath | quote }}
+            - name: XDG_CONFIG_HOME
+              value: {{ printf "%s/.config" .Values.persistence.mountPath | quote }}
             - name: VSCODE_AGENT_FOLDER
               value: {{ printf "%s/.vscode-server" .Values.persistence.mountPath | quote }}
             - name: VSCODE_CLI_DISABLE_KEYCHAIN_ENCRYPT
