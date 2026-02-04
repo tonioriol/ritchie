@@ -14,10 +14,6 @@ spec:
       labels:
         {{- include "code-server.labels" . | nindent 8 }}
     spec:
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
       containers:
         - name: code-tunnel
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -27,17 +23,20 @@ spec:
             - -lc
           args:
             - |
-              apt-get update && apt-get install -y curl ca-certificates && rm -rf /var/lib/apt/lists/*
-              mkdir -p /opt/vscode
-              curl -sL "https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64" | tar -xz -C /opt/vscode
-              /opt/vscode/code tunnel \
-                {{- if .Values.tunnel.acceptLicense }}--accept-server-license-terms {{- end }}\
-                --name "{{ .Values.tunnel.name }}" \
-                --provider "{{ .Values.tunnel.provider }}" \
-                --log "{{ .Values.tunnel.logLevel }}"
+              set -euo pipefail
+              if ! command -v curl >/dev/null 2>&1; then
+                apt-get update && apt-get install -y curl ca-certificates && rm -rf /var/lib/apt/lists/*
+              fi
+              mkdir -p {{ .Values.persistence.mountPath }}/vscode-cli
+              if [ ! -x "{{ .Values.persistence.mountPath }}/vscode-cli/code" ]; then
+                curl -sL "https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64" | tar -xz -C {{ .Values.persistence.mountPath }}/vscode-cli
+              fi
+              "{{ .Values.persistence.mountPath }}/vscode-cli/code" tunnel {{- if .Values.tunnel.acceptLicense }} --accept-server-license-terms{{- end }} --name "{{ .Values.tunnel.name }}" --provider "{{ .Values.tunnel.provider }}" --log "{{ .Values.tunnel.logLevel }}"
           env:
             - name: VSCODE_AGENT_FOLDER
-              value: {{ .Values.persistence.mountPath | quote }}
+              value: {{ printf "%s/.vscode-server" .Values.persistence.mountPath | quote }}
+            - name: VSCODE_CLI_DISABLE_KEYCHAIN_ENCRYPT
+              value: "1"
           volumeMounts:
             {{- if .Values.persistence.enabled }}
             - name: data
