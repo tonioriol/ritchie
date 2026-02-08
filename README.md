@@ -20,6 +20,22 @@ GitOps repo for the **neumann** k3s cluster (Hetzner). Includes minimal notes fo
 | AceStream engine (NodePort) | `http://5.75.129.215:30878` |
 | Acestreamio addon | `https://acestreamio.neumann.tonioriol.com/manifest.json` |
 
+### Cloudflare DNS + Tunnel (workaround for ISP Hetzner blocks)
+
+If your ISP blocks Hetzner IP ranges (observed during football matches), put Cloudflare in front so clients connect to Cloudflare anycast IPs.
+
+- Cloudflare zone: `tonioriol.com`
+- **Registrar nameservers (set at registrar when ready to cut over):**
+  - `aisha.ns.cloudflare.com`
+  - `elijah.ns.cloudflare.com`
+- Cloudflare Tunnel connector runs in-cluster via ArgoCD: [`apps/cloudflared.yaml`](apps/cloudflared.yaml:1) (chart: [`charts/cloudflared`](charts/cloudflared:1))
+- Tunnel routes:
+  - `acestreamio.neumann.tonioriol.com` → `acestreamio` service
+  - `ace.neumann.tonioriol.com` → `acestream-proxy` service
+  - `neumann.tonioriol.com` → `argocd-server` service
+
+Runbook: [`plans/cloudflare-neumann-cli-runbook.md`](plans/cloudflare-neumann-cli-runbook.md:1)
+
 ### Common commands
 
 ```bash
