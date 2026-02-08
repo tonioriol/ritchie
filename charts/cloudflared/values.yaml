@@ -1,0 +1,31 @@
+image:
+  repository: cloudflare/cloudflared
+  # Keep as an explicit tag for reproducibility.
+  tag: "2025.2.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# Create this Secret out-of-band (not committed):
+# - key: TUNNEL_TOKEN
+tunnelTokenSecret:
+  name: cloudflared-tunnel
+  key: TUNNEL_TOKEN
+
+# Hostnames served by the tunnel.
+hosts:
+  - hostname: acestreamio.neumann.tonioriol.com
+    service: http://acestreamio.media.svc.cluster.local:80
+  - hostname: ace.neumann.tonioriol.com
+    service: http://acestream-proxy.media.svc.cluster.local:80
+  - hostname: neumann.tonioriol.com
+    service: http://argocd-server.argocd.svc.cluster.local:80
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+

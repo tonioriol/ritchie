@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+data:
+  config.yaml: |
+    # Token-based tunnel: tunnel identity is provided via TUNNEL_TOKEN.
+    # We only define ingress routing here.
+    ingress:
+{{- range .Values.hosts }}
+      - hostname: {{ .hostname | quote }}
+        service: {{ .service | quote }}
+{{- end }}
+      - service: http_status:404
+
