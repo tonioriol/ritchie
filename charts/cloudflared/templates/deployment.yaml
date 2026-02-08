@@ -16,12 +16,17 @@ spec:
         - name: cloudflared
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/bin/sh", "-c"]
+          # cloudflare/cloudflared is a distroless-style image (no /bin/sh).
+          # Use argv directly and let Kubernetes substitute $(TUNNEL_TOKEN).
+          command: ["cloudflared"]
           args:
-            - >-
-              exec cloudflared tunnel --no-autoupdate
-              --config /etc/cloudflared/config/config.yaml
-              run --token "$TUNNEL_TOKEN"
+            - tunnel
+            - --no-autoupdate
+            - --config
+            - /etc/cloudflared/config/config.yaml
+            - run
+            - --token
+            - $(TUNNEL_TOKEN)
           env:
             - name: TUNNEL_TOKEN
               valueFrom:
@@ -38,4 +43,3 @@ spec:
         - name: config
           configMap:
             name: cloudflared-config
-
