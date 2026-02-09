@@ -1,15 +1,21 @@
-# Cloudflare delegated neumann.tonioriol.com + Cloudflare Tunnel (CLI-first runbook)
+# Cloudflare Tunnel + DNS cutover (CLI-first runbook)
 
 This runbook is designed to solve the DIGI Spain “blocks Hetzner IP ranges during matches” issue by making clients connect to Cloudflare anycast IPs instead of the Hetzner node IP (`5.75.129.215`).
 
 Current situation:
-- `*.neumann.tonioriol.com` is pinned to `5.75.129.215` via ExternalDNS `default-targets` in [`apps/external-dns.yaml`](apps/external-dns.yaml:29).
 - During the ISP block, traffic to Hetzner ranges fails, regardless of port (your public apps are already HTTPS on 443 via hostNetwork Traefik in [`apps/traefik.yaml`](apps/traefik.yaml:14)).
 
 Target end state:
-- **Delegation**: `neumann.tonioriol.com` delegated to Cloudflare (NS records in the parent `tonioriol.com` zone at DigitalOcean).
-- **Edge**: `acestreamio.neumann.tonioriol.com`, `ace.neumann.tonioriol.com`, and (recommended) `neumann.tonioriol.com` point to a Cloudflare Tunnel.
+- **Edge**: use 1-level hostnames covered by Cloudflare Universal SSL on the free plan:
+  - `acestreamio.tonioriol.com`
+  - `ace.tonioriol.com`
+  - `neumann.tonioriol.com`
 - **Origin**: `cloudflared` runs **inside the k3s cluster** and forwards requests to in-cluster Services.
+
+Why not `*.neumann.tonioriol.com`?
+
+- Cloudflare Universal SSL (Free) only covers `tonioriol.com` and `*.tonioriol.com`.
+- Nested names like `acestreamio.neumann.tonioriol.com` require a paid SSL option (e.g. Advanced Certificate Manager) or a custom certificate upload.
 
 ---
 
@@ -66,7 +72,7 @@ export CF_GLOBAL_API_KEY='...'
 
 Best practice: use the Global API Key only to create a least-privilege API token, then revoke/stop using the Global API Key for automation.
 
-## 2) Create the delegated zone in Cloudflare (CLI via API)
+## 2) Create the zone in Cloudflare (CLI via API)
 
 Local environment variables (example):
 
@@ -137,7 +143,7 @@ Save outputs locally:
 
 ---
 
-## 3) Delegate neumann.tonioriol.com from DigitalOcean to Cloudflare (CLI)
+## 3) (Historical) Delegating a sub-zone
 
 Important: the parent zone is `tonioriol.com` (DigitalOcean). Delegation is done by adding **NS** records for `neumann`.
 
@@ -207,8 +213,8 @@ cloudflared tunnel create neumann
 Create DNS routes pointing hostnames at the tunnel:
 
 ```bash
-cloudflared tunnel route dns neumann acestreamio.neumann.tonioriol.com
-cloudflared tunnel route dns neumann ace.neumann.tonioriol.com
+cloudflared tunnel route dns neumann acestreamio.tonioriol.com
+cloudflared tunnel route dns neumann ace.tonioriol.com
 
 # Recommended: keep ArgoCD UI hostname working after delegation
 cloudflared tunnel route dns neumann neumann.tonioriol.com
@@ -234,8 +240,7 @@ We will implement these repo changes (in code mode):
 2) Add a new ArgoCD Application:
 - `apps/cloudflared.yaml`
 
-3) Stop DigitalOcean ExternalDNS from forcing `*.neumann.tonioriol.com -> 5.75.129.215`:
-- disable or remove [`apps/external-dns.yaml`](apps/external-dns.yaml:1) (since that subdomain is now delegated to Cloudflare)
+3) Ensure no automation is forcing the proxied hostnames back to Hetzner IPs.
 
 Tunnel ingress mapping (cloudflared will forward to Services directly):
 - addon: `http://acestreamio.media.svc.cluster.local:80` (service from [`charts/acestreamio/templates/service.yaml`](charts/acestreamio/templates/service.yaml:1))
@@ -262,18 +267,18 @@ kubectl -n cloudflared create secret generic cloudflared-tunnel \
 1) DNS should *not* resolve to `5.75.129.215`:
 
 ```bash
-dig +short A acestreamio.neumann.tonioriol.com
-dig +short A ace.neumann.tonioriol.com
+dig +short A acestreamio.tonioriol.com
+dig +short A ace.tonioriol.com
 dig +short A neumann.tonioriol.com
 ```
 
 2) Endpoints should respond:
 
 ```bash
-curl -I https://acestreamio.neumann.tonioriol.com/manifest.json
+curl -I https://acestreamio.tonioriol.com/manifest.json
 
 # Pick a known ID and test the proxy HLS endpoint
-curl -I 'https://ace.neumann.tonioriol.com/ace/manifest.m3u8?id=<ID>&pid=stremio-test'
+curl -I 'https://ace.tonioriol.com/ace/manifest.m3u8?id=<ID>&pid=stremio-test'
 ```
 
 ---

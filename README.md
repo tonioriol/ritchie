@@ -16,9 +16,9 @@ GitOps repo for the **neumann** k3s cluster (Hetzner). Includes minimal notes fo
 | Service | URL |
 |---------|-----|
 | ArgoCD UI | `https://5.75.129.215:31796` |
-| AceStream proxy (HTTPS) | `https://ace.neumann.tonioriol.com` |
+| AceStream proxy (HTTPS) | `https://ace.tonioriol.com` |
 | AceStream engine (NodePort) | `http://5.75.129.215:30878` |
-| Acestreamio addon | `https://acestreamio.neumann.tonioriol.com/manifest.json` |
+| Acestreamio addon | `https://acestreamio.tonioriol.com/manifest.json` |
 
 ### Cloudflare DNS + Tunnel (workaround for ISP Hetzner blocks)
 
@@ -30,9 +30,19 @@ If your ISP blocks Hetzner IP ranges (observed during football matches), put Clo
   - `elijah.ns.cloudflare.com`
 - Cloudflare Tunnel connector runs in-cluster via ArgoCD: [`apps/cloudflared.yaml`](apps/cloudflared.yaml:1) (chart: [`charts/cloudflared`](charts/cloudflared:1))
 - Tunnel routes:
-  - `acestreamio.neumann.tonioriol.com` → `acestreamio` service
-  - `ace.neumann.tonioriol.com` → `acestream-proxy` service
+  - `acestreamio.tonioriol.com` → `acestreamio` service
+  - `ace.tonioriol.com` → `acestream-proxy` service
   - `neumann.tonioriol.com` → `argocd-server` service
+
+Important: Cloudflare Universal SSL (Free) covers only `tonioriol.com` and `*.tonioriol.com`.
+It does **not** cover nested hostnames like `*.neumann.tonioriol.com`, so those must remain DNS-only (or require a paid SSL option).
+
+Legacy nested hostnames (deprecated):
+
+- `acestreamio.neumann.tonioriol.com`
+- `ace.neumann.tonioriol.com`
+
+These are intentionally not proxied through Cloudflare on the free plan (no Universal SSL coverage for `*.neumann.tonioriol.com`).
 
 Runbook: [`plans/cloudflare-neumann-cli-runbook.md`](plans/cloudflare-neumann-cli-runbook.md:1)
 

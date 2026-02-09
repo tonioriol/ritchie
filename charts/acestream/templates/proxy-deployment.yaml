@@ -12,6 +12,9 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}-proxy
+      annotations:
+        # Roll the proxy Deployment whenever nginx config changes.
+        checksum/nginx-config: {{ include (print $.Template.BasePath "/proxy-configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - name: nginx

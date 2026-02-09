@@ -21,9 +21,9 @@ service:
 
 env:
   # Used to generate absolute URLs for posters in catalog/meta responses.
-  addonUrl: "https://acestreamio.neumann.tonioriol.com"
+  addonUrl: "https://acestreamio.tonioriol.com"
   # Optional runtime tuning for the addon code (supported by ../acestreamio/addon.js)
-  proxyUrl: "https://ace.neumann.tonioriol.com"
+  proxyUrl: "https://ace.tonioriol.com"
   enableLocalEngine: "false"
   localUrl: "http://127.0.0.1:6878"
 
@@ -33,9 +33,10 @@ secret:
   name: acestreamio
 
 ingress:
-  enabled: true
-  host: acestreamio.neumann.tonioriol.com
+  # Traffic is served via Cloudflare Tunnel (no public Ingress required).
+  enabled: false
+  host: acestreamio.tonioriol.com
   tls:
     enabled: true
     issuer: letsencrypt-prod
-    secretName: acestreamio-neumann-tonioriol-com-tls
+    secretName: acestreamio-tonioriol-com-tls

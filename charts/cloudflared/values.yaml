@@ -13,10 +13,17 @@ tunnelTokenSecret:
   key: TUNNEL_TOKEN
 
 # Hostnames served by the tunnel.
+#
+# NOTE: Cloudflare Universal SSL (Free) covers only:
+# - tonioriol.com
+# - *.tonioriol.com
+# It does NOT cover nested names like *.neumann.tonioriol.com.
+#
+# Keep tunnel hostnames to one level under the zone.
 hosts:
-  - hostname: acestreamio.neumann.tonioriol.com
+  - hostname: acestreamio.tonioriol.com
     service: http://acestreamio.media.svc.cluster.local:80
-  - hostname: ace.neumann.tonioriol.com
+  - hostname: ace.tonioriol.com
     service: http://acestream-proxy.media.svc.cluster.local:80
   - hostname: neumann.tonioriol.com
     service: http://argocd-server.argocd.svc.cluster.local:80
@@ -28,4 +35,3 @@ resources:
   limits:
     cpu: 200m
     memory: 256Mi
-

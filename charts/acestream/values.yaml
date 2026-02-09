@@ -70,9 +70,10 @@ proxy:
       memory: "256Mi"
 
 ingress:
-  enabled: true
-  host: ace.neumann.tonioriol.com
+  # Traffic is served via Cloudflare Tunnel (no public Ingress required).
+  enabled: false
+  host: ace.tonioriol.com
   tls:
     enabled: true
     issuer: letsencrypt-prod
-    secretName: ace-neumann-tonioriol-com-tls
+    secretName: ace-tonioriol-com-tls

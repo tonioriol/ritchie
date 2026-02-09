@@ -11,6 +11,9 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: cloudflared
+      annotations:
+        # Roll the Deployment whenever the ConfigMap changes (so cloudflared reloads ingress rules).
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - name: cloudflared
