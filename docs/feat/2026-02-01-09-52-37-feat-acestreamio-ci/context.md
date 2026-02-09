@@ -1,4 +1,28 @@
-# Acestreamio addon repo: detailed CI/release plan (SemVer releases → GHCR → auto-deploy)
+# feat-acestreamio-ci Acestreamio addon repo: detailed CI/release plan (SemVer releases → GHCR → auto-deploy)
+
+## TASK
+
+Define an end-to-end CI/release pipeline for the Acestreamio addon repository so merges to `main` automatically create SemVer tags/releases, build/push GHCR images, and allow Argo CD Image Updater to roll out the new version without committing anything to this GitOps repo.
+
+## GENERAL CONTEXT
+
+[Refer to AGENTS.md for project structure description]
+
+ALWAYS use absolute paths.
+
+### REPO
+
+`/Users/tr0n/Code/ritchie`
+
+### RELEVANT FILES
+
+* `/Users/tr0n/Code/ritchie/apps/argocd-image-updater.yaml`
+* `/Users/tr0n/Code/ritchie/apps/root.yaml`
+* `/Users/tr0n/Code/ritchie/apps/acestreamio.yaml`
+* `/Users/tr0n/Code/ritchie/docker/acestreamio/Dockerfile`
+* `/Users/tr0n/Code/ritchie/docs/feat/2026-02-01-09-52-37-feat-argocd-image-updater/context.md`
+
+## PLAN
 
 Goal: when you merge changes to the addon repo, it **automatically**:
 
@@ -17,11 +41,11 @@ Argo CD Image Updater is configured to deploy **only** SemVer tags matching:
 
 - `^v?\d+\.\d+\.\d+$`
 
-## Phase 0 — Pre-flight checklist (do this first)
+### Phase 0 — Pre-flight checklist (do this first)
 
 This plan is complete enough to implement end-to-end, but you must confirm a few repo-level prerequisites in the addon repo because they determine whether you can use the built-in `GITHUB_TOKEN` or need a PAT.
 
-### 0.1 Confirm the image namespace matches the repo owner
+#### 0.1 Confirm the image namespace matches the repo owner
 
 This GitOps repo and the cluster are configured to deploy:
 
@@ -29,7 +53,7 @@ This GitOps repo and the cluster are configured to deploy:
 
 So the addon repo should ideally also be owned by `tonioriol` (user or org). If the addon repo is owned by a different org/user, GitHub Actions `GITHUB_TOKEN` usually cannot publish packages into `ghcr.io/tonioriol/*`, and you’ll need a classic PAT with `write:packages`.
 
-### 0.2 Ensure GitHub Actions is allowed and has the right permissions
+#### 0.2 Ensure GitHub Actions is allowed and has the right permissions
 
 In the addon repo settings:
 
@@ -41,7 +65,7 @@ Workflows in this plan rely on:
 - `contents: write` (semantic-release creates tags/releases)
 - `packages: write` (push image to GHCR)
 
-### 0.3 Branch protection / tagging policy
+#### 0.3 Branch protection / tagging policy
 
 semantic-release creates tags on `main`.
 
@@ -55,14 +79,14 @@ then either:
 - allow GitHub Actions to bypass protections for tags (preferred), or
 - use a PAT stored as a GitHub Actions secret and use it instead of `GITHUB_TOKEN` for tagging/releases.
 
-### 0.4 Cluster prerequisites (already done here, but verify once)
+#### 0.4 Cluster prerequisites (already done here, but verify once)
 
 For private GHCR images:
 
-- `argocd/ghcr-pull` must exist so Argo CD Image Updater can read GHCR metadata (see [`docs/feat/argocd-image-updater/plan.md`](docs/feat/argocd-image-updater/plan.md:1))
+- `argocd/ghcr-pull` must exist so Argo CD Image Updater can read GHCR metadata (see [`docs/feat/2026-02-01-09-52-37-feat-argocd-image-updater/context.md`](docs/feat/2026-02-01-09-52-37-feat-argocd-image-updater/context.md:1))
 - `media/ghcr-pull` must exist so the node can pull images
 
-## Phase 0.5 — Decision points (pick once)
+### Phase 0.5 — Decision points (pick once)
 
 These are optional but affect implementation details:
 
@@ -73,7 +97,7 @@ These are optional but affect implementation details:
 2) Do you want a "release" branch model (e.g. `main` + `next`) or just `main`?
    - This plan assumes `main` only.
 
-## Phase 1 — Put container build *in the addon repo*
+### Phase 1 — Put container build *in the addon repo*
 
 Best practice is that the addon repo contains:
 
@@ -95,7 +119,7 @@ Recommended additions:
 2) Ensure the container runs production install (`npm ci --omit=dev`) and starts reliably.
 3) Keep the container listening on the configured port (the cluster uses port 7000).
 
-## Phase 2 — Adopt Conventional Commits (release signal)
+### Phase 2 — Adopt Conventional Commits (release signal)
 
 semantic-release uses commit messages to decide version bumps.
 
@@ -107,9 +131,9 @@ Adopt this convention (examples):
 
 Recommended: enforce via a PR check (commitlint) so main stays clean.
 
-## Phase 3 — Add semantic-release (SemVer generator)
+### Phase 3 — Add semantic-release (SemVer generator)
 
-### 3.1 Add dependencies
+#### 3.1 Add dependencies
 
 In addon repo `devDependencies`:
 
@@ -120,7 +144,7 @@ In addon repo `devDependencies`:
 - (optional) `@semantic-release/changelog`
 - (optional) `@semantic-release/git`
 
-### 3.2 Add config
+#### 3.2 Add config
 
 Create `.releaserc.json` in the addon repo:
 
@@ -138,7 +162,7 @@ Create `.releaserc.json` in the addon repo:
 
 If you want changelog commits back into the addon repo, add `@semantic-release/changelog` + `@semantic-release/git`.
 
-## Phase 4 — GitHub Actions workflows (recommended split)
+### Phase 4 — GitHub Actions workflows (recommended split)
 
 Use **two** workflows:
 
@@ -148,7 +172,7 @@ Use **two** workflows:
 
 Splitting image build into “on tag push” keeps the logic simple and guarantees: **only released versions are built/pushed**.
 
-### 4.1 CI workflow (example)
+#### 4.1 CI workflow (example)
 
 `.github/workflows/ci.yml`
 
@@ -173,7 +197,7 @@ jobs:
       - run: npm run lint --if-present
 ```
 
-### 4.2 Release workflow (semantic-release)
+#### 4.2 Release workflow (semantic-release)
 
 `.github/workflows/release.yml`
 
@@ -216,7 +240,7 @@ If you hit permission errors creating tags/releases, switch to a PAT:
 - Store it as `SR_TOKEN` in addon repo secrets
 - Set `GITHUB_TOKEN: ${{ secrets.SR_TOKEN }}` for semantic-release and for GHCR login
 
-### 4.3 Image build workflow (on SemVer tags)
+#### 4.3 Image build workflow (on SemVer tags)
 
 `.github/workflows/image.yml`
 
@@ -259,7 +283,7 @@ This produces:
 
 - `ghcr.io/tonioriol/acestreamio:v1.0.0`
 
-## Phase 5 — Verify end-to-end
+### Phase 5 — Verify end-to-end
 
 1) Merge a commit with Conventional Commit message that should produce a release.
 2) Confirm semantic-release created a tag `vX.Y.Z` and GitHub Release.
@@ -291,8 +315,17 @@ Cluster secrets:
 - `argocd/ghcr-pull` must exist so Image Updater can list tags (private GHCR)
 - `media/ghcr-pull` must exist so the nodes can pull images
 
-## Where should Dockerfile live?
+### Where should Dockerfile live?
 
 Best practice: **addon repo**.
 
 This GitOps repo should hold only deployment config (Helm/ArgoCD). Keeping Dockerfile + workflows in the addon repo ensures “code + build definition + release logic” evolve together.
+
+## EVENT LOG
+
+## Next Steps
+
+- [ ] Confirm addon repo ownership + Actions permissions (Phase 0)
+- [ ] Implement semantic-release + workflows in addon repo (Phases 2–4)
+- [ ] Validate: release tag → GHCR image → Image Updater rollout (Phase 5)
+

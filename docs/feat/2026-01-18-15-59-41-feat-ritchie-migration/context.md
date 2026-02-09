@@ -1,4 +1,4 @@
-# ritchie-migration Ritchie Server Migration to Hetzner k3s
+# feat-ritchie-migration Ritchie Server Migration to Hetzner k3s
 
 ## TASK
 
@@ -331,7 +331,7 @@ kubectl logs -l app=acestream-http-proxy -n acestream
 - ✅ Acestream: `/Users/tr0n/Code/ritchie/k8s/apps/acestream/` - Complete deployment with health checks
 - ✅ VPN: `/Users/tr0n/Code/ritchie/k8s/apps/vpn/` - Future WireGuard deployment ready
 
-## NEXT STEPS
+## Next Steps
 
 ### Immediate Priorities (Simplified Acestream Migration)
 - [ ] Set up Hetzner account and API access

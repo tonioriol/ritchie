@@ -27,7 +27,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Cluster/provisioning gotchas
 
-- `hetzner-k3s` uses `HCLOUD_TOKEN` (not `HETZNER_TOKEN`) per the event log in [`docs/feat/k3-cluster-hetzner/context.md`](docs/feat/k3-cluster-hetzner/context.md:333).
+- `hetzner-k3s` uses `HCLOUD_TOKEN` (not `HETZNER_TOKEN`) per the event log in [`docs/feat/2026-01-19-21-13-09-feat-k3-cluster-hetzner/context.md`](docs/feat/2026-01-19-21-13-09-feat-k3-cluster-hetzner/context.md:333).
 - Single-node cluster scheduling relies on `schedule_workloads_on_masters: true` in [`clusters/neumann/cluster.yaml`](clusters/neumann/cluster.yaml:24).
 
 ## ArgoCD ingress/TLS redirect-loop fix

@@ -44,7 +44,7 @@ Legacy nested hostnames (deprecated):
 
 These are intentionally not proxied through Cloudflare on the free plan (no Universal SSL coverage for `*.neumann.tonioriol.com`).
 
-Runbook: [`plans/cloudflare-neumann-cli-runbook.md`](plans/cloudflare-neumann-cli-runbook.md:1)
+Runbook: [`docs/feat/2026-02-08-23-33-44-feat-cloudflare-neumann-cli-runbook/context.md`](docs/feat/2026-02-08-23-33-44-feat-cloudflare-neumann-cli-runbook/context.md:1)
 
 ### Common commands
 

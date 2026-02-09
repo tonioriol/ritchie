@@ -1,4 +1,29 @@
-# Cloudflare Tunnel + DNS cutover (CLI-first runbook)
+# feat-cloudflare-neumann-cli-runbook Cloudflare Tunnel + DNS cutover (CLI-first runbook)
+
+## TASK
+
+Provide a CLI-first runbook to route public traffic through Cloudflare (Tunnel + DNS) so clients connect to Cloudflare Anycast IPs instead of the Hetzner node IP (`5.75.129.215`), mitigating ISP blocks against Hetzner IP ranges.
+
+## GENERAL CONTEXT
+
+[Refer to AGENTS.md for project structure description]
+
+ALWAYS use absolute paths.
+
+### REPO
+
+`/Users/tr0n/Code/ritchie`
+
+### RELEVANT FILES
+
+* `/Users/tr0n/Code/ritchie/apps/traefik.yaml`
+* `/Users/tr0n/Code/ritchie/apps/cloudflared.yaml`
+* `/Users/tr0n/Code/ritchie/charts/cloudflared/Chart.yaml`
+* `/Users/tr0n/Code/ritchie/apps/root.yaml`
+* `/Users/tr0n/Code/ritchie/.envrc`
+* `/Users/tr0n/Code/ritchie/.gitignore`
+
+## PLAN
 
 This runbook is designed to solve the DIGI Spain “blocks Hetzner IP ranges during matches” issue by making clients connect to Cloudflare anycast IPs instead of the Hetzner node IP (`5.75.129.215`).
 
@@ -19,23 +44,26 @@ Why not `*.neumann.tonioriol.com`?
 
 ---
 
-## 0) Credentials (do not commit, do not paste in chat)
+### 0) Credentials (do not commit, do not paste in chat)
 
-### DigitalOcean
+#### DigitalOcean
+
 - DO API token with write access (used by `doctl`).
 
-### Cloudflare
+#### Cloudflare
+
 - Cloudflare API token (preferred) OR Global API Key (legacy).
 
 If you use the **Global API Key**:
+
 - you must authenticate with `X-Auth-Email` + `X-Auth-Key` headers (NOT `Authorization: Bearer ...`).
 - the key is extremely powerful; use it only to bootstrap a least-privilege API token, then stop using it.
 
-Recommended: keep tokens in your local [`.env`](.env:1) (gitignored by [`.gitignore`](.gitignore:1)) and load via direnv using [`.envrc`](.envrc:1).
+Recommended: keep tokens in your local `/Users/tr0n/Code/ritchie/.env` (gitignored by `/Users/tr0n/Code/ritchie/.gitignore`) and load via direnv using `/Users/tr0n/Code/ritchie/.envrc`.
 
 ---
 
-## 1) Cloudflare API token permissions (minimum practical)
+### 1) Cloudflare API token permissions (minimum practical)
 
 Create an API token in Cloudflare with **these permissions**:
 
@@ -49,12 +77,13 @@ Create an API token in Cloudflare with **these permissions**:
    - Needed if you want to create DNS records via API (optional if you only use `cloudflared tunnel route dns` later)
 
 Resource scope:
+
 - For zone creation, the token must apply to the **account** where you will create the zone.
 - You cannot scope zone-creation permissions to a specific zone that does not exist yet.
 
 ---
 
-## 1b) Global API Key (legacy) auth headers
+### 1b) Global API Key (legacy) auth headers
 
 If you are using the Global API Key, use these headers instead of `Authorization: Bearer ...`:
 
@@ -72,7 +101,7 @@ export CF_GLOBAL_API_KEY='...'
 
 Best practice: use the Global API Key only to create a least-privilege API token, then revoke/stop using the Global API Key for automation.
 
-## 2) Create the zone in Cloudflare (CLI via API)
+### 2) Create the zone in Cloudflare (CLI via API)
 
 Local environment variables (example):
 
@@ -138,12 +167,13 @@ jq -r '.result.name_servers[]' /tmp/cf-neumann-zone.json
 ```
 
 Save outputs locally:
+
 - `CF_ZONE_ID` (the zone id)
 - the two `name_servers` (you’ll delegate to these in DigitalOcean)
 
 ---
 
-## 3) (Historical) Delegating a sub-zone
+### 3) (Historical) Delegating a sub-zone
 
 Important: the parent zone is `tonioriol.com` (DigitalOcean). Delegation is done by adding **NS** records for `neumann`.
 
@@ -188,7 +218,7 @@ At this point, `neumann.tonioriol.com` (and everything under it) is now served b
 
 ---
 
-## 4) Create the Tunnel + DNS routes (CLI via cloudflared)
+### 4) Create the Tunnel + DNS routes (CLI via cloudflared)
 
 This is the most stable CLI path for tunnels.
 
@@ -230,19 +260,22 @@ Keep that token locally; you will create a Kubernetes Secret from it (see next s
 
 ---
 
-## 5) Cluster side (GitOps) – what will change in this repo
+### 5) Cluster side (GitOps) – what will change in this repo
 
 We will implement these repo changes (in code mode):
 
 1) Add a new Helm chart:
+
 - `charts/cloudflared/` (Deployment + ConfigMap for `config.yaml`)
 
 2) Add a new ArgoCD Application:
+
 - `apps/cloudflared.yaml`
 
 3) Ensure no automation is forcing the proxied hostnames back to Hetzner IPs.
 
 Tunnel ingress mapping (cloudflared will forward to Services directly):
+
 - addon: `http://acestreamio.media.svc.cluster.local:80` (service from [`charts/acestreamio/templates/service.yaml`](charts/acestreamio/templates/service.yaml:1))
 - proxy: `http://acestream-proxy.media.svc.cluster.local:80` (service from [`charts/acestream/templates/proxy-service.yaml`](charts/acestream/templates/proxy-service.yaml:1))
 - argocd UI: `http://argocd-server.argocd.svc.cluster.local:80` (ingress host from [`charts/argocd-ingress/values.yaml`](charts/argocd-ingress/values.yaml:1))
@@ -262,7 +295,7 @@ kubectl -n cloudflared create secret generic cloudflared-tunnel \
 
 ---
 
-## 6) Validation checklist (home ISP without VPN)
+### 6) Validation checklist (home ISP without VPN)
 
 1) DNS should *not* resolve to `5.75.129.215`:
 
@@ -283,7 +316,7 @@ curl -I 'https://ace.tonioriol.com/ace/manifest.m3u8?id=<ID>&pid=stremio-test'
 
 ---
 
-## 7) Admin access (kubectl) during ISP blocks (separate workstream)
+### 7) Admin access (kubectl) during ISP blocks (separate workstream)
 
 Cloudflare Tunnel solves the *end-user HTTPS ingress* issue.
 
@@ -291,40 +324,9 @@ It does **not** fix `kubectl` during blocks, because your kube-apiserver is stil
 
 Best practice: add an overlay network (Tailscale or WireGuard) so you can reach the API via a private overlay IP.
 
-### Option A (recommended): Cloudflare WARP Private Network route to the kube-apiserver
+## EVENT LOG
 
-This keeps the existing Cloudflare Tunnel connector and adds a **private** route so your laptop (running WARP) can reach the k3s API via the node private IP.
+## Next Steps
 
-What we route:
+- [ ] When executing this runbook, append progress notes to EVENT LOG via `/update-context`.
 
-- `10.0.0.2/32` (the neumann node private IP from [`clusters/neumann/cluster.yaml`](clusters/neumann/cluster.yaml:3))
-
-Steps:
-
-1) Install Cloudflare WARP on your laptop and login to your Zero Trust org.
-
-2) Ensure the tunnel has `warp-routing` enabled in its remote config.
-
-3) Create a Teamnet route `10.0.0.2/32` -> the tunnel.
-
-4) Create a second kubeconfig (overlay) that points the server to `https://10.0.0.2:6443`.
-
-Example (copy your existing config and only change the server field):
-
-```bash
-cp ./clusters/neumann/kubeconfig ./clusters/neumann/kubeconfig.warp
-
-# Edit the server line in kubeconfig.warp:
-# server: https://10.0.0.2:6443
-```
-
-Use it:
-
-```bash
-KUBECONFIG=./clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
-```
-
-Notes:
-
-- The API certificate already includes `10.0.0.2` as a SAN (k3s default).
-- Keep the public API (`5.75.129.215:6443`) open until you have confirmed the WARP route works.

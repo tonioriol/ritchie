@@ -16,8 +16,8 @@ ALWAYS use absolute paths.
 
 ### RELEVANT FILES
 
-* `/Users/tr0n/Code/ritchie/docs/feat/k3-cluster-hetzner/context.md`
-* `/Users/tr0n/Code/ritchie/docs/feat/k3-cluster-hetzner/metrics-server.md`
+* `/Users/tr0n/Code/ritchie/docs/feat/2026-01-19-21-13-09-feat-k3-cluster-hetzner/context.md`
+* `/Users/tr0n/Code/ritchie/docs/feat/2026-01-21-00-13-56-feat-install-metrics/context.md`
 * `/Users/tr0n/Code/ritchie/charts/acestream/values.yaml`
 * `/Users/tr0n/Code/ritchie/charts/acestream/templates/deployment.yaml`
 * `/Users/tr0n/Code/ritchie/charts/acestream/templates/ingress.yaml`
@@ -35,7 +35,7 @@ ALWAYS use absolute paths.
 
 ## EVENT LOG
 
-* **2026-01-20 - DNS + routing cutover**
+  * **2026-01-20 - DNS + routing cutover**
   * Updated `ace.tonioriol.com` DNS to point to neumann.
   * Added in-cluster nginx reverse proxy + Traefik Ingress for HTTPS endpoint.
   * Adjusted settings to match legacy behavior and validated playback (some IDs work; others appear dead/slow).
@@ -91,7 +91,7 @@ ALWAYS use absolute paths.
   * Mounted host `/dev/disk/by-id` into the pod to match engine expectations:
     * Added `hostPath` volume + mount in `/Users/tr0n/Code/ritchie/charts/acestream/templates/deployment.yaml`
 
-* **2026-01-20 - Playback monitoring and findings**
+  * **2026-01-20 - Playback monitoring and findings**
   * Monitored `kubectl logs` for both `acestream` and the nginx proxy.
   * Proxy patterns observed:
     * `206` on `.ts` segments indicates healthy playback.
@@ -111,5 +111,5 @@ ALWAYS use absolute paths.
 
 - [ ] Decide whether to keep nginx proxy + ingress permanently, or expose only NodePort.
 - [ ] Investigate/mitigate the `apsw.ConstraintError` spam (if it correlates with playback failures).
-- [ ] (Optional) Install metrics-server so `kubectl top` works (see `/Users/tr0n/Code/ritchie/docs/feat/k3-cluster-hetzner/metrics-server.md`).
+- [ ] (Optional) Install metrics-server so `kubectl top` works (see `/Users/tr0n/Code/ritchie/docs/feat/2026-01-21-00-13-56-feat-install-metrics/context.md`).
 - [ ] COMPLETED: DNS cutover + working playback verified for at least some IDs.

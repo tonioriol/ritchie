@@ -16,9 +16,9 @@ ALWAYS use absolute paths.
 
 ### RELEVANT FILES
 
-* `/Users/tr0n/Code/ritchie/docs/feat/install-metrics/context.md`
+* `/Users/tr0n/Code/ritchie/docs/feat/2026-01-21-00-13-56-feat-install-metrics/context.md`
 * `/Users/tr0n/Code/ritchie/apps/root.yaml`
-* `/Users/tr0n/Code/ritchie/docs/feat/fix-ace-neumann/context.md`
+* `/Users/tr0n/Code/ritchie/docs/feat/2026-01-21-00-13-56-fix-ace-neumann/context.md`
 
 ## PLAN
 

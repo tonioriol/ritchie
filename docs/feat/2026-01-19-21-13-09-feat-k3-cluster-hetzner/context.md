@@ -19,7 +19,7 @@ Set up a hetzner-k3s cluster named "neumann" on Hetzner Cloud. Use ArgoCD for Gi
 
 ### RELEVANT FILES
 
-* `/Users/tr0n/Code/ritchie/docs/feat/k3-cluster-hetzner/context.md` - This file
+* `/Users/tr0n/Code/ritchie/docs/feat/2026-01-19-21-13-09-feat-k3-cluster-hetzner/context.md` - This file
 * `/Users/tr0n/Code/ritchie/clusters/neumann/cluster.yaml` - hetzner-k3s config (to create)
 * `/Users/tr0n/Code/ritchie/charts/acestream/` - Custom Helm chart (to create)
 * `/Users/tr0n/Code/ritchie/apps/acestream.yaml` - ArgoCD Application (to create)
@@ -50,6 +50,17 @@ Set up a hetzner-k3s cluster named "neumann" on Hetzner Cloud. Use ArgoCD for Gi
 └── values/
     └── acestream.yaml            # Optional overrides
 ```
+
+### Historical research notes (merged from removed `plan.md`)
+
+- Compared Flux vs ArgoCD for GitOps:
+  - Both are CNCF-graduated and actively maintained.
+  - ArgoCD is typically easier to start with and has a built-in UI; Flux is more modular and usually CLI-driven.
+  - For this repo’s needs (single-node cluster + desire for visibility), ArgoCD was chosen.
+- UI alternatives:
+  - Flux can be paired with Weave GitOps UI, but it is less feature-rich than ArgoCD’s UI (no visual diff/resource tree in many setups).
+- Resource overhead:
+  - Expect ~500–600MB RAM for ArgoCD core components on small clusters; acceptable for a 4GB node.
 
 ---
 
