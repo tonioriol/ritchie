@@ -290,3 +290,41 @@ Cloudflare Tunnel solves the *end-user HTTPS ingress* issue.
 It does **not** fix `kubectl` during blocks, because your kube-apiserver is still on the Hetzner public IP `:6443`.
 
 Best practice: add an overlay network (Tailscale or WireGuard) so you can reach the API via a private overlay IP.
+
+### Option A (recommended): Cloudflare WARP Private Network route to the kube-apiserver
+
+This keeps the existing Cloudflare Tunnel connector and adds a **private** route so your laptop (running WARP) can reach the k3s API via the node private IP.
+
+What we route:
+
+- `10.0.0.2/32` (the neumann node private IP from [`clusters/neumann/cluster.yaml`](clusters/neumann/cluster.yaml:3))
+
+Steps:
+
+1) Install Cloudflare WARP on your laptop and login to your Zero Trust org.
+
+2) Ensure the tunnel has `warp-routing` enabled in its remote config.
+
+3) Create a Teamnet route `10.0.0.2/32` -> the tunnel.
+
+4) Create a second kubeconfig (overlay) that points the server to `https://10.0.0.2:6443`.
+
+Example (copy your existing config and only change the server field):
+
+```bash
+cp ./clusters/neumann/kubeconfig ./clusters/neumann/kubeconfig.warp
+
+# Edit the server line in kubeconfig.warp:
+# server: https://10.0.0.2:6443
+```
+
+Use it:
+
+```bash
+KUBECONFIG=./clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
+```
+
+Notes:
+
+- The API certificate already includes `10.0.0.2` as a SAN (k3s default).
+- Keep the public API (`5.75.129.215:6443`) open until you have confirmed the WARP route works.
