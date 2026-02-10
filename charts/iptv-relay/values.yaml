@@ -1,0 +1,40 @@
+image:
+  repository: node
+  tag: "20-alpine"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  port: 80
+  targetPort: 8080
+
+# Public hostname served via Cloudflare Tunnel.
+hostname: tv.tonioriol.com
+
+# Create this Secret out-of-band (not committed) in the target namespace (recommended: media).
+#
+# Suggested keys:
+# - UPSTREAM_ORIGIN:   http://provider.example:8080
+# - UPSTREAM_USERNAME: <user>
+# - UPSTREAM_PASSWORD: <pass>
+# - UPSTREAM_M3U_URL:  (optional) full get.php URL if your provider requires extra params
+# - TOKEN:             (recommended) random token to prevent random internet use
+secret:
+  name: iptv-relay
+
+config:
+  # If UPSTREAM_M3U_URL is not set, the relay will build:
+  #   ${UPSTREAM_ORIGIN}${upstreamGetPath}?username=...&password=...&${upstreamGetQuery}
+  upstreamGetPath: "/get.php"
+  upstreamGetQuery: "type=m3u_plus&output=ts"
+  playlistPath: "/playlist.m3u"
+  tokenQueryParam: "token"
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi

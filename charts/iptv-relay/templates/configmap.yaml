@@ -1,0 +1,390 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-app
+data:
+  server.js: |
+    'use strict';
+
+    const http = require('http');
+    const https = require('https');
+    const { URL } = require('url');
+    const readline = require('readline');
+
+    const PORT = parseInt(process.env.PORT || '8080', 10);
+
+    const UPSTREAM_ORIGIN = process.env.UPSTREAM_ORIGIN || '';
+    const UPSTREAM_USERNAME = process.env.UPSTREAM_USERNAME || '';
+    const UPSTREAM_PASSWORD = process.env.UPSTREAM_PASSWORD || '';
+    const UPSTREAM_M3U_URL = process.env.UPSTREAM_M3U_URL || '';
+
+    const UPSTREAM_GET_PATH = process.env.UPSTREAM_GET_PATH || '/get.php';
+    const UPSTREAM_GET_QUERY = process.env.UPSTREAM_GET_QUERY || 'type=m3u_plus&output=ts';
+    const PLAYLIST_PATH = process.env.PLAYLIST_PATH || '/playlist.m3u';
+
+    const TOKEN = process.env.TOKEN || '';
+    const TOKEN_QUERY_PARAM = process.env.TOKEN_QUERY_PARAM || 'token';
+
+    function json(res, code, obj) {
+      const body = JSON.stringify(obj);
+      res.writeHead(code, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Content-Length': Buffer.byteLength(body),
+      });
+      res.end(body);
+    }
+
+    function getPublicBase(req) {
+      const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim() || 'http';
+      const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+      return `${proto}://${host}`;
+    }
+
+    function getUpstreamOriginUrl() {
+      if (UPSTREAM_ORIGIN) {
+        try {
+          return new URL(UPSTREAM_ORIGIN);
+        } catch {
+          // fall through
+        }
+      }
+
+      // Fallback: if you only configured UPSTREAM_M3U_URL, derive origin from it.
+      if (UPSTREAM_M3U_URL) {
+        try {
+          const u = new URL(UPSTREAM_M3U_URL);
+          return new URL(u.origin);
+        } catch {
+          // fall through
+        }
+      }
+
+      return null;
+    }
+
+    function getUpstreamCreds() {
+      let username = UPSTREAM_USERNAME || '';
+      let password = UPSTREAM_PASSWORD || '';
+
+      // Fallback: if username/password aren't set explicitly, try reading them
+      // from UPSTREAM_M3U_URL (common for get.php?username=...&password=...).
+      if ((!username || !password) && UPSTREAM_M3U_URL) {
+        try {
+          const u = new URL(UPSTREAM_M3U_URL);
+          username = username || u.searchParams.get('username') || '';
+          password = password || u.searchParams.get('password') || '';
+        } catch {
+          // ignore
+        }
+      }
+
+      return { username, password };
+    }
+
+    function requireTokenOr401(req, res) {
+      if (!TOKEN) return true;
+      const u = new URL(req.url, 'http://localhost');
+      const got = u.searchParams.get(TOKEN_QUERY_PARAM);
+      if (got !== TOKEN) {
+        json(res, 401, { error: 'unauthorized' });
+        return false;
+      }
+      return true;
+    }
+
+    function stripTokenFromSearchParams(searchParams) {
+      if (!TOKEN) return;
+      searchParams.delete(TOKEN_QUERY_PARAM);
+    }
+
+    function addTokenToUrl(urlObj) {
+      if (!TOKEN) return urlObj;
+      if (!urlObj.searchParams.has(TOKEN_QUERY_PARAM)) {
+        urlObj.searchParams.set(TOKEN_QUERY_PARAM, TOKEN);
+      }
+      return urlObj;
+    }
+
+    function buildUpstreamPlaylistUrl() {
+      if (UPSTREAM_M3U_URL) {
+        return new URL(UPSTREAM_M3U_URL);
+      }
+
+      const origin = getUpstreamOriginUrl();
+      if (!origin) {
+        throw new Error('UPSTREAM_ORIGIN is required (or set UPSTREAM_M3U_URL)');
+      }
+      const creds = getUpstreamCreds();
+      if (!creds.username || !creds.password) {
+        throw new Error('UPSTREAM_USERNAME and UPSTREAM_PASSWORD are required (or set UPSTREAM_M3U_URL with username/password params)');
+      }
+
+      const u = new URL(origin.toString());
+      u.pathname = UPSTREAM_GET_PATH;
+      u.searchParams.set('username', creds.username);
+      u.searchParams.set('password', creds.password);
+      for (const part of UPSTREAM_GET_QUERY.split('&').filter(Boolean)) {
+        const [k, v] = part.split('=');
+        if (!k) continue;
+        u.searchParams.set(k, v ?? '');
+      }
+      return u;
+    }
+
+    function shouldRewriteAsM3U(reqPath, upstreamResHeaders) {
+      const ct = String(upstreamResHeaders['content-type'] || '');
+      if (ct.includes('application/vnd.apple.mpegurl')) return true;
+      if (ct.includes('application/x-mpegURL')) return true;
+      if (ct.includes('audio/mpegurl')) return true;
+      if (ct.includes('audio/x-mpegurl')) return true;
+      if (reqPath.toLowerCase().endsWith('.m3u8')) return true;
+      if (reqPath.toLowerCase().endsWith('.m3u')) return true;
+      return false;
+    }
+
+    function normalizePort(protocol, port) {
+      if (port) return String(port);
+      return protocol === 'https:' ? '443' : '80';
+    }
+
+    function sameHostPort(a, b) {
+      if (!a || !b) return false;
+      return a.hostname === b.hostname && normalizePort(a.protocol, a.port) === normalizePort(b.protocol, b.port);
+    }
+
+    function stripXtreamCredsFromPath(pathname, creds) {
+      if (!creds?.username || !creds?.password) return pathname;
+      const parts = pathname.split('/').filter(Boolean);
+      if (parts.length >= 3 && ['live', 'movie', 'series'].includes(parts[0])) {
+        const [kind, user, pass, ...rest] = parts;
+        if (user === creds.username && pass === creds.password) {
+          return '/' + [kind, ...rest].join('/');
+        }
+      }
+      return pathname;
+    }
+
+    function rewriteMediaRef(raw, { publicBase, basePathPrefix, upstreamOrigin, creds }) {
+      if (!raw) return raw;
+
+      // Only rewrite http(s) refs. Leave other protocols (udp://, rtmp://, etc) untouched.
+      if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        let u;
+        try {
+          u = new URL(raw);
+        } catch {
+          return raw;
+        }
+
+        // If the upstream uses multiple hosts, we only rewrite URLs that match the configured origin.
+        if (upstreamOrigin && !sameHostPort(u, upstreamOrigin)) {
+          return raw;
+        }
+
+        const outPath = stripXtreamCredsFromPath(u.pathname, creds);
+        const out = new URL(publicBase + outPath);
+        out.search = u.search;
+        out.searchParams.delete('username');
+        out.searchParams.delete('password');
+        addTokenToUrl(out);
+        return out.toString();
+      }
+
+      // Relative or absolute-path refs: rewrite to public origin.
+      let u;
+      try {
+        u = new URL(raw, publicBase + basePathPrefix);
+      } catch {
+        return raw;
+      }
+
+      const outPath = stripXtreamCredsFromPath(u.pathname, creds);
+      const out = new URL(publicBase + outPath);
+      out.search = u.search;
+      out.searchParams.delete('username');
+      out.searchParams.delete('password');
+      addTokenToUrl(out);
+      return out.toString();
+    }
+
+    function rewriteM3UStream({ upstreamRes, clientRes, publicBase, basePathPrefix, upstreamOrigin, creds }) {
+      const status = upstreamRes.statusCode || 200;
+      clientRes.writeHead(status, {
+        'Content-Type': 'application/x-mpegURL; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+
+      const rl = readline.createInterface({ input: upstreamRes, crlfDelay: Infinity });
+      rl.on('line', (line) => {
+        let out = line;
+
+        // Rewrite media refs on non-comment lines.
+        if (!line.startsWith('#') && line.trim() !== '') {
+          out = rewriteMediaRef(line, { publicBase, basePathPrefix, upstreamOrigin, creds });
+        }
+
+        // Rewrite EXT-X-KEY URIs inside comment lines too.
+        if (line.startsWith('#EXT-X-KEY')) {
+          out = out.replace(/URI="([^"]+)"/g, (m, uri) => {
+            try {
+              const rewritten = rewriteMediaRef(uri, { publicBase, basePathPrefix, upstreamOrigin, creds });
+              return `URI="${rewritten}"`;
+            } catch {
+              return m;
+            }
+          });
+        }
+
+        clientRes.write(out + '\n');
+      });
+      rl.on('close', () => clientRes.end());
+    }
+
+    function proxyToUpstream({ req, res, upstreamUrl, publicBase, upstreamOrigin, creds }) {
+      const basePathPrefix = (() => {
+        const path = new URL(req.url, 'http://localhost').pathname;
+        const idx = path.lastIndexOf('/');
+        const dir = idx >= 0 ? path.slice(0, idx + 1) : '/';
+        return dir.startsWith('/') ? dir : `/${dir}`;
+      })();
+
+      const client = upstreamUrl.protocol === 'https:' ? https : http;
+      const headers = {
+        ...req.headers,
+        host: upstreamUrl.host,
+        'accept-encoding': 'identity',
+      };
+
+      // Remove hop-by-hop headers
+      delete headers.connection;
+      delete headers['proxy-connection'];
+      delete headers['keep-alive'];
+      delete headers['transfer-encoding'];
+      delete headers.upgrade;
+
+      const options = {
+        protocol: upstreamUrl.protocol,
+        hostname: upstreamUrl.hostname,
+        port: upstreamUrl.port,
+        method: req.method,
+        path: upstreamUrl.pathname + upstreamUrl.search,
+        headers,
+      };
+
+      const upstreamReq = client.request(options, (upstreamRes) => {
+        const reqPath = new URL(req.url, 'http://localhost').pathname;
+        const rewrite = shouldRewriteAsM3U(reqPath, upstreamRes.headers);
+
+        if (rewrite) {
+          rewriteM3UStream({
+            upstreamRes,
+            clientRes: res,
+            publicBase,
+            basePathPrefix,
+            upstreamOrigin,
+            creds,
+          });
+          return;
+        }
+
+        // Pass through status + headers.
+        const passthroughHeaders = { ...upstreamRes.headers };
+        // Ensure we don't accidentally cache.
+        passthroughHeaders['cache-control'] = 'no-store';
+        res.writeHead(upstreamRes.statusCode || 502, passthroughHeaders);
+        upstreamRes.pipe(res);
+      });
+
+      upstreamReq.on('error', (err) => {
+        json(res, 502, { error: String(err?.message || err) });
+      });
+
+      // Abort upstream when client disconnects.
+      req.on('close', () => {
+        try {
+          upstreamReq.destroy();
+        } catch {}
+      });
+
+      upstreamReq.end();
+    }
+
+    const server = http.createServer((req, res) => {
+      req.res = res;
+
+      try {
+        const u = new URL(req.url, 'http://localhost');
+        const publicBase = getPublicBase(req);
+        const upstreamOrigin = getUpstreamOriginUrl();
+        const creds = getUpstreamCreds();
+
+        if (u.pathname === '/healthz') {
+          json(res, 200, { ok: true });
+          return;
+        }
+
+        if (!requireTokenOr401(req, res)) return;
+
+        // Serve the public playlist endpoint.
+        if (u.pathname === PLAYLIST_PATH) {
+          const upstreamPlaylistUrl = buildUpstreamPlaylistUrl();
+
+          // Force GET for the playlist.
+          const fakeReq = { ...req, method: 'GET' };
+          proxyToUpstream({
+            req: fakeReq,
+            res,
+            upstreamUrl: upstreamPlaylistUrl,
+            publicBase,
+            upstreamOrigin,
+            creds,
+          });
+          return;
+        }
+
+        if (!upstreamOrigin) {
+          json(res, 500, { error: 'UPSTREAM_ORIGIN is not set (required for proxying)' });
+          return;
+        }
+
+        // Proxy common Xtream-style paths; inject username/password if missing.
+        const parts = u.pathname.split('/').filter(Boolean);
+        if (parts.length >= 2 && ['live', 'movie', 'series'].includes(parts[0])) {
+          if (!creds.username || !creds.password) {
+            json(res, 500, { error: 'UPSTREAM_USERNAME/PASSWORD not configured' });
+            return;
+          }
+
+          const kind = parts[0];
+          const restParts = parts.slice(1);
+
+          // If client already has /kind/user/pass/..., keep as-is.
+          let upstreamPath;
+          if (restParts.length >= 3 && restParts[0] === creds.username && restParts[1] === creds.password) {
+            upstreamPath = `/${kind}/${restParts.join('/')}`;
+          } else {
+            upstreamPath = `/${kind}/${creds.username}/${creds.password}/${restParts.join('/')}`;
+          }
+
+          // Forward original query string, but remove our auth token.
+          const upstreamUrl = new URL(upstreamOrigin.toString());
+          upstreamUrl.pathname = upstreamPath;
+          upstreamUrl.search = u.search;
+          stripTokenFromSearchParams(upstreamUrl.searchParams);
+
+          proxyToUpstream({ req, res, upstreamUrl, publicBase, upstreamOrigin, creds });
+          return;
+        }
+
+        // Default: 404 (do not become an open proxy).
+        json(res, 404, { error: 'not found' });
+      } catch (err) {
+        json(res, 500, { error: String(err?.message || err) });
+      }
+    });
+
+    server.listen(PORT, () => {
+      // eslint-disable-next-line no-console
+      console.log(`iptv-relay listening on :${PORT}`);
+    });

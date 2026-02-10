@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: iptv-relay
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["node"]
+          args: ["/app/server.js"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: PORT
+              value: "{{ .Values.service.targetPort }}"
+            - name: UPSTREAM_GET_PATH
+              value: {{ .Values.config.upstreamGetPath | quote }}
+            - name: UPSTREAM_GET_QUERY
+              value: {{ .Values.config.upstreamGetQuery | quote }}
+            - name: PLAYLIST_PATH
+              value: {{ .Values.config.playlistPath | quote }}
+            - name: TOKEN_QUERY_PARAM
+              value: {{ .Values.config.tokenQueryParam | quote }}
+            - name: UPSTREAM_ORIGIN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: UPSTREAM_ORIGIN
+                  optional: true
+            - name: UPSTREAM_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: UPSTREAM_USERNAME
+                  optional: true
+            - name: UPSTREAM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: UPSTREAM_PASSWORD
+                  optional: true
+            - name: UPSTREAM_M3U_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: UPSTREAM_M3U_URL
+                  optional: true
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: TOKEN
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 2
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: {{ .Release.Name }}-app
+

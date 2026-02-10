@@ -1,0 +1,7 @@
+apiVersion: v2
+name: iptv-relay
+description: IPTV M3U relay/proxy (keeps upstream creds server-side) for access via Cloudflare Tunnel.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
