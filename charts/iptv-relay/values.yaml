@@ -21,6 +21,10 @@ hostname: tv.tonioriol.com
 # - UPSTREAM_M3U_URL:  (optional) full get.php URL if your provider requires extra params
 # - TOKEN:             (recommended) random token to prevent random internet use
 secret:
+  # Create an empty Secret object so it becomes visible in the ArgoCD Application UI.
+  # We intentionally keep the secret DATA out of git; ArgoCD is configured to ignore
+  # drift for /data and /stringData so you can edit the secret values in-cluster.
+  create: true
   name: iptv-relay
 
 config:
