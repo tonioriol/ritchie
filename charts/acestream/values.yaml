@@ -41,9 +41,10 @@ updateStrategy:
   type: Recreate
 
 service:
-  type: NodePort
+  # Security hardening: do not expose the engine via a public NodePort.
+  # Access is via in-cluster services + Cloudflare Tunnel hostnames.
+  type: ClusterIP
   port: 6878
-  nodePort: 30878
 
 # AceStream benefits from inbound connectivity. Expose the engine's P2P/control
 # ports on the node via hostPort (see templates/deployment.yaml).
