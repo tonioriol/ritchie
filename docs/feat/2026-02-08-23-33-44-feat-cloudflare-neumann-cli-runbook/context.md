@@ -324,9 +324,72 @@ It does **not** fix `kubectl` during blocks, because your kube-apiserver is stil
 
 Best practice: add an overlay network (Tailscale or WireGuard) so you can reach the API via a private overlay IP.
 
+#### Recommended (free): Cloudflare Zero Trust WARP private routing to the node private IP
+
+Because this cluster has a Hetzner private network (`10.0.0.0/16`) and the control-plane node IP is `10.0.0.2`, you can keep `kubectl` working during ISP blocks by routing **only** `10.0.0.2/32` through the same Cloudflare Tunnel.
+
+This avoids exposing any additional public hostname and does not require per-device “VPN to Sweden”; devices just need the Cloudflare WARP client enrolled in your Zero Trust org.
+
+**Pre-reqs (out of band):**
+
+- You have a Cloudflare Zero Trust team (e.g. `https://<team>.cloudflareaccess.com`).
+- Your laptop is enrolled with WARP (Zero Trust mode), not just 1.1.1.1 DNS.
+
+##### 7a) Ensure warp routing is enabled on the tunnel
+
+The tunnel must have `warp-routing.enabled=true`.
+
+You can verify by checking `cloudflared` connector logs in-cluster (it will show the applied remote config containing `"warp-routing":{"enabled":true}`), or via API.
+
+##### 7b) Create the Teamnet route: `10.0.0.2/32` → tunnel
+
+Create the private route to the node IP (example API call; keep credentials local):
+
+```bash
+export CF_API_TOKEN='...'     # do not commit
+export CF_ACCOUNT_ID='...'
+export CF_TUNNEL_ID='...'
+
+curl -sS -X POST \
+  -H "Authorization: Bearer ${CF_API_TOKEN}" \
+  -H 'Content-Type: application/json' \
+  "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/teamnet/routes" \
+  --data "{\"network\":\"10.0.0.2/32\",\"tunnel_id\":\"${CF_TUNNEL_ID}\",\"comment\":\"neumann kube-apiserver\"}" \
+  | jq .
+```
+
+##### 7c) Use a WARP kubeconfig locally (do not commit)
+
+Create a copy of your kubeconfig and point it at the node private IP:
+
+```bash
+cp /Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig \
+  /Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig.warp
+
+perl -i -pe 's#server: https://5\.75\.129\.215:6443#server: https://10.0.0.2:6443#' \
+  /Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig.warp
+
+KUBECONFIG=/Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig.warp \
+  kubectl get nodes -o wide
+```
+
+Note: the kube-apiserver certificate includes `10.0.0.2` as a SAN, so TLS validation still works when you switch the `server:` URL.
+
+##### 7d) Troubleshooting / gotchas
+
+- If your home LAN already uses `10.0.0.0/24` and has a device at `10.0.0.2`, the `/32` route will conflict. Fix by changing your home LAN subnet (e.g. `192.168.50.0/24`) or choose a different overlay approach.
+- If `kubectl` hangs, test reachability first:
+
+  ```bash
+  curl -k -m 5 https://10.0.0.2:6443/healthz
+  ```
+
+##### 7e) Optional hardening (after WARP kubectl works)
+
+Once you confirm WARP private routing works end-to-end, you can consider locking down public access to `:6443` in Hetzner firewall/security groups.
+
 ## EVENT LOG
 
 ## Next Steps
 
 - [ ] When executing this runbook, append progress notes to EVENT LOG via `/update-context`.
-
