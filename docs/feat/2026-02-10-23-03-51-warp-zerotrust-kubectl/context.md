@@ -89,9 +89,25 @@ ALWAYS use absolute paths.
     * `Ingress argocd-server` synced, cert ready, but empty `.status.loadBalancer` (Traefik + Tunnel topology)
     * treated as expected health quirk in current topology unless traffic/cert symptoms appear.
 
+* **2026-02-11 - Removed unmanaged cluster-autoscaler (single-node cleanup)**
+  * Detected `kube-system/cluster-autoscaler` in `CrashLoopBackOff` with fatal error `No cluster config present provider`.
+  * This cluster is currently single-node (`worker_node_pools: []`) and schedules workloads on master, so autoscaler was unnecessary noise.
+  * Deleted unmanaged autoscaler resources from `kube-system` and cluster scope:
+    * `Deployment cluster-autoscaler`
+    * `ServiceAccount cluster-autoscaler`
+    * `ConfigMap cluster-autoscaler-status`
+    * `Role/RoleBinding cluster-autoscaler`
+    * `ClusterRole/ClusterRoleBinding cluster-autoscaler`
+  * Post-cleanup verification:
+    * no remaining non-running pods in cluster
+    * Argo applications remain synced/healthy (except known `argocd-ingress` `Progressing` quirk in this topology).
+  * Security note: Hetzner token was printed in terminal output during troubleshooting and must be rotated.
+
 ## Next Steps
 
 - [x] Ensure `/Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig.warp` cannot be accidentally committed (confirm ignore patterns).
 - [ ] Optional hardening: restrict public `:6443` (Hetzner firewall) after confirming WARP works reliably from the home ISP.
 - [x] Update main runbook event log to reflect the successful WARP enrollment + split tunnel fix.
 - [ ] Validate Cloudflare hostname path end-to-end from DIGI home network during an actual match-time block window and capture evidence.
+- [ ] Rotate `HCLOUD_TOKEN` and update affected cluster secrets.
+- [ ] If scaling is needed later, reintroduce autoscaler via GitOps with explicit Hetzner node group config.
