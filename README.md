@@ -100,7 +100,7 @@ argocd app sync <APP>
 ```
 
 - For IPTV upstream/token changes, edit the `iptv-relay` Secret in-cluster (ArgoCD is configured to ignore secret value drift in [`apps/iptv-relay.yaml`](apps/iptv-relay.yaml:15)).
-- `argocd-ingress` health is overridden on the Ingress resource via `argocd.argoproj.io/ignore-healthcheck: "true"` in [`charts/argocd-ingress/templates/ingress.yaml`](charts/argocd-ingress/templates/ingress.yaml:1) to avoid permanent false `Progressing` in this Traefik + Tunnel topology.
+- `argocd-ingress` health is kept green by publishing a fixed Ingress endpoint IP from Traefik (`providers.kubernetesIngress.ingressEndpoint.ip`) in [`apps/traefik.yaml`](apps/traefik.yaml:13), so Ingress gets a non-empty `.status.loadBalancer`.
 - Keep secrets local. Never commit `.env` or kubeconfigs (see [`.gitignore`](.gitignore:1)).
 
 ## 7) Detailed runbook
