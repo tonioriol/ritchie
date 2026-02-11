@@ -14,7 +14,13 @@ spec:
         # Bind Traefik directly to the node's :80/:443 so cert-manager HTTP-01 works.
         hostNetwork: true
 
+        # Single-node hostNetwork + hostPort cannot run 2 pods in parallel on :80/:443.
+        # Use recreate so old pod is terminated before new one starts.
+        updateStrategy:
+          type: Recreate
+
         service:
+          enabled: true
           type: ClusterIP
 
         ports:
@@ -45,8 +51,8 @@ spec:
         providers:
           kubernetesIngress:
             enabled: true
-            # Do not copy endpoint status from Service (ClusterIP has no LB status).
-            # We'll publish a fixed endpoint IP via CLI argument below.
+            # Don't derive ingress status from Traefik service (ClusterIP has no LB status).
+            # We'll publish a fixed endpoint IP via CLI arg below.
             publishedService:
               enabled: false
 
