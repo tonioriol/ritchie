@@ -39,6 +39,12 @@ KUBECONFIG=./clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
 - Acestreamio addon chart: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1)
 - IPTV relay chart: [`charts/iptv-relay`](charts/iptv-relay/Chart.yaml:1)
 
+Also running in cluster:
+- cert-manager: [`apps/cert-manager.yaml`](apps/cert-manager.yaml:1)
+- metrics-server: [`apps/metrics-server.yaml`](apps/metrics-server.yaml:1)
+- vscode/code-server: [`apps/vscode.yaml`](apps/vscode.yaml:1)
+- argocd image updater: [`apps/argocd-image-updater.yaml`](apps/argocd-image-updater.yaml:1)
+
 ## 4) How deploy works (GitOps)
 
 1. Edit manifests/charts in this repo.
@@ -64,6 +70,33 @@ ArgoCD `Application` definitions live in [`apps/`](apps/root.yaml:1). Helm chart
 export KUBECONFIG=./clusters/neumann/kubeconfig
 kubectl get nodes -o wide
 kubectl -n argocd get applications
+```
+
+- Common ops commands:
+
+```bash
+# all Argo apps with health/sync
+export KUBECONFIG=./clusters/neumann/kubeconfig
+kubectl -n argocd get applications.argoproj.io \
+  -o custom-columns=NAME:.metadata.name,HEALTH:.status.health.status,SYNC:.status.sync.status \
+  --sort-by=.metadata.name
+
+# services and exposure
+kubectl get svc -A
+
+# ingress hostnames
+kubectl get ingress -A
+
+# cloudflared connector health/logs
+kubectl -n cloudflared get pods
+kubectl -n cloudflared logs deploy/cloudflared --tail=100
+
+# Argo app details (replace APP)
+kubectl -n argocd describe application <APP>
+
+# force one app refresh/sync from CLI (if needed)
+argocd app get <APP>
+argocd app sync <APP>
 ```
 
 - For IPTV upstream/token changes, edit the `iptv-relay` Secret in-cluster (ArgoCD is configured to ignore secret value drift in [`apps/iptv-relay.yaml`](apps/iptv-relay.yaml:15)).
