@@ -42,7 +42,7 @@ KUBECONFIG=./clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
 Also running in cluster:
 - cert-manager: [`apps/cert-manager.yaml`](apps/cert-manager.yaml:1)
 - metrics-server: [`apps/metrics-server.yaml`](apps/metrics-server.yaml:1)
-- vscode/code-server: [`apps/vscode.yaml`](apps/vscode.yaml:1)
+- vscode: [`apps/vscode.yaml`](apps/vscode.yaml:1)
 - argocd image updater: [`apps/argocd-image-updater.yaml`](apps/argocd-image-updater.yaml:1)
 
 ## 4) How deploy works (GitOps)
@@ -100,6 +100,7 @@ argocd app sync <APP>
 ```
 
 - For IPTV upstream/token changes, edit the `iptv-relay` Secret in-cluster (ArgoCD is configured to ignore secret value drift in [`apps/iptv-relay.yaml`](apps/iptv-relay.yaml:15)).
+- `argocd-ingress` may show `Progressing` in ArgoCD in this Traefik + Tunnel setup when Ingress has empty `.status.loadBalancer`; this is expected if cert is Ready and routing works.
 - Keep secrets local. Never commit `.env` or kubeconfigs (see [`.gitignore`](.gitignore:1)).
 
 ## 7) Detailed runbook

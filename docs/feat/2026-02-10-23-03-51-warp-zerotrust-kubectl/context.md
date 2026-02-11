@@ -74,9 +74,24 @@ ALWAYS use absolute paths.
   * Used `kubectl config set-cluster` to avoid brittle text substitutions.
   * Validation: `KUBECONFIG=.../kubeconfig.warp kubectl get nodes -o wide` returned node `neumann_master1` Ready.
 
+* **2026-02-11 - GitOps drift cleanup (post-WARP hardening pass)**
+  * Removed duplicate app manifest `/Users/tr0n/Code/ritchie/apps/code-server.yaml` (it duplicated app name/spec already defined by `/Users/tr0n/Code/ritchie/apps/vscode.yaml`).
+  * Removed orphan runtime deployment from cluster: `kubectl -n tools delete deployment code-server`.
+  * Removed unmanaged `external-dns` leftovers from cluster (not present in repo app-of-apps):
+    * namespace `external-dns`
+    * `ClusterRole external-dns`
+    * `ClusterRoleBinding external-dns-viewer`
+  * Verified resulting parity:
+    * only `tools/vscode` deployment remains (no `tools/code-server`)
+    * no `external-dns` workload remains
+  * Observed `argocd-ingress` app remains `Synced/Progressing` with:
+    * `ClusterIssuer letsencrypt-prod` synced and Ready
+    * `Ingress argocd-server` synced, cert ready, but empty `.status.loadBalancer` (Traefik + Tunnel topology)
+    * treated as expected health quirk in current topology unless traffic/cert symptoms appear.
+
 ## Next Steps
 
-- [ ] Ensure `/Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig.warp` cannot be accidentally committed (confirm ignore patterns).
+- [x] Ensure `/Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig.warp` cannot be accidentally committed (confirm ignore patterns).
 - [ ] Optional hardening: restrict public `:6443` (Hetzner firewall) after confirming WARP works reliably from the home ISP.
-- [ ] Update main runbook event log to reflect the successful WARP enrollment + split tunnel fix.
-
+- [x] Update main runbook event log to reflect the successful WARP enrollment + split tunnel fix.
+- [ ] Validate Cloudflare hostname path end-to-end from DIGI home network during an actual match-time block window and capture evidence.
