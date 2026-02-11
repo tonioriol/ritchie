@@ -45,6 +45,10 @@ spec:
         providers:
           kubernetesIngress:
             enabled: true
+            # Do not copy endpoint status from Service (ClusterIP has no LB status).
+            # We'll publish a fixed endpoint IP via CLI argument below.
+            publishedService:
+              enabled: false
 
         # Traefik chart 34.4.1 does not expose providers.kubernetesIngress.ingressEndpoint.ip
         # as values; set the provider arg explicitly so Ingress status gets a fixed endpoint.
