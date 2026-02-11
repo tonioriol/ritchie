@@ -4,6 +4,10 @@ metadata:
   name: argocd-server
   namespace: argocd
   annotations:
+    # In Traefik + Cloudflare Tunnel setups, Ingress often has an empty
+    # .status.loadBalancer and ArgoCD keeps app health as Progressing.
+    # Ignore this resource's health check to avoid permanent false-positive.
+    argocd.argoproj.io/ignore-healthcheck: "true"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     {{- if .Values.tls.enabled }}
     cert-manager.io/cluster-issuer: {{ .Values.tls.issuer }}
