@@ -1,52 +1,64 @@
 # ritchie
 
-GitOps repo for the **neumann** k3s cluster (Hetzner). Includes minimal notes for the legacy **ritchie** server (DigitalOcean).
+Simple GitOps repo for the `neumann` k3s cluster.
 
----
+## 1) How this system works (current state)
 
-## neumann (k3s)
+- Public traffic goes through Cloudflare Tunnel (not direct Hetzner IP access).
+- Public hostnames:
+  - `https://acestreamio.tonioriol.com`
+  - `https://ace.tonioriol.com`
+  - `https://tv.tonioriol.com`
+  - `https://neumann.tonioriol.com` (ArgoCD UI)
+- Core services are internal ClusterIP; no public NodePorts for ArgoCD server / AceStream engine.
 
-| Item | Value |
-|------|-------|
-| Node IP | `5.75.129.215` |
-| KUBECONFIG | `./clusters/neumann/kubeconfig` |
+Cloudflare tunnel config is managed in [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1).
 
-### Access
+## 2) How to access
 
-| Service | URL |
-|---------|-----|
-| ArgoCD UI | `https://5.75.129.215:31796` |
-| AceStream proxy (HTTPS) | `https://ace.tonioriol.com` |
-| AceStream engine (NodePort) | `http://5.75.129.215:30878` |
-| Acestreamio addon | `https://acestreamio.tonioriol.com/manifest.json` |
+### End users (normal days and ISP-block days)
 
-### Cloudflare DNS + Tunnel (workaround for ISP Hetzner blocks)
+Use the Cloudflare hostnames above. No WARP needed for normal app/stream usage.
 
-If your ISP blocks Hetzner IP ranges (observed during football matches), put Cloudflare in front so clients connect to Cloudflare anycast IPs.
+### Cluster admin (`kubectl`)
 
-- Cloudflare zone: `tonioriol.com`
-- **Registrar nameservers (set at registrar when ready to cut over):**
-  - `aisha.ns.cloudflare.com`
-  - `elijah.ns.cloudflare.com`
-- Cloudflare Tunnel connector runs in-cluster via ArgoCD: [`apps/cloudflared.yaml`](apps/cloudflared.yaml:1) (chart: [`charts/cloudflared`](charts/cloudflared:1))
-- Tunnel routes:
-  - `acestreamio.tonioriol.com` → `acestreamio` service
-  - `ace.tonioriol.com` → `acestream-proxy` service
-  - `neumann.tonioriol.com` → `argocd-server` service
+- Normal path: [`clusters/neumann/kubeconfig`](clusters/neumann/kubeconfig:1)
+- During ISP Hetzner blocking: turn on WARP and use [`clusters/neumann/kubeconfig.warp`](clusters/neumann/kubeconfig.warp:1)
 
-Important: Cloudflare Universal SSL (Free) covers only `tonioriol.com` and `*.tonioriol.com`.
-It does **not** cover nested hostnames like `*.neumann.tonioriol.com`, so those must remain DNS-only (or require a paid SSL option).
+Quick check:
 
-Legacy nested hostnames (deprecated):
+```bash
+KUBECONFIG=./clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
+```
 
-- `acestreamio.neumann.tonioriol.com`
-- `ace.neumann.tonioriol.com`
+## 3) Main components
 
-These are intentionally not proxied through Cloudflare on the free plan (no Universal SSL coverage for `*.neumann.tonioriol.com`).
+- ArgoCD app-of-apps root: [`apps/root.yaml`](apps/root.yaml:1)
+- Cloudflare tunnel connector app: [`apps/cloudflared.yaml`](apps/cloudflared.yaml:1)
+- AceStream proxy chart: [`charts/acestream`](charts/acestream/Chart.yaml:1)
+- Acestreamio addon chart: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1)
+- IPTV relay chart: [`charts/iptv-relay`](charts/iptv-relay/Chart.yaml:1)
 
-Runbook: [`docs/feat/2026-02-08-23-33-44-feat-cloudflare-neumann-cli-runbook/context.md`](docs/feat/2026-02-08-23-33-44-feat-cloudflare-neumann-cli-runbook/context.md:1)
+## 4) How deploy works (GitOps)
 
-### Common commands
+1. Edit manifests/charts in this repo.
+2. Commit and push to `main`.
+3. ArgoCD auto-sync applies changes.
+
+ArgoCD `Application` definitions live in [`apps/`](apps/root.yaml:1). Helm charts live in [`charts/`](charts/acestream/Chart.yaml:1).
+
+## 5) How to add a new service
+
+1. Create a new chart in `charts/<service>/`.
+2. Create `apps/<service>.yaml` ArgoCD `Application`.
+3. If service must be public:
+   - Add hostname route in [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1)
+   - Add matching Cloudflare DNS record to the tunnel.
+4. Commit + push; ArgoCD deploys it.
+
+## 6) Day-to-day maintenance (minimal)
+
+- Check cluster/apps health:
 
 ```bash
 export KUBECONFIG=./clusters/neumann/kubeconfig
@@ -54,45 +66,9 @@ kubectl get nodes -o wide
 kubectl -n argocd get applications
 ```
 
----
+- For IPTV upstream/token changes, edit the `iptv-relay` Secret in-cluster (ArgoCD is configured to ignore secret value drift in [`apps/iptv-relay.yaml`](apps/iptv-relay.yaml:15)).
+- Keep secrets local. Never commit `.env` or kubeconfigs (see [`.gitignore`](.gitignore:1)).
 
-## How deploy works (GitOps)
+## 7) Detailed runbook
 
-- Root app-of-apps: `apps/root.yaml`
-- Each file in `apps/*.yaml` is an ArgoCD `Application`
-- Helm charts live in `charts/*` and are referenced by those `Application` objects
-
-Deploying changes:
-
-1) edit `apps/*.yaml` and/or `charts/*`
-2) commit + push to `main`
-3) ArgoCD auto-syncs (`prune` + `selfHeal`)
-
-### Image updates (no git commits)
-
-`acestreamio` uses **Argo CD Image Updater** to roll out new images without committing image bumps into this repo.
-
-- It tracks `ghcr.io/tonioriol/acestreamio:vX.Y.Z` (SemVer tags)
-- When a new SemVer image is published, it patches the in-cluster ArgoCD `Application`, then ArgoCD rolls the `Deployment`
-
-### Acestreamio release process (addon repo)
-
-The addon repo (`tonioriol/acestreamio`) uses semantic-release on every push to `main`:
-
-1) Commit using Conventional Commits (e.g. `fix:`/`feat:`)
-2) GitHub Actions `Release` workflow computes SemVer, creates tag/release, and builds/pushes `ghcr.io/tonioriol/acestreamio:vX.Y.Z`
-3) ArgoCD Image Updater detects the new tag and rolls the deployment automatically
-
----
-
-## legacy ritchie (DO)
-
-Ubuntu 16.04 server (Laravel Forge). Keep minimal changes.
-
-| Item | Value |
-|------|-------|
-| Host | `ritchie.tonioriol.com` |
-| IP | `188.226.140.165` |
-| SSH | `ssh forge@ritchie.tonioriol.com` |
-
-Legacy note: `ace.tonioriol.com` is the old reverse proxy path. Prefer the in-cluster endpoints above.
+Full Cloudflare + WARP operational notes: [`docs/feat/2026-02-08-23-33-44-feat-cloudflare-neumann-cli-runbook/context.md`](docs/feat/2026-02-08-23-33-44-feat-cloudflare-neumann-cli-runbook/context.md:1)

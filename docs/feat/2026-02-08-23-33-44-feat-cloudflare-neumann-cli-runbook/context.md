@@ -390,6 +390,25 @@ Once you confirm WARP private routing works end-to-end, you can consider locking
 
 ## EVENT LOG
 
+* **2026-02-10 - Completed WARP private-route kubectl workstream (macOS)**
+  * Goal: keep admin access working during ISP blocks by reaching kube-apiserver via the node private IP `10.0.0.2:6443` over Cloudflare Zero Trust WARP.
+  * WARP CLI gotcha: the installed client uses `warp-cli registration new <org>` (no `teams-enroll` subcommand).
+  * Zero Trust config gotchas encountered:
+    * `https://ultr4.cloudflareaccess.com/warp` initially returned **“Enrollment request is invalid”** until **Device enrollment permissions** had an allow policy attached.
+    * Enrollment succeeded in browser but device was still **CF_REGISTRATION_MISSING** until the user identity was added/selected in the macOS WARP app.
+    * Teamnet route `10.0.0.2/32 → tunnel neumann` existed, but traffic still timed out until **Split Tunnels** were fixed.
+      * Root cause: Split tunnel was enforced via org `network_policy` in **exclude** mode and excluded `10.0.0.0/8`, preventing routing to `10.0.0.2`.
+      * Fix: add `10.0.0.2/32` to the WARP device profile **Split Tunnel include list**.
+  * Validation:
+    * TCP reachability: `nc -vz 10.0.0.2 6443` succeeded.
+    * API response: `curl -k https://10.0.0.2:6443/healthz` returned 401 Unauthorized (expected without client cert).
+    * `kubectl` works when using a local kubeconfig pointed at `https://10.0.0.2:6443`.
+
+## Next Steps
+
+- [ ] Optional hardening: once confident WARP works reliably during blocks, restrict public access to `:6443` in the Hetzner firewall.
+- [ ] (Operational) Keep any WARP kubeconfig local-only and never committed (note `.gitignore` already ignores `clusters/*/kubeconfig`).
+
 ## Next Steps
 
 - [ ] When executing this runbook, append progress notes to EVENT LOG via `/update-context`.

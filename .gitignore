@@ -4,6 +4,7 @@
 
 # Kubernetes config with credentials
 clusters/*/kubeconfig
+clusters/*/kubeconfig.warp
 kubeconfig
 
 # Devbox local files
