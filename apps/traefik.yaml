@@ -45,11 +45,11 @@ spec:
         providers:
           kubernetesIngress:
             enabled: true
-            # Publish a fixed endpoint into Ingress.status.loadBalancer so
-            # ArgoCD can evaluate Ingress health as Healthy (not Progressing)
-            # in this hostNetwork + ClusterIP Traefik setup.
-            ingressEndpoint:
-              ip: 5.75.129.215
+
+        # Traefik chart 34.4.1 does not expose providers.kubernetesIngress.ingressEndpoint.ip
+        # as values; set the provider arg explicitly so Ingress status gets a fixed endpoint.
+        additionalArguments:
+          - --providers.kubernetesingress.ingressendpoint.ip=5.75.129.215
   destination:
     server: https://kubernetes.default.svc
     namespace: traefik
