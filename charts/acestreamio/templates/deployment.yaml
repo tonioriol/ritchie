@@ -35,6 +35,8 @@ spec:
               value: "{{ .Values.env.addonUrl }}"
             - name: PROXY_URL
               value: "{{ .Values.env.proxyUrl }}"
+            - name: SCRAPER_API_URL
+              value: "{{ .Values.env.scraperApiUrl }}"
             - name: ENABLE_LOCAL_ENGINE
               value: "{{ .Values.env.enableLocalEngine }}"
             - name: LOCAL_URL

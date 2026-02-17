@@ -24,6 +24,7 @@ env:
   addonUrl: "https://acestreamio.tonioriol.com"
   # Optional runtime tuning for the addon code (supported by ../acestreamio/addon.js)
   proxyUrl: "https://ace.tonioriol.com"
+  scraperApiUrl: "http://acestream-scraper.default.svc.cluster.local:8000"
   enableLocalEngine: "false"
   localUrl: "http://127.0.0.1:6878"
 
