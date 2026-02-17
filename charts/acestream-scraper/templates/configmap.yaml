@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-initial-config
+  labels:
+    {{- include "acestream-scraper.labels" . | nindent 4 }}
+data:
+  config.json: |
+    {
+      "urls": [],
+      "base_url": "http://{{ .Values.env.ACESTREAM_HTTP_HOST }}:{{ .Values.env.ACESTREAM_HTTP_PORT }}/ace/getstream?id=",
+      "ace_engine_url": "http://{{ .Values.env.ACESTREAM_HTTP_HOST }}:{{ .Values.env.ACESTREAM_HTTP_PORT }}",
+      "rescrape_interval": 30
+    }
