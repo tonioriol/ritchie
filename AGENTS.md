@@ -39,6 +39,20 @@ This file provides guidance to agents when working with code in this repository.
 
 - `kubectl top …` works because [`apps/metrics-server.yaml`](apps/metrics-server.yaml:1) injects `--kubelet-insecure-tls` (k3s kubelet certs are often not verifiable in-cluster).
 
+## Cloudflare Tunnel config (token-based, remote-managed)
+
+- The tunnel uses a token (`TUNNEL_TOKEN` secret), which means **Cloudflare's remote config overrides the local ConfigMap**.
+- Editing [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:23) updates the ConfigMap but the tunnel daemon ignores it in favour of the remote config.
+- To change ingress routes, you must **also** PUT via the Cloudflare API:
+  ```bash
+  source .env && curl -s -X PUT \
+    "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/cfd_tunnel/${CF_TUNNEL_ID}/configurations" \
+    -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}" -H "X-Auth-Key: ${CLOUDFLARE_GLOBAL_API_KEY}" \
+    -H "Content-Type: application/json" \
+    --data '{"config":{"ingress":[...], "warp-routing":{"enabled":true}}}'
+  ```
+- Keep the local ConfigMap in sync as documentation / fallback, but the API call is what actually takes effect.
+
 ## kubectl context (important for agents)
 
 - Always use the neumann cluster kubeconfig when running `kubectl` or `helm` commands: `KUBECONFIG=${PWD}/clusters/neumann/kubeconfig`.
