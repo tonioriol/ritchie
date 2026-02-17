@@ -24,9 +24,11 @@ hosts:
   - hostname: acestreamio.tonioriol.com
     service: http://acestreamio.media.svc.cluster.local:80
   - hostname: ace.tonioriol.com
-    service: http://acestream-proxy.media.svc.cluster.local:80
+    service: http://acestream-scraper.default.svc.cluster.local:8080
   - hostname: tv.tonioriol.com
     service: http://iptv-relay.media.svc.cluster.local:80
+  - hostname: scraper.tonioriol.com
+    service: http://acestream-scraper.default.svc.cluster.local:8000
   - hostname: neumann.tonioriol.com
     service: http://argocd-server.argocd.svc.cluster.local:80
 
