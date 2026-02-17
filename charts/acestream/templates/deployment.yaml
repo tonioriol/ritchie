@@ -38,10 +38,35 @@ spec:
               value: "0"
           securityContext:
             privileged: {{ .Values.acestream.privileged }}
-          # Legacy Docker setup runs privileged; also give the container access
-          # to the host's /dev/disk/by-id (AceStream probes it on startup).
-          # On k3s this path exists on the node but isn't present inside the pod
-          # unless we mount it.
+          # AceStream engine health: /webui/api/service?method=get_version returns
+          # JSON {"result":{"version":"..."},"error":null} when the engine is responsive.
+          # When the engine hangs (common symptom: streams "loading forever"), this
+          # endpoint stops responding and the liveness probe will restart the pod.
+          readinessProbe:
+            httpGet:
+              path: /webui/api/service?method=get_version
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /webui/api/service?method=get_version
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /webui/api/service?method=get_version
+              port: http
+            # AceStream engine can take a while to initialise (loading P2P state, etc.)
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 18  # 10s + 18*10s = up to ~190s to start
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

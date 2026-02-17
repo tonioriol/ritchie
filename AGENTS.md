@@ -38,3 +38,8 @@ This file provides guidance to agents when working with code in this repository.
 ## Metrics-server (k3s TLS)
 
 - `kubectl top …` works because [`apps/metrics-server.yaml`](apps/metrics-server.yaml:1) injects `--kubelet-insecure-tls` (k3s kubelet certs are often not verifiable in-cluster).
+
+## kubectl context (important for agents)
+
+- Always use the neumann cluster kubeconfig when running `kubectl` or `helm` commands: `KUBECONFIG=${PWD}/clusters/neumann/kubeconfig`.
+- In terminal commands, prefix with `export KUBECONFIG=${PWD}/clusters/neumann/kubeconfig &&` or pass `--kubeconfig clusters/neumann/kubeconfig` to avoid hitting the wrong cluster context.

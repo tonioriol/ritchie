@@ -1,0 +1,9 @@
+{
+  // Associate Helm chart template files with the "helm" language ID.
+  // This prevents the Red Hat YAML extension from linting Go {{ }} template syntax.
+  "files.associations": {
+    "**/charts/*/templates/*.yaml": "helm",
+    "**/charts/*/templates/**/*.yaml": "helm",
+    "**/charts/*/templates/*.tpl": "helm"
+  }
+}
