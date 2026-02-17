@@ -1,0 +1,40 @@
+image:
+  repository: pipepito/acestream-scraper
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+
+service:
+  port: 8000
+
+env:
+  # Timezone
+  TZ: "Europe/Madrid"
+  # Flask port
+  FLASK_PORT: "8000"
+  # Disable embedded services — we use our own acestream engine + proxy
+  ENABLE_ACESTREAM_ENGINE: "false"
+  ENABLE_ACEXY: "false"
+  ENABLE_TOR: "false"
+  ENABLE_WARP: "false"
+  # Point to our existing acestream-proxy service (in-cluster)
+  ACESTREAM_HTTP_HOST: "acestream-proxy"
+  ACESTREAM_HTTP_PORT: "8080"
+  # Allow remote access (needed for k8s service access)
+  ALLOW_REMOTE_ACCESS: "yes"
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+
+ingress:
+  # Traffic is served via Cloudflare Tunnel (no public Ingress required for now).
+  enabled: false
+  host: acestream-scraper.neumann.tonioriol.com
+  tls:
+    enabled: true
+    issuer: letsencrypt-prod
+    secretName: acestream-scraper-tls
