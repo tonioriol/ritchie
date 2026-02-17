@@ -32,6 +32,41 @@ spec:
               mountPath: /config
             - name: seed-config
               mountPath: /seed
+        - name: db-migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - sh
+            - -c
+            - |
+              echo "Dropping leftover alembic tmp tables (if any)..."
+              python -c "
+              import sqlite3, os
+              db = '/app/config/acestream.db'
+              if os.path.exists(db):
+                  conn = sqlite3.connect(db)
+                  for row in conn.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '_alembic_tmp_%'\").fetchall():
+                      conn.execute(f'DROP TABLE IF EXISTS [{row[0]}]')
+                      print(f'  dropped {row[0]}')
+                  conn.commit()
+                  conn.close()
+              else:
+                  print('  no db yet, skipping')
+              "
+              echo "Running DB migrations..."
+              python manage.py upgrade
+              echo "Migrations complete."
+          env:
+            - name: ENABLE_ACESTREAM_ENGINE
+              value: "false"
+            - name: ENABLE_ACEXY
+              value: "false"
+            - name: ENABLE_TOR
+              value: "false"
+            - name: ENABLE_WARP
+              value: "false"
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
       containers:
         - name: acestream-scraper
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -63,14 +98,14 @@ spec:
               mountPath: /app/config
           readinessProbe:
             httpGet:
-              path: /setup
+              path: /
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
           livenessProbe:
             httpGet:
-              path: /setup
+              path: /
               port: http
             initialDelaySeconds: 30
             periodSeconds: 30
@@ -78,7 +113,7 @@ spec:
             failureThreshold: 3
           startupProbe:
             httpGet:
-              path: /setup
+              path: /
               port: http
             initialDelaySeconds: 5
             periodSeconds: 5
