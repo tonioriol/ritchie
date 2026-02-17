@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../acestreamio"
+		},
+		{
+			"path": "../stremio-filmaffinity-addon"
+		}
+	],
+	"settings": {}
+}

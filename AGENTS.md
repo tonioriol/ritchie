@@ -78,6 +78,11 @@ This file provides guidance to agents when working with code in this repository.
 - **URL management**: `POST /api/urls/` to add, `DELETE /api/urls/{id}` (no trailing slash) to remove. Trailing slash on DELETE returns 404.
 - **Channel data**: `GET /api/channels/` returns all channels; filter with `ch.status === 'active' && ch.is_online !== false`.
 - **Ports**: Flask on `8000`, Acexy on `8080`, Acestream Engine on `6878` (all in the same pod).
+- **Acexy vs raw engine**: Acexy (`ace.tonioriol.com` → port 8080) is a Go proxy that wraps the engine API. Key differences:
+  - Acexy **rejects the `pid` parameter** with HTTP 400 ("PID parameter is not allowed"). Never include `&pid=` in Acexy URLs.
+  - Acexy only supports MPEG-TS via `/ace/getstream?id=<hash>` — no HLS (`/ace/manifest.m3u8` returns 404).
+  - The raw engine (port 6878) supports both HLS and MPEG-TS, and accepts `pid`.
+  - The scraper Config page has an "Add PID parameter to URLs" checkbox — must be **unchecked** when using Acexy.
 - **Config is stored in SQLite** (`/app/config/acestream_scraper.db`), persisted via PVC at `/app/config`.
 
 ## kubectl context (important for agents)
