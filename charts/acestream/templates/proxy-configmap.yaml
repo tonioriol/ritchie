@@ -238,6 +238,13 @@ data:
         proxy_cache_bypass $http_upgrade;
       }
 
+      # Health check endpoint for Kubernetes probes (returns 200 directly from nginx).
+      location = /healthz {
+        access_log off;
+        return 200 "ok";
+        add_header Content-Type text/plain;
+      }
+
       location / {
         # Remove any existing CORS headers from backend
         proxy_hide_header Access-Control-Allow-Origin;
