@@ -85,49 +85,42 @@ This file provides guidance to agents when working with code in this repository.
   - The scraper Config page has an "Add PID parameter to URLs" checkbox — must be **unchecked** when using Acexy.
 - **Config is stored in SQLite** (`/app/config/acestream_scraper.db`), persisted via PVC at `/app/config`.
 
-## Acestream-scraper release process (overlay repo)
+## Acestream-scraper release process (CI pipeline)
 
 - The scraper repo (`tonioriol/acestream-scraper`) is a fork of `pipepito/acestream-scraper` with custom overlay code in `app/`.
-- There is **no CI/CD pipeline** — builds are done locally using [`Dockerfile.overlay`](../acestream-scraper/Dockerfile.overlay:1).
-- **NEVER** deploy by pushing `:latest` and doing `kubectl rollout restart`. Always use semver tags + ArgoCD Image Updater.
+- CI/CD: [`.github/workflows/release.yml`](../acestream-scraper/.github/workflows/release.yml:1) runs **semantic-release** on every push to `main` (when `app/`, `migrations/`, `Dockerfile`, `requirements*.txt`, `wsgi.py`, etc. change).
+- **NEVER** deploy manually (no `docker build`, no `docker push`, no `kubectl rollout restart`). Just push to `main` with Conventional Commits.
 
 ### Deploy steps
 
-1. Make code changes in the `acestream-scraper` repo and commit to `main`:
+1. Make code changes in the `acestream-scraper` repo. Use **Conventional Commits** (`fix:`, `feat:`, `BREAKING CHANGE:`) so semantic-release can compute the version:
    ```bash
    cd ../acestream-scraper
    git add -A && git commit -m "fix: description of change"
    git push origin main
    ```
 
-2. Build the overlay Docker image (**must use `--platform linux/amd64`** on ARM Mac):
-   ```bash
-   cd ../acestream-scraper
-   docker build --platform linux/amd64 -f Dockerfile.overlay -t ghcr.io/tonioriol/acestream-scraper:vX.Y.Z .
-   ```
+2. That's it. The CI pipeline handles everything:
+   - **semantic-release** bumps the version, creates a GitHub release + git tag
+   - **Docker build** builds `linux/amd64` image and pushes to `ghcr.io/tonioriol/acestream-scraper:vX.Y.Z`
+   - **ArgoCD Image Updater** detects the new semver tag (polls every ~2 min) and rolls the deployment
 
-3. Push the image to GHCR:
+3. Verify deployment:
    ```bash
-   docker push ghcr.io/tonioriol/acestream-scraper:vX.Y.Z
+   export KUBECONFIG=${PWD}/clusters/neumann/kubeconfig
+   # Check Image Updater logs
+   kubectl logs -l app.kubernetes.io/name=argocd-image-updater --tail=20 -n argocd
+   # Check current image
+   kubectl get deploy acestream-scraper -o jsonpath='{.spec.template.spec.containers[*].image}'
    ```
-
-4. Tag the git commit with the same semver version and push:
-   ```bash
-   cd ../acestream-scraper
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
-
-5. ArgoCD Image Updater auto-detects the new semver tag (polls every ~2 min) and updates the deployment.
-   - Verify with: `kubectl logs -l app.kubernetes.io/name=argocd-image-updater --tail=20 -n argocd`
-   - Check current image: `kubectl get deploy acestream-scraper -o jsonpath='{.spec.template.spec.containers[*].image}'`
 
 ### Important notes
 
 - The Image Updater is configured via the `ImageUpdater` CRD in [`apps/argocd-image-updater.yaml`](apps/argocd-image-updater.yaml:58) (not via Application annotations).
 - The `semver` strategy + `allowTags: regexp:^v?\d+\.\d+\.\d+$` means only proper semver tags are considered.
-- The chart [`charts/acestream-scraper/values.yaml`](charts/acestream-scraper/values.yaml:1) may show `tag: latest` but Image Updater overrides this at deploy time.
-- GHCR auth uses the `ghcr-pull` Secret in the `argocd` namespace (same as acestreamio).
+- The chart [`charts/acestream-scraper/values.yaml`](charts/acestream-scraper/values.yaml:1) has a baseline tag but Image Updater overrides this at deploy time.
+- GHCR auth: the CI pipeline uses `GHCR_PAT` secret; the cluster uses `ghcr-pull` Secret in the `argocd` namespace.
+- If SSH to github.com times out, use HTTPS: `git push https://github.com/tonioriol/acestream-scraper.git main`
 
 ## kubectl context (important for agents)
 
