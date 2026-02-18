@@ -23,8 +23,11 @@ tunnelTokenSecret:
 hosts:
   - hostname: acestreamio.tonioriol.com
     service: http://acestreamio.media.svc.cluster.local:80
-  - hostname: ace.tonioriol.com
-    service: http://acestream-scraper.default.svc.cluster.local:8080
+  # ace.tonioriol.com (Acexy :8080) intentionally removed from public tunnel.
+  # Acexy has no authentication support; exposing it publicly would allow anyone
+  # to proxy arbitrary acestream hashes through the cluster.
+  # The playlist base_url already uses localhost:8080 (cluster-internal).
+  # If external stream access is needed, use Cloudflare Access service tokens.
   - hostname: tv.tonioriol.com
     service: http://iptv-relay.media.svc.cluster.local:80
   - hostname: scraper.tonioriol.com

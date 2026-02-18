@@ -35,6 +35,10 @@ spec:
               value: "{{ .Values.env.addonUrl }}"
             - name: PROXY_URL
               value: "{{ .Values.env.proxyUrl }}"
+            - name: ACEXY_URL
+              value: "{{ .Values.env.acexyUrl }}"
+            - name: STREAM_TOKEN
+              value: "{{ .Values.streamToken }}"
             - name: SCRAPER_API_URL
               value: "{{ .Values.env.scraperApiUrl }}"
             - name: ENABLE_LOCAL_ENGINE

@@ -43,3 +43,17 @@ ingress:
     enabled: true
     issuer: letsencrypt-prod
     secretName: acestream-scraper-tls
+
+# HTTP Basic Auth
+# Set enabled: true and provide username/password to protect all routes.
+# /api/health is always public (k8s probes).
+auth:
+  enabled: false
+  username: ""
+  password: ""
+
+# Stream token for the acestreamio Acexy proxy.
+# Must match the streamToken set in the acestreamio chart.
+# When set, the scraper embeds ?token=<value> in every M3U stream URL so
+# TiviMate and other players can stream through the gated proxy.
+acexyToken: ""

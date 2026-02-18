@@ -97,6 +97,25 @@ spec:
               value: "{{ .Values.env.ACESTREAM_HTTP_PORT }}"
             - name: ALLOW_REMOTE_ACCESS
               value: "{{ .Values.env.ALLOW_REMOTE_ACCESS }}"
+            {{- if .Values.auth.enabled }}
+            - name: AUTH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth
+                  key: AUTH_USERNAME
+            - name: AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth
+                  key: AUTH_PASSWORD
+            {{- end }}
+            {{- if .Values.acexyToken }}
+            - name: ACEXY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth
+                  key: ACEXY_TOKEN
+            {{- end }}
           volumeMounts:
             - name: config
               mountPath: /app/config
