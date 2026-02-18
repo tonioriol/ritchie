@@ -1,7 +1,10 @@
 image:
-  repository: pipepito/acestream-scraper
+  repository: ghcr.io/tonioriol/acestream-scraper
   tag: latest
   pullPolicy: Always
+
+imagePullSecrets:
+  - name: ghcr-pull
 
 replicaCount: 1
 

@@ -3,12 +3,22 @@ kind: Application
 metadata:
   name: acestream-scraper
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: scraper=ghcr.io/tonioriol/acestream-scraper
+    argocd-image-updater.argoproj.io/scraper.update-strategy: semver
+    argocd-image-updater.argoproj.io/scraper.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+    argocd-image-updater.argoproj.io/scraper.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/scraper.helm.image-tag: image.tag
 spec:
   project: default
   source:
     repoURL: https://github.com/tonioriol/ritchie.git
-    targetRevision: HEAD
+    targetRevision: main
     path: charts/acestream-scraper
+    helm:
+      values: |
+        imagePullSecrets:
+          - name: ghcr-pull
   destination:
     server: https://kubernetes.default.svc
     namespace: default
