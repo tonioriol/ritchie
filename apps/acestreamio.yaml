@@ -25,6 +25,8 @@ spec:
         # Created out-of-band in the cluster as: media/ghcr-pull
         imagePullSecrets:
           - name: ghcr-pull
+        # Must match AUTH_PASSWORD on acestream-scraper — addon.js appends it to stream URLs.
+        streamToken: "SntSIGdaunNbnAZfQzjT3fXN"
   destination:
     server: https://kubernetes.default.svc
     namespace: media

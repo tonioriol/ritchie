@@ -23,7 +23,6 @@ spec:
           enabled: true
           username: "admin"
           password: "SntSIGdaunNbnAZfQzjT3fXN"
-        acexyToken: "5e512bdea2cbeea4d29282ce3bd781922a079136920913062069d4a7b109951d"
   destination:
     server: https://kubernetes.default.svc
     namespace: default

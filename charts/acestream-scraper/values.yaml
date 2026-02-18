@@ -47,13 +47,10 @@ ingress:
 # HTTP Basic Auth
 # Set enabled: true and provide username/password to protect all routes.
 # /api/health is always public (k8s probes).
+# AUTH_PASSWORD is also embedded as ?token= in M3U stream URLs so TiviMate
+# and other players can stream via scraper.tonioriol.com/ace/getstream without
+# interactive Basic Auth prompts.
 auth:
   enabled: false
   username: ""
   password: ""
-
-# Stream token for the acestreamio Acexy proxy.
-# Must match the streamToken set in the acestreamio chart.
-# When set, the scraper embeds ?token=<value> in every M3U stream URL so
-# TiviMate and other players can stream through the gated proxy.
-acexyToken: ""

@@ -23,18 +23,15 @@ env:
   # Used to generate absolute URLs for posters and stream URLs in catalog/meta responses.
   addonUrl: "https://acestreamio.tonioriol.com"
   # PROXY_URL: public base URL for /ace/getstream stream URLs returned to Stremio clients.
-  # Defaults to addonUrl (self) — the addon proxies internally to acexyUrl.
-  proxyUrl: "https://acestreamio.tonioriol.com"
-  # ACEXY_URL: cluster-internal Acexy endpoint (never exposed publicly).
-  acexyUrl: "http://acestream-scraper.default.svc.cluster.local:8080"
+  # The proxy lives in the Flask scraper (scraper.tonioriol.com/ace/getstream), auth-gated.
+  proxyUrl: "https://scraper.tonioriol.com"
   scraperApiUrl: "http://acestream-scraper.default.svc.cluster.local:8000"
   enableLocalEngine: "false"
   localUrl: "http://127.0.0.1:6878"
 
-# Stream token — gates /ace/getstream proxy access.
-# Set streamToken to a strong random value (e.g. openssl rand -hex 32).
-# The scraper must be configured with the same value via ACEXY_TOKEN so it embeds
-# it in generated M3U stream URLs automatically.
+# Stream token — authenticates requests to the scraper's /ace/getstream proxy.
+# Must match AUTH_PASSWORD (ACEXY_TOKEN) on the acestream-scraper.
+# addon.js appends ?token=<value> to every stream URL returned to Stremio clients.
 streamToken: ""
 
 secret:
