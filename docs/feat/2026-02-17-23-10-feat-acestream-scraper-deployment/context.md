@@ -118,12 +118,24 @@ ZeroNet sites require first-time P2P sync (5–15 min) to download `content.json
 7865ac2 fix: engine port 6878 (was conflicting with Acexy on 8080)
 ```
 
+### 7. Cloudflare Tunnel exposure
+
+Exposed acestream-scraper web UI via Cloudflare tunnel:
+- `scraper.tonioriol.com` → acestream-scraper Flask (port 8000)
+- `ace.tonioriol.com` → acestream-scraper Acexy (port 8080)
+- Updated Cloudflare tunnel remote config via API (local ConfigMap overridden by remote — see AGENTS.md)
+
+### 8. Broken IPFS URL cleanup
+
+Deleted non-working IPFS URL `k51qzi5uqu5di00365631...` (returns 404) via `DELETE /api/urls/<id>`.
+
+### 9. M3U source with tvg-logo
+
+Added M3U source URL from k2k4r8 IPNS that includes `tvg-logo` attributes. All 244 channels now have logo URLs extracted from the M3U metadata. Logos come from various sources (GitHub raw, ibb.co, wikimedia, etc.).
+
 ## PENDING WORK
 
 - **ZeroNet sync**: Sites `18D6dPcsjLrjg2hhnYqKzNh2W6QtXrDwF` and `1JKe3V9qScFiDmcXMqq8R5x5Xpniav2ynV` still syncing — will auto-scrape when content downloads
-- **Delete broken URL**: `k51qzi5uqu5di00365631...` returns 404, should be removed via `DELETE /api/urls/<id>/`
-- **Expose web UI**: Add Ingress or Cloudflare Tunnel route for acestream-scraper dashboard
-- **Refactor acestreamio addon**: Fetch channels from `/api/channels/` instead of static [`list.js`](/Users/tr0n/Code/acestreamio/list.js:1); remove [`converter.js`](/Users/tr0n/Code/acestreamio/converter.js:1) and `buildM3U` from [`server.js`](/Users/tr0n/Code/acestreamio/server.js:22)
 - **Retire `charts/acestream`**: Engine + proxy now consolidated in acestream-scraper; the separate [`charts/acestream/`](charts/acestream/Chart.yaml:1) chart can be removed
 
 ## API REFERENCE (acestream-scraper)
