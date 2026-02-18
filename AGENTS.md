@@ -85,6 +85,50 @@ This file provides guidance to agents when working with code in this repository.
   - The scraper Config page has an "Add PID parameter to URLs" checkbox — must be **unchecked** when using Acexy.
 - **Config is stored in SQLite** (`/app/config/acestream_scraper.db`), persisted via PVC at `/app/config`.
 
+## Acestream-scraper release process (overlay repo)
+
+- The scraper repo (`tonioriol/acestream-scraper`) is a fork of `pipepito/acestream-scraper` with custom overlay code in `app/`.
+- There is **no CI/CD pipeline** — builds are done locally using [`Dockerfile.overlay`](../acestream-scraper/Dockerfile.overlay:1).
+- **NEVER** deploy by pushing `:latest` and doing `kubectl rollout restart`. Always use semver tags + ArgoCD Image Updater.
+
+### Deploy steps
+
+1. Make code changes in the `acestream-scraper` repo and commit to `main`:
+   ```bash
+   cd ../acestream-scraper
+   git add -A && git commit -m "fix: description of change"
+   git push origin main
+   ```
+
+2. Build the overlay Docker image (**must use `--platform linux/amd64`** on ARM Mac):
+   ```bash
+   cd ../acestream-scraper
+   docker build --platform linux/amd64 -f Dockerfile.overlay -t ghcr.io/tonioriol/acestream-scraper:vX.Y.Z .
+   ```
+
+3. Push the image to GHCR:
+   ```bash
+   docker push ghcr.io/tonioriol/acestream-scraper:vX.Y.Z
+   ```
+
+4. Tag the git commit with the same semver version and push:
+   ```bash
+   cd ../acestream-scraper
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+
+5. ArgoCD Image Updater auto-detects the new semver tag (polls every ~2 min) and updates the deployment.
+   - Verify with: `kubectl logs -l app.kubernetes.io/name=argocd-image-updater --tail=20 -n argocd`
+   - Check current image: `kubectl get deploy acestream-scraper -o jsonpath='{.spec.template.spec.containers[*].image}'`
+
+### Important notes
+
+- The Image Updater is configured via the `ImageUpdater` CRD in [`apps/argocd-image-updater.yaml`](apps/argocd-image-updater.yaml:58) (not via Application annotations).
+- The `semver` strategy + `allowTags: regexp:^v?\d+\.\d+\.\d+$` means only proper semver tags are considered.
+- The chart [`charts/acestream-scraper/values.yaml`](charts/acestream-scraper/values.yaml:1) may show `tag: latest` but Image Updater overrides this at deploy time.
+- GHCR auth uses the `ghcr-pull` Secret in the `argocd` namespace (same as acestreamio).
+
 ## kubectl context (important for agents)
 
 - Always use the neumann cluster kubeconfig when running `kubectl` or `helm` commands: `KUBECONFIG=${PWD}/clusters/neumann/kubeconfig`.
