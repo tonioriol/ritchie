@@ -6,10 +6,11 @@ Simple GitOps repo for the `neumann` k3s cluster.
 
 - Public traffic goes through Cloudflare Tunnel (not direct Hetzner IP access).
 - Public hostnames:
-  - `https://acestreamio.tonioriol.com`
-  - `https://ace.tonioriol.com`
-  - `https://tv.tonioriol.com`
-  - `https://neumann.tonioriol.com` (ArgoCD UI)
+  - `https://acestreamio.tonioriol.com` — Stremio addon
+  - `https://ace.tonioriol.com` — Acexy stream proxy
+  - `https://scraper.tonioriol.com` — Acestream-scraper web UI & API
+  - `https://tv.tonioriol.com` — IPTV relay
+  - `https://neumann.tonioriol.com` — ArgoCD UI
 - Core services are internal ClusterIP; no public NodePorts for ArgoCD server / AceStream engine.
 
 Cloudflare tunnel config is managed in [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1).
@@ -35,9 +36,10 @@ KUBECONFIG=./clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
 
 - ArgoCD app-of-apps root: [`apps/root.yaml`](apps/root.yaml:1)
 - Cloudflare tunnel connector app: [`apps/cloudflared.yaml`](apps/cloudflared.yaml:1)
-- AceStream proxy chart: [`charts/acestream`](charts/acestream/Chart.yaml:1)
-- Acestreamio addon chart: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1)
-- IPTV relay chart: [`charts/iptv-relay`](charts/iptv-relay/Chart.yaml:1)
+- Acestream-scraper (scraper + engine + Acexy): [`charts/acestream-scraper`](charts/acestream-scraper/Chart.yaml:1)
+- Acestreamio Stremio addon: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1)
+- IPTV relay: [`charts/iptv-relay`](charts/iptv-relay/Chart.yaml:1)
+- AceStream proxy (legacy, to be retired): [`charts/acestream`](charts/acestream/Chart.yaml:1)
 
 Also running in cluster:
 - cert-manager: [`apps/cert-manager.yaml`](apps/cert-manager.yaml:1)
