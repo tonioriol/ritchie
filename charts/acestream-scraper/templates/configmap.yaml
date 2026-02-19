@@ -8,7 +8,7 @@ data:
   config.json: |
     {
       "urls": [],
-      "base_url": "https://scraper.tonioriol.com/ace/getstream?id=",
-      "ace_engine_url": "http://{{ .Values.env.ACESTREAM_HTTP_HOST }}:{{ .Values.env.ACEXY_PORT | default "8080" }}",
+      "base_url": "https://ace.tonioriol.com/ace/getstream?id=",
+      "ace_engine_url": "http://{{ .Values.env.ACESTREAM_HTTP_HOST }}:8080",
       "rescrape_interval": 30
     }

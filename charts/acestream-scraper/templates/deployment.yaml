@@ -135,6 +135,43 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 5
             failureThreshold: 30
+        # Acexy sidecar: multiplexing proxy for the AceStream engine with token auth.
+        # Replaces the bundled Acexy (ENABLE_ACEXY=false) with ghcr.io/tonioriol/acexy
+        # which supports ACEXY_TOKEN for request-level auth.
+        - name: acexy
+          image: "{{ .Values.acexy.image.repository }}:{{ .Values.acexy.image.tag }}"
+          imagePullPolicy: {{ .Values.acexy.image.pullPolicy }}
+          ports:
+            - name: acexy
+              containerPort: 8080
+          env:
+            - name: ACEXY_HOST
+              value: "localhost"
+            - name: ACEXY_PORT
+              value: "{{ .Values.env.ACESTREAM_HTTP_PORT }}"
+            {{- if .Values.auth.enabled }}
+            - name: ACEXY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-auth
+                  key: AUTH_PASSWORD
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /ace/status
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /ace/status
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
       volumes:
         - name: config
           {{- if .Values.persistence.enabled }}

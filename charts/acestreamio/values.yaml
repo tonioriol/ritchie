@@ -23,8 +23,8 @@ env:
   # Used to generate absolute URLs for posters and stream URLs in catalog/meta responses.
   addonUrl: "https://acestreamio.tonioriol.com"
   # PROXY_URL: public base URL for /ace/getstream stream URLs returned to Stremio clients.
-  # The proxy lives in the Flask scraper (scraper.tonioriol.com/ace/getstream), auth-gated.
-  proxyUrl: "https://scraper.tonioriol.com"
+  # Acexy sidecar is now directly exposed at ace.tonioriol.com with ACEXY_TOKEN auth.
+  proxyUrl: "https://ace.tonioriol.com"
   scraperApiUrl: "http://acestream-scraper.default.svc.cluster.local:8000"
   enableLocalEngine: "false"
   localUrl: "http://127.0.0.1:6878"
