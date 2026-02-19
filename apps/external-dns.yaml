@@ -6,23 +6,24 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://charts.bitnami.com/bitnami
+    repoURL: https://kubernetes-sigs.github.io/external-dns/
     chart: external-dns
-    targetRevision: "8.9.2"
+    targetRevision: "1.*"
     helm:
       values: |
-        # Bitnami stopped pushing images to Docker Hub; images are now at registry.bitnami.com.
-        # global.security.allowInsecureImages bypasses the chart's container-verification check
-        # that blocks non-docker.io registries (bitnami/charts#30850).
-        global:
-          imageRegistry: registry.bitnami.com
-          security:
-            allowInsecureImages: true
-        provider: cloudflare
-        cloudflare:
-          email: tonioriol@gmail.com
-          apiKey: ""
-          secretName: ""
+        provider:
+          name: cloudflare
+        env:
+          - name: CF_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-cloudflare
+                key: CF_API_KEY
+          - name: CF_API_EMAIL
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-cloudflare
+                key: CF_API_EMAIL
         domainFilters:
           - tonioriol.com
         policy: sync
@@ -30,7 +31,6 @@ spec:
         sources:
           - service
           - ingress
-        extraEnvVarsSecret: external-dns-cloudflare
   destination:
     server: https://kubernetes.default.svc
     namespace: external-dns
