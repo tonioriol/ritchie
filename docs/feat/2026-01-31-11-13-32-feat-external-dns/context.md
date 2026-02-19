@@ -1,3 +1,5 @@
+# ⚠️ SUPERSEDED — see [20260219-cloudflare-tunnel-gitops](../20260219-cloudflare-tunnel-gitops/context.md)
+
 # feat-external-dns external-dns (DigitalOcean) on neumann
 
 ## TASK
@@ -95,6 +97,5 @@ kubectl apply --dry-run=server -f /Users/tr0n/Code/ritchie/apps/external-dns.yam
 
 ## Next Steps
 
-- [ ] Create `external-dns/external-dns-digitalocean` secret with a DO token
-- [ ] Validate ExternalDNS can reconcile records under `*.neumann.tonioriol.com`
+SUPERSEDED — We migrated from DigitalOcean to Cloudflare. DNS is now managed by external-dns with Cloudflare provider, and tunnel routing uses credentials-file mode. See [20260219-cloudflare-tunnel-gitops](../20260219-cloudflare-tunnel-gitops/context.md).
 

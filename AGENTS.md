@@ -39,43 +39,42 @@ This file provides guidance to agents when working with code in this repository.
 
 - `kubectl top …` works because [`apps/metrics-server.yaml`](apps/metrics-server.yaml:1) injects `--kubelet-insecure-tls` (k3s kubelet certs are often not verifiable in-cluster).
 
-## Cloudflare Tunnel config (token-based, remote-managed)
+## Cloudflare Tunnel config (credentials-file, GitOps)
 
-The tunnel uses a token (`TUNNEL_TOKEN` secret), so **Cloudflare's remote config overrides the local ConfigMap**. Any ingress change must be pushed to the CF API; the local ConfigMap is documentation-only.
+The tunnel runs in **credentials-file mode**: the local ConfigMap IS the routing config. No remote config override, no imperative API calls. ArgoCD reconciles everything.
+
+- Tunnel identity: Secret `cloudflared/cloudflared-credentials` (key `credentials.json`, contains `AccountTag`, `TunnelID`, `TunnelSecret`) — created out-of-band, never committed.
+- Routing rules: [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1) `hosts:` array → rendered into ConfigMap → mounted into the cloudflared pod.
+- DNS: **external-dns** (namespace `external-dns`) watches annotated Services/Ingresses and auto-creates/updates CNAME records pointing at `85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com`.
 
 ### Required env vars (all in `.env`)
 
 | Var | Description |
 |-----|-------------|
-| `CF_EMAIL` | Cloudflare account e-mail |
-| `CF_API_KEY` | Global API key |
+| `CF_EMAIL` | Cloudflare account e-mail (used by external-dns) |
+| `CF_API_KEY` | Global API key (used by external-dns) |
 | `CF_ACCOUNT_ID` | `6e73d8e42d0b50e37efc1b20401e35a0` |
 | `CF_TUNNEL_ID` | `85e6bc75-0025-4fc3-9341-d4e517fea614` |
 
-### Adding / changing a public hostname (automated)
+Secrets created out-of-band (never committed):
+- `cloudflared/cloudflared-credentials` — tunnel credentials JSON
+- `external-dns/external-dns-cloudflare` — `CF_API_KEY` + `CF_API_EMAIL`
 
-> **⚠️ Cloudflare Tunnel only supports one-level subdomains** (`foo.tonioriol.com`). Deep subdomains like `a.b.tonioriol.com` are **not** supported and will be rejected by the API. Always use a single-label prefix.
+### Adding / changing a public hostname (pure GitOps)
+
+> **⚠️ Cloudflare Tunnel only supports one-level subdomains** (`foo.tonioriol.com`). Deep subdomains like `a.b.tonioriol.com` are **not** supported by Universal SSL. Always use a single-label prefix.
 
 1. Edit [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1) — add a new entry under `hosts:`:
    ```yaml
    - hostname: myservice.tonioriol.com
      service: http://myservice.mynamespace.svc.cluster.local:80
    ```
-2. Run the sync script — it reads `values.yaml`, PUTs the full ingress config to the CF API, and upserts all DNS CNAME records automatically:
-   ```bash
-   cd ritchie && source .env && ./scripts/sync-cloudflare-tunnel.sh
-   ```
-3. Commit and push `charts/cloudflared/values.yaml` — ArgoCD will reconcile the ConfigMap (documentation copy).
+2. Add `externalDns.enabled: true` + `hostname` + `target` to the Service template's chart `values.yaml` (or set them in the ArgoCD Application `helm.values`).
+3. Commit and push — ArgoCD auto-syncs:
+   - cloudflared Deployment rolls (checksum annotation detects ConfigMap change) and picks up the new route.
+   - external-dns reconciles and creates/updates the CNAME record.
 
-That's it. No manual DNS dashboard clicks, no manual `curl` calls. Every hostname in `values.yaml` gets a tunnel route and a CNAME record pointing at `${CF_TUNNEL_ID}.cfargotunnel.com`.
-
-### Dry-run
-
-```bash
-cd ritchie && source .env && DRY_RUN=1 ./scripts/sync-cloudflare-tunnel.sh
-```
-
-Prints the ingress rules that would be applied without making any API calls.
+That's it. No scripts, no API calls, no manual DNS clicks.
 
 ## Acestream-scraper API quirks
 

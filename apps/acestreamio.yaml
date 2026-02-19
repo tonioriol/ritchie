@@ -27,6 +27,10 @@ spec:
           - name: ghcr-pull
         # Must match AUTH_PASSWORD on acestream-scraper — addon.js appends it to stream URLs.
         streamToken: "SntSIGdaunNbnAZfQzjT3fXN"
+        externalDns:
+          enabled: true
+          hostname: acestreamio.tonioriol.com
+          target: "85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com"
   destination:
     server: https://kubernetes.default.svc
     namespace: media

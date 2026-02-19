@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: external-dns
+    targetRevision: "8.*"
+    helm:
+      values: |
+        provider: cloudflare
+        cloudflare:
+          email: tonioriol@gmail.com
+          apiKey: ""
+          secretName: ""
+        domainFilters:
+          - tonioriol.com
+        policy: sync
+        txtOwnerId: neumann
+        sources:
+          - service
+          - ingress
+        extraEnvVarsSecret: external-dns-cloudflare
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: external-dns
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -4,12 +4,11 @@ metadata:
   name: cloudflared-config
 data:
   config.yaml: |
-    # Token-based tunnel: tunnel identity is provided via TUNNEL_TOKEN.
-    # We only define ingress routing here.
+    tunnel: {{ .Values.tunnelId }}
+    credentials-file: /etc/cloudflared/credentials/credentials.json
     ingress:
 {{- range .Values.hosts }}
       - hostname: {{ .hostname | quote }}
         service: {{ .service | quote }}
 {{- end }}
       - service: http_status:404
-

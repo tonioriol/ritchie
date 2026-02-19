@@ -23,6 +23,10 @@ spec:
           enabled: true
           username: "admin"
           password: "SntSIGdaunNbnAZfQzjT3fXN"
+        externalDns:
+          enabled: true
+          hostname: scraper.tonioriol.com
+          target: "85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com"
   destination:
     server: https://kubernetes.default.svc
     namespace: default

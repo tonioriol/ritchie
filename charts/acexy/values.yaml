@@ -35,3 +35,9 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
+
+# external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
+externalDns:
+  enabled: false
+  hostname: ""
+  target: ""

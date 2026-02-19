@@ -20,7 +20,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           # cloudflare/cloudflared is a distroless-style image (no /bin/sh).
-          # Use argv directly and let Kubernetes substitute $(TUNNEL_TOKEN).
+          # Credentials-file mode: tunnel identity comes from the mounted Secret,
+          # not from --token. ConfigMap IS the routing config (pure GitOps).
           command: ["cloudflared"]
           args:
             - tunnel
@@ -28,17 +29,12 @@ spec:
             - --config
             - /etc/cloudflared/config/config.yaml
             - run
-            - --token
-            - $(TUNNEL_TOKEN)
-          env:
-            - name: TUNNEL_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.tunnelTokenSecret.name }}
-                  key: {{ .Values.tunnelTokenSecret.key }}
           volumeMounts:
             - name: config
               mountPath: /etc/cloudflared/config
+              readOnly: true
+            - name: credentials
+              mountPath: /etc/cloudflared/credentials
               readOnly: true
           resources:
 {{- toYaml .Values.resources | nindent 12 }}
@@ -46,3 +42,6 @@ spec:
         - name: config
           configMap:
             name: cloudflared-config
+        - name: credentials
+          secret:
+            secretName: {{ .Values.credentialsSecret.name }}

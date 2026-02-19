@@ -7,3 +7,9 @@ tls:
 letsencrypt:
   email: tonioriol@gmail.com
   server: https://acme-v02.api.letsencrypt.org/directory
+
+# external-dns: set enabled + target in the ArgoCD Application helm.values.
+# hostname is inferred by external-dns from spec.rules[].host in the Ingress.
+externalDns:
+  enabled: false
+  target: ""

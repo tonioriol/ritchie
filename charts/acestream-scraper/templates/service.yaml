@@ -4,6 +4,11 @@ metadata:
   name: {{ .Release.Name }}
   labels:
     {{- include "acestream-scraper.labels" . | nindent 4 }}
+  {{- if .Values.externalDns.enabled }}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.externalDns.hostname }}
+    external-dns.alpha.kubernetes.io/target: {{ .Values.externalDns.target | quote }}
+  {{- end }}
 spec:
   type: ClusterIP
   ports:

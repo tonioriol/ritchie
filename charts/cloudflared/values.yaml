@@ -6,11 +6,13 @@ image:
 
 replicaCount: 1
 
+tunnelId: "85e6bc75-0025-4fc3-9341-d4e517fea614"
+
 # Create this Secret out-of-band (not committed):
-# - key: TUNNEL_TOKEN
-tunnelTokenSecret:
-  name: cloudflared-tunnel
-  key: TUNNEL_TOKEN
+# - key: credentials.json  (JSON with AccountTag, TunnelID, TunnelSecret)
+credentialsSecret:
+  name: cloudflared-credentials
+  key: credentials.json
 
 # Hostnames served by the tunnel.
 #
