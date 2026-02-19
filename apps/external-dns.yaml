@@ -11,6 +11,9 @@ spec:
     targetRevision: "8.*"
     helm:
       values: |
+        # Bitnami stopped pushing images to Docker Hub; override to their own registry.
+        image:
+          registry: registry.bitnami.com
         provider: cloudflare
         cloudflare:
           email: tonioriol@gmail.com
