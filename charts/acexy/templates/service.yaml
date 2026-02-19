@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}
   labels:
-    {{- include "acestream-scraper.labels" . | nindent 4 }}
+    app: {{ .Release.Name }}
 spec:
   type: ClusterIP
   ports:
@@ -12,4 +12,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "acestream-scraper.labels" . | nindent 4 }}
+    app: {{ .Release.Name }}

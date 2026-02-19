@@ -11,26 +11,19 @@ replicaCount: 1
 service:
   port: 8000
 
-acexy:
-  image:
-    repository: ghcr.io/tonioriol/acexy
-    tag: latest
-    pullPolicy: Always
-
 env:
   # Timezone
   TZ: "Europe/Madrid"
   # Flask port
   FLASK_PORT: "8000"
-  # Enable bundled acestream engine; Acexy runs as a sidecar (disable bundled Acexy)
-  ENABLE_ACESTREAM_ENGINE: "true"
+  # Bundled engine and Acexy are disabled — both run as standalone services in media namespace.
+  ENABLE_ACESTREAM_ENGINE: "false"
   ENABLE_ACEXY: "false"
   ENABLE_TOR: "false"
   ENABLE_WARP: "false"
-  # Engine HTTP port (entrypoint uses --http-port $ACESTREAM_HTTP_PORT)
+  # External AceStream engine in media namespace (used for channel status/search API calls)
   ACESTREAM_HTTP_PORT: "6878"
-  # Scraper config points at Acexy sidecar (localhost:8080)
-  ACESTREAM_HTTP_HOST: "localhost"
+  ACESTREAM_HTTP_HOST: "acestream.media.svc.cluster.local"
   # Allow remote access (needed for k8s service access)
   ALLOW_REMOTE_ACCESS: "yes"
 

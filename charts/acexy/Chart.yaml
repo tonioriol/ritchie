@@ -1,0 +1,5 @@
+apiVersion: v2
+name: acexy
+description: Acexy — AceStream multiplexing proxy with token auth
+version: 0.1.0
+appVersion: "latest"

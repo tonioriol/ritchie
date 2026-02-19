@@ -23,11 +23,11 @@ tunnelTokenSecret:
 hosts:
   - hostname: acestreamio.tonioriol.com
     service: http://acestreamio.media.svc.cluster.local:80
-  # ace.tonioriol.com → Acexy sidecar port 8080.
-  # Token auth (ACEXY_TOKEN=AUTH_PASSWORD) is enforced at the Acexy level.
+  # ace.tonioriol.com → Acexy standalone Deployment in media namespace.
+  # Token auth (ACEXY_TOKEN) is enforced at the Acexy level.
   # All stream URLs embed ?token=<AUTH_PASSWORD> so clients authenticate without Basic Auth prompts.
   - hostname: ace.tonioriol.com
-    service: http://acestream-scraper.default.svc.cluster.local:8080
+    service: http://acexy.media.svc.cluster.local:8080
   - hostname: tv.tonioriol.com
     service: http://iptv-relay.media.svc.cluster.local:80
   - hostname: scraper.tonioriol.com

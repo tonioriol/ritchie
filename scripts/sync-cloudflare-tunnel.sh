@@ -113,15 +113,17 @@ if [[ -z "${CF_ZONE_ID:-}" ]]; then
     echo "   Zone ID: ${CF_ZONE_ID}"
 fi
 
-TUNNEL_CNAME="${CF_TUNNEL_ID}.cfargotunnel.com"
+export TUNNEL_CNAME="${CF_TUNNEL_ID}.cfargotunnel.com"
+export CF_ZONE_ID
 
 # 3. Upsert DNS CNAME records for all hostnames (skip wildcard catch-all)
 echo ""
 echo "→ Upserting DNS CNAME records..."
-echo "${INGRESS_JSON}" | python3 - <<PYEOF
-import sys, json, subprocess, os
+export INGRESS_JSON
+python3 <<'PYEOF'
+import json, subprocess, os
 
-rules = json.load(sys.stdin)
+rules = json.loads(os.environ["INGRESS_JSON"])
 zone_id = os.environ.get("CF_ZONE_ID", "")
 tunnel_cname = os.environ.get("TUNNEL_CNAME", "")
 email = os.environ.get("CF_EMAIL", "")

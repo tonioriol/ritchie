@@ -1,0 +1,37 @@
+image:
+  repository: ghcr.io/tonioriol/acexy
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+# AceStream engine connection
+acestream:
+  host: acestream  # k8s service name (same namespace: media)
+  port: 6878
+
+service:
+  port: 8080
+
+# Token auth — if enabled, all requests to Acexy must include ?token=<value>
+auth:
+  enabled: false
+  token: ""
+
+# Acexy tuning — see upstream docker-compose.yml for reference
+env:
+  ACEXY_M3U8: "false"
+  ACEXY_BUFFER_SIZE: "4MB"
+  ACEXY_EMPTY_TIMEOUT: "60s"
+  ACEXY_NO_RESPONSE_TIMEOUT: "10s"
+  ACEXY_M3U8_STREAM_TIMEOUT: "60s"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
