@@ -41,17 +41,41 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Cloudflare Tunnel config (token-based, remote-managed)
 
-- The tunnel uses a token (`TUNNEL_TOKEN` secret), which means **Cloudflare's remote config overrides the local ConfigMap**.
-- Editing [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:23) updates the ConfigMap but the tunnel daemon ignores it in favour of the remote config.
-- To change ingress routes, you must **also** PUT via the Cloudflare API:
-  ```bash
-  source .env && curl -s -X PUT \
-    "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/cfd_tunnel/${CF_TUNNEL_ID}/configurations" \
-    -H "X-Auth-Email: ${CLOUDFLARE_EMAIL}" -H "X-Auth-Key: ${CLOUDFLARE_GLOBAL_API_KEY}" \
-    -H "Content-Type: application/json" \
-    --data '{"config":{"ingress":[...], "warp-routing":{"enabled":true}}}'
-  ```
-- Keep the local ConfigMap in sync as documentation / fallback, but the API call is what actually takes effect.
+The tunnel uses a token (`TUNNEL_TOKEN` secret), so **Cloudflare's remote config overrides the local ConfigMap**. Any ingress change must be pushed to the CF API; the local ConfigMap is documentation-only.
+
+### Required env vars (all in `.env`)
+
+| Var | Description |
+|-----|-------------|
+| `CF_EMAIL` | Cloudflare account e-mail |
+| `CF_API_KEY` | Global API key |
+| `CF_ACCOUNT_ID` | `6e73d8e42d0b50e37efc1b20401e35a0` |
+| `CF_TUNNEL_ID` | `85e6bc75-0025-4fc3-9341-d4e517fea614` |
+
+### Adding / changing a public hostname (automated)
+
+> **⚠️ Cloudflare Tunnel only supports one-level subdomains** (`foo.tonioriol.com`). Deep subdomains like `a.b.tonioriol.com` are **not** supported and will be rejected by the API. Always use a single-label prefix.
+
+1. Edit [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1) — add a new entry under `hosts:`:
+   ```yaml
+   - hostname: myservice.tonioriol.com
+     service: http://myservice.mynamespace.svc.cluster.local:80
+   ```
+2. Run the sync script — it reads `values.yaml`, PUTs the full ingress config to the CF API, and upserts all DNS CNAME records automatically:
+   ```bash
+   cd ritchie && source .env && ./scripts/sync-cloudflare-tunnel.sh
+   ```
+3. Commit and push `charts/cloudflared/values.yaml` — ArgoCD will reconcile the ConfigMap (documentation copy).
+
+That's it. No manual DNS dashboard clicks, no manual `curl` calls. Every hostname in `values.yaml` gets a tunnel route and a CNAME record pointing at `${CF_TUNNEL_ID}.cfargotunnel.com`.
+
+### Dry-run
+
+```bash
+cd ritchie && source .env && DRY_RUN=1 ./scripts/sync-cloudflare-tunnel.sh
+```
+
+Prints the ingress rules that would be applied without making any API calls.
 
 ## Acestream-scraper API quirks
 
