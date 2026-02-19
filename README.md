@@ -13,7 +13,7 @@ Simple GitOps repo for the `neumann` k3s cluster.
   - `https://neumann.tonioriol.com` — ArgoCD UI
 - Core services are internal ClusterIP; no public NodePorts for ArgoCD server / AceStream engine.
 
-Cloudflare tunnel config is managed in [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1).
+Cloudflare tunnel runs in credentials-file mode — routing config is in [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1); DNS CNAMEs are managed automatically by **external-dns**.
 
 ## 2) How to access
 
@@ -43,6 +43,7 @@ KUBECONFIG=./clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
 
 Also running in cluster:
 - cert-manager: [`apps/cert-manager.yaml`](apps/cert-manager.yaml:1)
+- external-dns (Cloudflare): [`apps/external-dns.yaml`](apps/external-dns.yaml:1)
 - metrics-server: [`apps/metrics-server.yaml`](apps/metrics-server.yaml:1)
 - vscode: [`apps/vscode.yaml`](apps/vscode.yaml:1)
 - argocd image updater: [`apps/argocd-image-updater.yaml`](apps/argocd-image-updater.yaml:1)
@@ -61,7 +62,7 @@ ArgoCD `Application` definitions live in [`apps/`](apps/root.yaml:1). Helm chart
 2. Create `apps/<service>.yaml` ArgoCD `Application`.
 3. If service must be public:
    - Add hostname route in [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1)
-   - Add matching Cloudflare DNS record to the tunnel.
+   - Set `externalDns.enabled: true` + `hostname` + `target` in the chart's `values.yaml` (or in the ArgoCD Application `helm.values`) — external-dns will create the CNAME automatically.
 4. Commit + push; ArgoCD deploys it.
 
 ## 6) Day-to-day maintenance (minimal)

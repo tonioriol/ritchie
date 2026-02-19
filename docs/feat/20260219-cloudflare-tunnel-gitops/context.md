@@ -381,22 +381,88 @@ cd ritchie && git add -A && git commit -m "feat: cloudflare tunnel credentials-f
 
 ## EVENT LOG
 
-*(to be filled during implementation)*
+* **2026-02-19 11:49 - Context review and plan validation**
+  * Why: Needed to validate the plan against actual file state before implementing
+  * How: Read all relevant files — cloudflared chart (values, configmap, deployment), all 4 Service templates, 5 ArgoCD Application manifests, argocd-ingress Ingress, AGENTS.md, sync script
+  * Key info: Plan confirmed accurate. All files matched expected state. Created todo list for tracking.
+
+* **2026-02-19 14:50 - Phase 1: Extract tunnel credentials + create Secret**
+  * Why: credentials-file mode requires a JSON file with AccountTag, TunnelID, TunnelSecret mounted into the pod
+  * How: `kubectl -n cloudflared get secret cloudflared-tunnel -o jsonpath='{.data.TUNNEL_TOKEN}' | base64 -d` then `echo "$TUNNEL_TOKEN" | base64 -d > /tmp/credentials.json`
+  * Key info: **Discovery** — the TUNNEL_TOKEN decodes to JSON with **abbreviated keys** (`a`, `t`, `s`) not full names. Rewrote JSON with Python to use `AccountTag`, `TunnelID`, `TunnelSecret` before creating Secret. Created `cloudflared/cloudflared-credentials` Secret via `kubectl create secret generic --from-file=credentials.json`. Cleaned up `/tmp/credentials.json`.
+
+* **2026-02-19 15:03 - Phase 2a: Update `charts/cloudflared/values.yaml`**
+  * Why: Replace token-based config with credentials-file mode references
+  * How: Replaced `tunnelTokenSecret: {name, key}` block with `tunnelId: "85e6bc75-0025-4fc3-9341-d4e517fea614"` + `credentialsSecret: {name: cloudflared-credentials, key: credentials.json}`
+
+* **2026-02-19 15:05 - Phase 2b: Update `charts/cloudflared/templates/configmap.yaml`**
+  * Why: ConfigMap must include `tunnel:` and `credentials-file:` directives so cloudflared uses local config (not remote override)
+  * How: Added `tunnel: {{ .Values.tunnelId }}` and `credentials-file: /etc/cloudflared/credentials/credentials.json` at top of `config.yaml` block scalar
+
+* **2026-02-19 15:07 - Phase 2c: Update `charts/cloudflared/templates/deployment.yaml`**
+  * Why: Remove `--token $(TUNNEL_TOKEN)` arg and `TUNNEL_TOKEN` env var; add credentials volume mount
+  * How: Removed `- --token` + `- $(TUNNEL_TOKEN)` args and entire `env:` block; added `credentials` volumeMount at `/etc/cloudflared/credentials` and `credentials` volume from Secret `{{ .Values.credentialsSecret.name }}`
+
+* **2026-02-19 15:10 - Phase 3a: Create `external-dns-cloudflare` Secret**
+  * Why: external-dns needs CF_API_KEY + CF_API_EMAIL to authenticate with Cloudflare DNS API; secret must not be committed
+  * How: `kubectl create namespace external-dns` + `kubectl -n external-dns create secret generic external-dns-cloudflare --from-literal=CF_API_KEY="..." --from-literal=CF_API_EMAIL="..."`
+
+* **2026-02-19 15:11 - Phase 3b: Create `ritchie/apps/external-dns.yaml`**
+  * Why: Deploy external-dns as an ArgoCD-managed Application for GitOps DNS management
+  * How: Created ArgoCD Application pointing at Bitnami chart `bitnami/external-dns` version `8.*`, cloudflare provider, `extraEnvVarsSecret: external-dns-cloudflare`, `policy: sync`, `txtOwnerId: neumann`, sources: service + ingress
+
+* **2026-02-19 15:12 - Phase 4a: Add `externalDns` values block to all chart `values.yaml` files**
+  * Why: Values-driven pattern avoids hardcoding tunnel CNAME in templates; actual values set in ArgoCD app manifests
+  * How: Appended `externalDns: {enabled: false, hostname: "", target: ""}` to acexy, acestreamio, acestream-scraper, iptv-relay `values.yaml`
+
+* **2026-02-19 15:13 - Phase 4b: Add conditional annotations to all Service templates**
+  * Why: external-dns watches these annotations to create/update DNS CNAME records
+  * How: Added `{{- if .Values.externalDns.enabled }} annotations: external-dns.alpha.kubernetes.io/hostname + target {{- end }}` to all 4 Service templates
+
+* **2026-02-19 15:13 - Phase 4c: Update argocd-ingress chart for external-dns**
+  * Why: ArgoCD uses an Ingress (not a Service) — external-dns infers hostname from `spec.rules[].host`, only needs `target` annotation
+  * How: Added `externalDns: {enabled: false, target: ""}` to `argocd-ingress/values.yaml`; added conditional `external-dns.alpha.kubernetes.io/target` annotation to `ingress.yaml` template
+
+* **2026-02-19 15:14 - Phase 4d: Set actual externalDns values in all ArgoCD Application manifests**
+  * Why: Enable external-dns annotations with correct hostnames and tunnel CNAME target in each app
+  * How: Added `externalDns: {enabled: true, hostname: <host>, target: "85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com"}` to helm.values in apps/acexy.yaml, apps/acestreamio.yaml, apps/acestream-scraper.yaml, apps/iptv-relay.yaml; added `externalDns: {enabled: true, target: "...cfargotunnel.com"}` to apps/argocd-ingress.yaml
+
+* **2026-02-19 15:14 - Phase 5: Delete sync script + scripts/ dir**
+  * Why: Script is now superseded by external-dns; keeping it would create false impression it's still needed
+  * How: `rm ritchie/scripts/sync-cloudflare-tunnel.sh && rmdir ritchie/scripts/`
+
+* **2026-02-19 15:19 - Phase 6: Update AGENTS.md**
+  * Why: Documentation must reflect new credentials-file mode + external-dns workflow
+  * How: Rewrote lines 42-78 — replaced "token-based, remote-managed" section with "credentials-file, GitOps" section explaining new architecture, required secrets, and new pure-GitOps workflow (edit values.yaml → push → done)
+
+* **2026-02-19 15:20 - Phase 7/8: Lint, commit, push**
+  * Why: Validate all chart changes before pushing; commit `e96a9de`
+  * How: `helm lint` on all 6 charts — 0 failures. `git add -A && git commit -m "feat: cloudflare tunnel credentials-file mode + external-dns"` — 23 files changed, 551 insertions, 215 deletions. `git push` to `main`.
+
+* **2026-02-19 15:22 - ArgoCD sync + cloudflared verification**
+  * Why: Confirm cloudflared restarts in credentials-file mode
+  * How: Triggered root app hard refresh. cloudflared pod restarted (`cloudflared-7f6946565c-j47w2`), Synced+Healthy. Logs confirmed 4 tunnel connections registered at `fra10`/`fra16` — no `--token`, no remote config override.
+
+* **2026-02-19 15:24 - external-dns ErrImagePull: docker.io/bitnami image not found**
+  * Why: Bitnami stopped pushing to Docker Hub; images moved to `registry.bitnami.com`
+  * How: Attempted fix with `image.registry: registry.bitnami.com` in Bitnami chart values + `global.security.allowInsecureImages: true` (chart v8+ blocks non-docker.io registries). Fixed image template rendering locally but `registry.bitnami.com` DNS unreachable from cluster node.
+
+* **2026-02-19 15:48 - Switch to kubernetes-sigs/external-dns chart**
+  * Why: `registry.bitnami.com` DNS resolution fails on k3s node; `registry.k8s.io` is always reachable
+  * How: Replaced Bitnami chart with `kubernetes-sigs/external-dns` chart from `https://kubernetes-sigs.github.io/external-dns/`. Changed credentials injection from `extraEnvVarsSecret` to explicit `env[].valueFrom.secretKeyRef`. Confirmed template renders `registry.k8s.io/external-dns/external-dns:v0.20.0`. Deleted stuck ArgoCD Application + old Deployment simultaneously, triggered root hard refresh.
+
+* **2026-02-19 15:50 - external-dns running, DNS reconciliation confirmed**
+  * Why: Verify external-dns connects to Cloudflare and reconciles DNS records
+  * How: `kubectl -n external-dns logs deploy/external-dns --tail=30` — shows `Provider: cloudflare`, `Policy: sync`, `TXTOwnerID: neumann`, `"All records are already up to date"` — all 5 CNAME records confirmed correct.
+
+* **2026-02-19 15:51 - End-to-end tunnel routing verified**
+  * Why: Confirm traffic routes correctly through the tunnel
+  * How: `curl https://ace.tonioriol.com/ace/status → 401` (Acexy token auth, expected); `curl https://scraper.tonioriol.com/api/health → 308` (HTTP→HTTPS redirect, expected). DNS returns Cloudflare proxy IPs (not CNAME) because hostnames are orange-cloud proxied.
+
+* **2026-02-19 15:55 - Simplify pass: annotation quoting + comment trim**
+  * Why: `hostname` annotation was unquoted while `target` used `| quote` — inconsistent; deployment comment was verbose
+  * How: Added `| quote` to `external-dns.alpha.kubernetes.io/hostname` in all 4 Service templates. Trimmed 3-line deployment comment to 2 concise lines. All 6 charts lint clean. Commit `f9aa750`.
 
 ## Next Steps
 
-- [ ] Decode TUNNEL_TOKEN from cluster to extract credentials JSON
-- [ ] Create `cloudflared-credentials` Secret in `cloudflared` namespace
-- [ ] Update `charts/cloudflared/values.yaml` — replace tunnelTokenSecret with credentialsSecret + tunnelId
-- [ ] Update `charts/cloudflared/templates/configmap.yaml` — add tunnel + credentials-file directives
-- [ ] Update `charts/cloudflared/templates/deployment.yaml` — remove --token, mount credentials volume
-- [ ] Create `external-dns-cloudflare` Secret in `external-dns` namespace
-- [ ] Create `ritchie/apps/external-dns.yaml` ArgoCD Application
-- [ ] Add `externalDns` values to each chart's `values.yaml` (acexy, acestreamio, acestream-scraper, iptv-relay)
-- [ ] Add conditional external-dns annotations to each Service template
-- [ ] Add external-dns annotation to `argocd-ingress` Ingress template
-- [ ] Set actual externalDns values in each `apps/*.yaml` ArgoCD Application
-- [ ] Delete `ritchie/scripts/sync-cloudflare-tunnel.sh`
-- [ ] Update `AGENTS.md` tunnel section
-- [ ] Verify cloudflared + external-dns + DNS resolution
-- [ ] Commit and push
+COMPLETED
