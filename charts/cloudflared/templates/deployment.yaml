@@ -19,9 +19,8 @@ spec:
         - name: cloudflared
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          # cloudflare/cloudflared is a distroless-style image (no /bin/sh).
-          # Credentials-file mode: tunnel identity comes from the mounted Secret,
-          # not from --token. ConfigMap IS the routing config (pure GitOps).
+          # Credentials-file mode: identity from mounted Secret, not --token.
+          # ConfigMap IS the routing config — pure GitOps.
           command: ["cloudflared"]
           args:
             - tunnel
