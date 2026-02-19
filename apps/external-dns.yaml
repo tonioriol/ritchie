@@ -8,12 +8,16 @@ spec:
   source:
     repoURL: https://charts.bitnami.com/bitnami
     chart: external-dns
-    targetRevision: "8.*"
+    targetRevision: "8.9.2"
     helm:
       values: |
-        # Bitnami stopped pushing images to Docker Hub; override to their own registry.
-        image:
-          registry: registry.bitnami.com
+        # Bitnami stopped pushing images to Docker Hub; images are now at registry.bitnami.com.
+        # global.security.allowInsecureImages bypasses the chart's container-verification check
+        # that blocks non-docker.io registries (bitnami/charts#30850).
+        global:
+          imageRegistry: registry.bitnami.com
+          security:
+            allowInsecureImages: true
         provider: cloudflare
         cloudflare:
           email: tonioriol@gmail.com
