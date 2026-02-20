@@ -153,10 +153,11 @@ ALWAYS use absolute paths.
 * **2026-02-19 ~09:30 — Decision: Acexy must be standalone Deployment, not sidecar**
   * Why: User clarified this was always the plan; sidecar approach was a shortcut that doesn't fit k8s architecture. The scraper image bundles engine+acexy for Docker users, but in k8s each component should be its own Deployment.
   * How: Acexy's own `docker-compose.yml` pairs it with `martinbjeldbak/acestream-http-proxy` as the engine — exactly what `charts/acestream` already runs in `media` namespace. Architecture: 3 independent Deployments (acestream engine, acexy proxy, scraper Flask app).
-  * Key info: See `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219-acexy-standalone-deployment/context.md` for full plan
+  * Key info: See `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219140000-feat-acexy-standalone-deployment/context.md` for full plan
 
 ## Next Steps
 
-- [ ] **Implement Acexy standalone Deployment** — see `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219-acexy-standalone-deployment/context.md`
+- [x] **Implement Acexy standalone Deployment** — see `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219140000-feat-acexy-standalone-deployment/context.md` (COMPLETED)
+- [x] **Cloudflare Tunnel GitOps** — see `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219160000-feat-cloudflare-tunnel-gitops/context.md` (COMPLETED)
 - [ ] **ESO (External Secrets Operator) + 1Password integration** — remove credentials from `ritchie/apps/acestream-scraper.yaml` git file
 - [ ] **Fix GitHub Actions push trigger** — push trigger still does not fire after changing default branch

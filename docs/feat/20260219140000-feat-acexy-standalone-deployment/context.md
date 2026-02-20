@@ -88,7 +88,7 @@ Internet via Cloudflare Tunnel
 
 * **2026-02-19 09:37 — Wrote architecture plan and context file**
   * Why: User requested `/context` to capture the plan before implementation
-  * How: Created `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219-acexy-standalone-deployment/context.md` with full architecture diagram, 13-step plan, and rationale. TCP socket probes chosen over HTTP to avoid 401 issue.
+  * How: Created `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219140000-feat-acexy-standalone-deployment/context.md` with full architecture diagram, 13-step plan, and rationale. TCP socket probes chosen over HTTP to avoid 401 issue.
   * Key info: Key insight — `ace_engine_url` in configmap was pointing at port 8080 (sidecar Acexy) not port 6878 (engine); needed fixing.
 
 * **2026-02-19 09:41 — Created charts/acexy standalone Helm chart**

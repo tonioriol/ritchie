@@ -81,15 +81,15 @@ That's it. No scripts, no API calls, no manual DNS clicks.
 - The Flask `app/` package is the custom overlay maintained in `tonioriol/acestream-scraper`. It is baked into the Docker image via `pyproject.toml`.
 - **Config API endpoint**: `PUT /api/config/<key>` (not `/api/v1/config/`). Each endpoint expects a specific JSON key:
   ```bash
-  # Set base URL (used in playlist.m3u output) — point at acestreamio proxy, not raw Acexy
+  # Set base URL (used in playlist.m3u output) — point at Acexy (token-gated via ACEXY_TOKEN)
   curl -X PUT https://scraper.tonioriol.com/api/config/base_url \
     -H "Content-Type: application/json" \
-    -d '{"base_url":"https://acestreamio.tonioriol.com/ace/getstream?id="}'
+    -d '{"base_url":"https://ace.tonioriol.com/ace/getstream?id="}'
 
-  # Set Ace Engine URL
+  # Set Ace Engine URL (external engine in media namespace)
   curl -X PUT https://scraper.tonioriol.com/api/config/ace_engine_url \
     -H "Content-Type: application/json" \
-    -d '{"ace_engine_url":"http://localhost:6878"}'
+    -d '{"ace_engine_url":"http://acestream.media.svc.cluster.local:6878"}'
 
   # Set rescrape interval (key is "hours", not "rescrape_interval")
   curl -X PUT https://scraper.tonioriol.com/api/config/rescrape_interval \
@@ -99,8 +99,8 @@ That's it. No scripts, no API calls, no manual DNS clicks.
 - The **Config web UI** (`/config`) is a React SPA. If the "Update" button appears to do nothing (value disappears from the field), use the API directly — the frontend may have a bug with certain URL formats.
 - **URL management**: `POST /api/urls/` to add, `DELETE /api/urls/{id}` (no trailing slash) to remove. Trailing slash on DELETE returns 404.
 - **Channel data**: `GET /api/channels/` returns all channels; filter with `ch.status === 'active' && ch.is_online !== false`.
-- **Ports**: Flask on `8000`, Acexy on `8080`, Acestream Engine on `6878` (all in the same pod).
-- **Acexy vs raw engine**: Acexy (port 8080, cluster-internal only) is a Go proxy wrapping the engine API. Key differences:
+- **Ports**: Flask on `8000` (acestream-scraper, `default` ns), Acexy on `8080` (standalone Deployment, `media` ns), Acestream Engine on `6878` (standalone Deployment, `media` ns).
+- **Acexy vs raw engine**: Acexy (`ace.tonioriol.com`, publicly exposed via CF tunnel, token-gated by `ACEXY_TOKEN`) is a Go proxy wrapping the engine API. Key differences:
   - Acexy **rejects the `pid` parameter** with HTTP 400 ("PID parameter is not allowed"). Never include `&pid=` in Acexy URLs.
   - Acexy only supports MPEG-TS via `/ace/getstream?id=<hash>` — no HLS (`/ace/manifest.m3u8` returns 404).
   - The raw engine (port 6878) supports both HLS and MPEG-TS, and accepts `pid`.
@@ -119,12 +119,17 @@ Both `acestream-scraper` and `acestreamio` are protected. Credentials are stored
 - Enabled via env vars `AUTH_USERNAME` + `AUTH_PASSWORD` (injected from k8s Secret `acestream-scraper-auth`).
 - k8s liveness/readiness/startup probes must use `/api/health` (auth-exempt). Any other probe path will get 401 and cause crash-loops.
 
-### acestreamio `/ace/getstream` stream proxy
+### Acexy token auth
 
-- Acexy (port 8080) is **not** publicly exposed. All stream traffic routes through `acestreamio.tonioriol.com/ace/getstream`.
-- Gated by `STREAM_TOKEN` env var. When set, requests must carry `?token=<STREAM_TOKEN>`.
-- The scraper auto-embeds the token in generated M3U stream URLs via `ACEXY_TOKEN` env var (same value as `STREAM_TOKEN`).
-- Both secrets are in k8s Secrets and sourced from 1Password. See [`apps/acestream-scraper.yaml`](apps/acestream-scraper.yaml:1) for the ArgoCD `helm.values` override where credentials are set.
+- Acexy is publicly exposed at `ace.tonioriol.com` via Cloudflare Tunnel, gated by `ACEXY_TOKEN` env var (all requests must include `?token=<value>`).
+- The scraper auto-embeds `AUTH_PASSWORD` as `&token=` in M3U stream URLs (see [`playlist_service.py`](../acestream-scraper/app/services/playlist_service.py:51)). This value must match `ACEXY_TOKEN` on the Acexy Deployment.
+- acestreamio `PROXY_URL=https://ace.tonioriol.com` — Stremio stream URLs also go directly to Acexy with `?token=<STREAM_TOKEN>`.
+
+### acestreamio stream token
+
+- acestreamio has its own `STREAM_TOKEN` env var used to authenticate stream requests from Stremio clients.
+- Both secrets (`AUTH_PASSWORD` on scraper, `ACEXY_TOKEN` on Acexy, `STREAM_TOKEN` on acestreamio) use the same value. Stored in 1Password (`neumann / acestream-scraper`).
+- See [`apps/acestream-scraper.yaml`](apps/acestream-scraper.yaml:1), [`apps/acexy.yaml`](apps/acexy.yaml:1), and [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1) for the ArgoCD `helm.values` overrides.
 
 ### Credential rotation
 
