@@ -1,0 +1,5 @@
+apiVersion: v2
+name: external-secrets-config
+description: ClusterSecretStore pointing ESO at the in-cluster 1Password Connect server
+type: application
+version: 0.1.0

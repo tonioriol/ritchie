@@ -13,11 +13,8 @@ spec:
       values: |
         imagePullSecrets:
           - name: ghcr-pull
-        # ACEXY_TOKEN must match AUTH_PASSWORD on acestream-scraper.
-        # Stream URLs embed ?token=<AUTH_PASSWORD>, Acexy validates it here.
         auth:
           enabled: true
-          token: "SntSIGdaunNbnAZfQzjT3fXN"
         externalDns:
           enabled: true
           hostname: ace.tonioriol.com

@@ -21,8 +21,6 @@ spec:
           - name: ghcr-pull
         auth:
           enabled: true
-          username: "admin"
-          password: "SntSIGdaunNbnAZfQzjT3fXN"
         externalDns:
           enabled: true
           hostname: scraper.tonioriol.com

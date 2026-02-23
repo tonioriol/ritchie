@@ -50,8 +50,6 @@ ingress:
 # interactive Basic Auth prompts.
 auth:
   enabled: false
-  username: ""
-  password: ""
 
 # external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
 externalDns:

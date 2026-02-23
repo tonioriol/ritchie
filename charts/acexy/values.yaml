@@ -16,9 +16,9 @@ service:
   port: 8080
 
 # Token auth — if enabled, all requests to Acexy must include ?token=<value>
+# Token is sourced from 1Password via ExternalSecret (key: acestream-scraper/password).
 auth:
   enabled: false
-  token: ""
 
 # Acexy tuning — see upstream docker-compose.yml for reference
 env:
