@@ -155,9 +155,38 @@ ALWAYS use absolute paths.
   * How: Acexy's own `docker-compose.yml` pairs it with `martinbjeldbak/acestream-http-proxy` as the engine — exactly what `charts/acestream` already runs in `media` namespace. Architecture: 3 independent Deployments (acestream engine, acexy proxy, scraper Flask app).
   * Key info: See `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219140000-feat-acexy-standalone-deployment/context.md` for full plan
 
+* **2026-02-23 ~23:20 — Fix CI push trigger for tonioriol/acestream-scraper**
+  * Why: Push events never fired on GitHub Actions despite correct workflow config
+  * How: Deleted workflow file, committed, recreated, committed again. Forced GitHub to re-register the push event hook.
+  * Key info: Commit `7141ff3` triggered via `push` event → `conclusion: success`. Also removed `paths:` filter (semantic-release handles no-op).
+
+* **2026-02-24 ~00:00 — ESO + 1Password Connect: initial deployment**
+  * Why: Credentials stored in plaintext in `ritchie/apps/acestream-scraper.yaml` and `apps/acexy.yaml`
+  * How: Created 1Password vault `neumann`, Connect server `neumann-k8s`, token `neumann-eso`. Deployed via ArgoCD: `onepassword-connect` (Helm chart), `external-secrets` (ESO operator), `external-secrets-config` (ClusterSecretStore). Replaced `secret.yaml` templates with `externalsecret.yaml` in acestream-scraper and acexy charts. Removed plaintext credentials from ArgoCD app files.
+  * Key info: Connect server UUID `TKBFXTXMERDEJCHJY2DM4K4W24`; vault ID `xuk2fqgwzzf3iqybuq7pidwgnq`; 1Password item `acestream-scraper` (ID `hthexfrtih57dr5gf2dighfa4e`)
+
+* **2026-02-24 ~00:05 — Fix Connect credentials: wrong cluster context**
+  * Why: Initially created k8s secrets on wrong cluster (AWS EKS `flo-eks-axess-dev` instead of neumann k3s)
+  * How: Deleted from EKS, recreated on neumann using `KUBECONFIG=ritchie/clusters/neumann/kubeconfig`
+  * Key info: Always use `KUBECONFIG=ritchie/clusters/neumann/kubeconfig` for neumann cluster commands
+
+* **2026-02-24 ~00:10 — Fix Connect credentials format**
+  * Why: Connect expects credentials file to be base64-encoded; Helm chart's `connect.credentials` value was being treated as a string name, not file content
+  * How: Set `credentials_base64:` empty in Helm values (so chart doesn't create `op-credentials` Secret), pre-create `op-credentials` Secret manually with `base64 < 1password-credentials.json` content. Connect expects double-base64: file content is base64, then k8s Secret base64-encodes again.
+  * Key info: Commit `f1631e2` in ritchie repo
+
+* **2026-02-24 ~00:19 — ClusterSecretStore validated, ExternalSecrets synced**
+  * Why: After fixing credentials, Connect returned 200 on `/v1/vaults` but ESO cached the old error
+  * How: Deleted and recreated ClusterSecretStore to force fresh validation → `Valid + ReadWrite + Ready`. Deleted duplicate 1Password item (two items named `acestream-scraper`). Annotated ExternalSecrets to force sync → both `SecretSynced + True`.
+  * Key info: Both k8s Secrets created: `acestream-scraper-auth` (AUTH_USERNAME + AUTH_PASSWORD), `acexy-auth` (ACEXY_TOKEN). All ArgoCD apps Synced + Healthy.
+
+* **2026-02-24 ~00:28 — Cleanup and documentation**
+  * Why: Remove temp files, old secrets, update AGENTS.md
+  * How: Deleted `/tmp/1password-credentials.json`, `/tmp/1password-credentials-b64.txt`, old `onepassword-credentials` Secret on neumann. Updated AGENTS.md Authentication section with ESO architecture, out-of-band secret docs, credential rotation flow.
+
 ## Next Steps
 
 - [x] **Implement Acexy standalone Deployment** — see `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219140000-feat-acexy-standalone-deployment/context.md` (COMPLETED)
 - [x] **Cloudflare Tunnel GitOps** — see `/Users/tr0n/Code/neumann/ritchie/docs/feat/20260219160000-feat-cloudflare-tunnel-gitops/context.md` (COMPLETED)
-- [ ] **ESO (External Secrets Operator) + 1Password integration** — remove credentials from `ritchie/apps/acestream-scraper.yaml` git file
-- [ ] **Fix GitHub Actions push trigger** — push trigger still does not fire after changing default branch
+- [x] **ESO (External Secrets Operator) + 1Password integration** — deployed, credentials removed from git (COMPLETED 2026-02-24)
+- [x] **Fix GitHub Actions push trigger** — fixed by deleting/recreating workflow file (COMPLETED 2026-02-24)

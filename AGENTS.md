@@ -109,33 +109,62 @@ That's it. No scripts, no API calls, no manual DNS clicks.
 
 ## Authentication
 
-Both `acestream-scraper` and `acestreamio` are protected. Credentials are stored in 1Password (`neumann / acestream-scraper`).
+Both `acestream-scraper` and `acestreamio` are protected. Credentials are stored in 1Password (`neumann` vault / `acestream-scraper` item) and injected into the cluster via **External Secrets Operator (ESO) + 1Password Connect**.
+
+### Secret management architecture
+
+- **1Password Connect** runs in-cluster (`1password` namespace) as the bridge between ESO and the 1Password cloud.
+- **ClusterSecretStore** `onepassword` points ESO at Connect's API (`http://onepassword-connect.1password.svc.cluster.local:8080`).
+- **ExternalSecret** CRs in each app's Helm chart pull individual fields from the 1Password item and create k8s Secrets.
+- No plaintext credentials in git. Only `auth.enabled: true` in Helm values.
+
+### Out-of-band secrets (not in git, pre-created manually)
+
+Two secrets in `1password` namespace must exist before Connect can start:
+
+| Secret | Key | Content |
+|--------|-----|---------|
+| `op-credentials` | `1password-credentials.json` | Base64-encoded Connect credentials file (from `op connect server create`) |
+| `onepassword-token` | `token` | Connect access token JWT (from `op connect token create`) |
+
+These are **never** stored in git. If the cluster is rebuilt, recreate them:
+```bash
+# 1. Get credentials file from 1Password (already base64-encoded inside)
+#    The file is from: op connect server create neumann-k8s --vaults neumann
+# 2. Base64-encode the JSON file content (Connect expects double-base64)
+base64 < 1password-credentials.json | tr -d '\n' > creds-b64.txt
+# 3. Create secrets
+KUBECONFIG=clusters/neumann/kubeconfig kubectl create ns 1password
+KUBECONFIG=clusters/neumann/kubeconfig kubectl create secret generic op-credentials -n 1password --from-file=1password-credentials.json=creds-b64.txt
+KUBECONFIG=clusters/neumann/kubeconfig kubectl create secret generic onepassword-token -n 1password --from-literal=token='<JWT from op connect token create>'
+```
 
 ### acestream-scraper auth
 
 - All routes except `/api/health` require auth. Two methods accepted (see [`acestream-scraper/app/utils/auth.py`](../acestream-scraper/app/utils/auth.py:1)):
   - **HTTP Basic Auth**: `Authorization: Basic <base64(username:password)>` — for browsers and `curl -u`.
   - **`?token=<password>`**: embed password as query param — for media players (TiviMate, VLC) that can't do interactive auth.
-- Enabled via env vars `AUTH_USERNAME` + `AUTH_PASSWORD` (injected from k8s Secret `acestream-scraper-auth`).
+- Enabled via env vars `AUTH_USERNAME` + `AUTH_PASSWORD` (injected from k8s Secret `acestream-scraper-auth` via [`ExternalSecret`](charts/acestream-scraper/templates/externalsecret.yaml:1)).
 - k8s liveness/readiness/startup probes must use `/api/health` (auth-exempt). Any other probe path will get 401 and cause crash-loops.
 
 ### Acexy token auth
 
 - Acexy is publicly exposed at `ace.tonioriol.com` via Cloudflare Tunnel, gated by `ACEXY_TOKEN` env var (all requests must include `?token=<value>`).
 - The scraper auto-embeds `AUTH_PASSWORD` as `&token=` in M3U stream URLs (see [`playlist_service.py`](../acestream-scraper/app/services/playlist_service.py:51)). This value must match `ACEXY_TOKEN` on the Acexy Deployment.
+- `ACEXY_TOKEN` injected via [`ExternalSecret`](charts/acexy/templates/externalsecret.yaml:1) from `acestream-scraper` 1Password item's `password` field.
 - acestreamio `PROXY_URL=https://ace.tonioriol.com` — Stremio stream URLs also go directly to Acexy with `?token=<STREAM_TOKEN>`.
 
 ### acestreamio stream token
 
 - acestreamio has its own `STREAM_TOKEN` env var used to authenticate stream requests from Stremio clients.
-- Both secrets (`AUTH_PASSWORD` on scraper, `ACEXY_TOKEN` on Acexy, `STREAM_TOKEN` on acestreamio) use the same value. Stored in 1Password (`neumann / acestream-scraper`).
-- See [`apps/acestream-scraper.yaml`](apps/acestream-scraper.yaml:1), [`apps/acexy.yaml`](apps/acexy.yaml:1), and [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1) for the ArgoCD `helm.values` overrides.
+- Both secrets (`AUTH_PASSWORD` on scraper, `ACEXY_TOKEN` on Acexy, `STREAM_TOKEN` on acestreamio) use the same password value from 1Password (`neumann` vault / `acestream-scraper` item).
 
 ### Credential rotation
 
-1. Update 1Password item `neumann / acestream-scraper` with new values.
-2. Edit `spec.source.helm.values` in [`apps/acestream-scraper.yaml`](apps/acestream-scraper.yaml:18) and [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1).
-3. Commit + push to ritchie `main` → ArgoCD auto-syncs and recreates both Secrets.
+1. Update the `password` field in 1Password item `neumann / acestream-scraper`.
+2. ESO auto-refreshes every 1h, or force immediate sync: `kubectl annotate externalsecret <name> -n <ns> force-sync=$(date +%s) --overwrite`.
+3. Pods referencing the Secret will need a restart to pick up the new values (unless they watch for Secret changes).
+4. For `acestreamio` (still uses inline `STREAM_TOKEN` in Helm values): update [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1) and push.
 
 ## Acestream-scraper release process (CI pipeline)
 
