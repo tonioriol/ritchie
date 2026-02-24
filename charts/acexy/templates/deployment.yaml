@@ -11,6 +11,10 @@ spec:
       app: {{ .Release.Name }}
   template:
     metadata:
+      {{- if .Values.auth.enabled }}
+      annotations:
+        secret.reloader.stakater.com/reload: {{ .Release.Name }}-auth
+      {{- end }}
       labels:
         app: {{ .Release.Name }}
     spec:

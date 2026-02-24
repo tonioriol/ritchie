@@ -108,6 +108,73 @@ argocd app sync <APP>
 - `argocd-ingress` health is kept green by publishing a fixed Ingress endpoint IP from Traefik (`providers.kubernetesIngress.ingressEndpoint.ip`) in [`apps/traefik.yaml`](apps/traefik.yaml:13), so Ingress gets a non-empty `.status.loadBalancer`.
 - Keep secrets local. Never commit `.env` or kubeconfigs (see [`.gitignore`](.gitignore:1)).
 
-## 7) Detailed runbook
+## 7) Secrets management (1Password + ESO)
+
+All application secrets are stored in the **1Password vault `neumann`** and synced to Kubernetes via **External Secrets Operator (ESO)** → **1Password Connect**.
+
+### Architecture
+
+```
+1Password vault "neumann"
+  └─ item "acestream-scraper"
+       ├─ username   → AUTH_USERNAME  (acestream-scraper)
+       └─ password   → AUTH_PASSWORD  (acestream-scraper)
+                     → ACEXY_TOKEN    (acexy)
+                     → STREAM_TOKEN   (acestreamio)
+```
+
+All three services share the **same password** from the single 1Password item. This simplifies rotation — change one field, everything updates.
+
+### 1Password account
+
+The `neumann` vault lives on the **personal** 1Password account:
+- **Account**: `my.1password.com` (`tonioriol@gmail.com`)
+- **Account UUID**: `PRBEZ6ELGNCMDIK6YVMRW5TTXQ`
+- **Vault**: `neumann` (ID `xuk2fqgwzzf3iqybuq7pidwgnq`)
+
+When using `op` CLI, always pass `--account PRBEZ6ELGNCMDIK6YVMRW5TTXQ` (or `--account my.1password.com`).
+
+### 1Password items
+
+| 1P Item | Vault | Fields | Used By |
+|---------|-------|--------|---------|
+| `acestream-scraper` (ID `hthexfrtih57dr5gf2dighfa4e`) | `neumann` | `username`, `password` | acestream-scraper (Basic Auth + `?token=`), acexy (`ACEXY_TOKEN`), acestreamio (`STREAM_TOKEN`) |
+
+> **Note**: The `password` field is used as the token everywhere — the `?token=` param in M3U URLs, `ACEXY_TOKEN`, and `STREAM_TOKEN` all use this same value. The `stream token` field in 1P is a legacy leftover and is **not** read by any ExternalSecret.
+
+### Kubernetes Secrets (created by ESO)
+
+| Secret Name | Namespace | Keys | Source |
+|-------------|-----------|------|--------|
+| `acestream-scraper-auth` | `default` | `AUTH_USERNAME`, `AUTH_PASSWORD` | 1P `acestream-scraper` → `username`, `password` |
+| `acexy-auth` | `media` | `ACEXY_TOKEN` | 1P `acestream-scraper` → `password` |
+
+### ExternalSecret definitions
+
+- [`charts/acestream-scraper/templates/externalsecret.yaml`](charts/acestream-scraper/templates/externalsecret.yaml:1) — refreshes every 1h
+- [`charts/acexy/templates/externalsecret.yaml`](charts/acexy/templates/externalsecret.yaml:1) — refreshes every 1h
+
+### Auto-reload on secret change
+
+[Stakater Reloader](https://github.com/stakater/Reloader) is deployed via [`apps/reloader.yaml`](apps/reloader.yaml:1). Both Deployments carry `secret.reloader.stakater.com/reload` annotations — when ESO syncs a new secret value from 1Password, Reloader triggers a rolling restart automatically.
+
+### Credential rotation
+
+1. Open **1Password** → vault `neumann` → item `acestream-scraper`
+2. Edit the `password` field (and/or `username`)
+3. Wait up to **1 hour** for ESO to sync (or force: `kubectl annotate externalsecret <name> force-sync=$(date +%s) --overwrite`)
+4. Stakater Reloader will automatically restart affected pods
+5. Update your M3U player URL with the new `?token=<password>` value
+
+### Out-of-band secrets (not in ESO)
+
+| Secret | Namespace | How to create |
+|--------|-----------|---------------|
+| `op-credentials` | `kube-system` | `kubectl -n kube-system create secret generic op-credentials --from-literal=1password-credentials.json="$(base64 < creds.json)"` |
+| `onepassword-connect-token` | `kube-system` | `kubectl -n kube-system create secret generic onepassword-connect-token --from-literal=token=<ESO_TOKEN>` |
+| `ghcr-pull` | `default`, `media`, `argocd` | Docker registry secret for GHCR |
+| `cloudflared-credentials` | `cloudflared` | Cloudflare Tunnel credentials JSON |
+
+## 8) Detailed runbook
 
 Full Cloudflare + WARP operational notes: [`docs/feat/2026-02-08-23-33-44-feat-cloudflare-neumann-cli-runbook/context.md`](docs/feat/2026-02-08-23-33-44-feat-cloudflare-neumann-cli-runbook/context.md:1)

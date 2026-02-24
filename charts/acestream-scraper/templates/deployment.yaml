@@ -11,6 +11,10 @@ spec:
       {{- include "acestream-scraper.labels" . | nindent 6 }}
   template:
     metadata:
+      {{- if .Values.auth.enabled }}
+      annotations:
+        secret.reloader.stakater.com/reload: {{ .Release.Name }}-auth
+      {{- end }}
       labels:
         {{- include "acestream-scraper.labels" . | nindent 8 }}
     spec:
