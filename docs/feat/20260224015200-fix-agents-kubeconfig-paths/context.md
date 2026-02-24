@@ -34,6 +34,7 @@ tonioriol/neumann → `ritchie/`
 * `ritchie/plans/acestream-scraper-integration.md`
 * `ritchie/clusters/neumann/kubeconfig`
 * `ritchie/.envrc`
+* `ritchie/apps/external-dns.yaml`
 
 ## PLAN
 
@@ -41,8 +42,10 @@ tonioriol/neumann → `ritchie/`
 - ✅ Add note that direnv is not available to agents
 - ✅ Verify the fix works by running `kubectl get nodes` with the corrected path
 - ✅ Update README.md: fix kubeconfig paths, add missing components (1Password, ESO, Acexy)
-- ✅ Update TODO.md: mark completed items (CI + Image Updater)
+- ✅ Update TODO.md: mark completed items (CI + Image Updater), add new items from audit
 - ✅ Update acestream-scraper-integration.md: mark completed phases, update architecture diagram
+- ✅ Verify all TODO items are still open (list.js, playlists/, converter.js, chart rename, proxy)
+- ✅ Investigate external-dns restart loop (44 restarts)
 
 ## EVENT LOG
 
@@ -81,6 +84,14 @@ tonioriol/neumann → `ritchie/`
 * **2026-02-24 01:57 - Updated acestream-scraper-integration.md**
   * Why: Phases 1 and 2 fully completed; architecture diagram showed old acestream-proxy topology
   * How: Marked Phase 1 and 2 as ✅; updated mermaid diagram to show Acexy, Cloudflare Tunnel, and correct namespaces
+
+* **2026-02-24 02:02 - Verified all TODO items are still open**
+  * Why: User asked to confirm items weren't already done
+  * How: Checked `acestreamio/list.js` (still exists, used as fallback in `channels.js:8`), `acestreamio/playlists/` (6 files), `converter.js` (exists), `ritchie/charts/acestream/Chart.yaml` (still named `acestream`), `acestream-proxy` pod (Running 1/1, 0 restarts). All items confirmed still open.
+
+* **2026-02-24 02:03 - Investigated external-dns restart loop (44 restarts in 4d)**
+  * Why: Appeared in cluster status as concerning
+  * How: `kubectl logs --previous` showed crash cause: `level=fatal msg="Failed to do run once: error reading response body: unexpected EOF"`. This is a known transient Cloudflare API issue — connection drops cause `unexpected EOF`, external-dns exits fatal, k8s restarts it. Pod always recovers immediately and DNS syncs fine ("All records are already up to date" every ~1min). **Benign — no action needed.** Liveness probe is not the cause (process crashes on its own before probe fails).
 
 ## Next Steps
 
