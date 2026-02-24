@@ -26,22 +26,26 @@ Use the Cloudflare hostnames above. No WARP needed for normal app/stream usage.
 - Normal path: [`clusters/neumann/kubeconfig`](clusters/neumann/kubeconfig:1)
 - During ISP Hetzner blocking: turn on WARP and use [`clusters/neumann/kubeconfig.warp`](clusters/neumann/kubeconfig.warp:1)
 
-Quick check:
+Quick check (from workspace root):
 
 ```bash
-KUBECONFIG=./clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
+KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl get nodes -o wide
+# During ISP blocking:
+KUBECONFIG=ritchie/clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
 ```
 
 ## 3) Main components
 
 - ArgoCD app-of-apps root: [`apps/root.yaml`](apps/root.yaml:1)
 - Cloudflare tunnel connector app: [`apps/cloudflared.yaml`](apps/cloudflared.yaml:1)
-- Acestream-scraper (scraper + engine + Acexy): [`charts/acestream-scraper`](charts/acestream-scraper/Chart.yaml:1)
-- Acestreamio Stremio addon: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1)
-- IPTV relay: [`charts/iptv-relay`](charts/iptv-relay/Chart.yaml:1)
-- AceStream proxy (legacy, to be retired): [`charts/acestream`](charts/acestream/Chart.yaml:1)
+- Acestream-scraper (channel scraper + web UI): [`charts/acestream-scraper`](charts/acestream-scraper/Chart.yaml:1) — `default` ns
+- Acestream engine: [`charts/acestream`](charts/acestream/Chart.yaml:1) — `media` ns (includes acestream-proxy sidecar)
+- Acexy (Go stream proxy, token-gated): [`charts/acexy`](charts/acexy/Chart.yaml:1) — `media` ns
+- Acestreamio Stremio addon: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1) — `media` ns
+- IPTV relay: [`charts/iptv-relay`](charts/iptv-relay/Chart.yaml:1) — `media` ns
 
 Also running in cluster:
+- 1Password Connect + External Secrets Operator: [`apps/onepassword-connect.yaml`](apps/onepassword-connect.yaml:1), [`apps/external-secrets.yaml`](apps/external-secrets.yaml:1), [`apps/external-secrets-config.yaml`](apps/external-secrets-config.yaml:1)
 - cert-manager: [`apps/cert-manager.yaml`](apps/cert-manager.yaml:1)
 - external-dns (Cloudflare): [`apps/external-dns.yaml`](apps/external-dns.yaml:1)
 - metrics-server: [`apps/metrics-server.yaml`](apps/metrics-server.yaml:1)
@@ -70,17 +74,15 @@ ArgoCD `Application` definitions live in [`apps/`](apps/root.yaml:1). Helm chart
 - Check cluster/apps health:
 
 ```bash
-export KUBECONFIG=./clusters/neumann/kubeconfig
-kubectl get nodes -o wide
-kubectl -n argocd get applications
+KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl get nodes -o wide
+KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl -n argocd get applications
 ```
 
 - Common ops commands:
 
 ```bash
 # all Argo apps with health/sync
-export KUBECONFIG=./clusters/neumann/kubeconfig
-kubectl -n argocd get applications.argoproj.io \
+KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl -n argocd get applications.argoproj.io \
   -o custom-columns=NAME:.metadata.name,HEALTH:.status.health.status,SYNC:.status.sync.status \
   --sort-by=.metadata.name
 

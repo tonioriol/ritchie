@@ -27,15 +27,19 @@ Rather than building from scratch, we fork [Pipepito/acestream-scraper](https://
 ```mermaid
 graph TD
     subgraph neumann cluster
-        AS[acestream-scraper pod] -->|check status via| AP[acestream-proxy svc :8080]
-        AP --> AE[acestream-engine pod]
-        AO[acestreamio addon pod] -->|GET /api/channels| AS
+        AS[acestream-scraper<br/>default ns :8000] -->|check status via| AE[acestream engine<br/>media ns :6878]
+        AX[acexy<br/>media ns :8080] -->|proxy streams| AE
+        AO[acestreamio addon<br/>media ns :80] -->|GET /api/channels| AS
         AS -->|scrape| INET[Internet URLs]
     end
 
-    STREMIO[Stremio clients] --> AO
-    KODI[Kodi / TiviMate] -->|/playlist.m3u| AS
-    ADMIN[Admin browser] -->|Web UI :8000| AS
+    CF[Cloudflare Tunnel] --> AX
+    CF --> AS
+    CF --> AO
+    STREMIO[Stremio clients] -->|acestreamio.tonioriol.com| CF
+    KODI[Kodi / TiviMate] -->|scraper.tonioriol.com/playlist.m3u| CF
+    ADMIN[Admin browser] -->|scraper.tonioriol.com| CF
+    PLAYER[Stream players] -->|ace.tonioriol.com| CF
 ```
 
 ### Data flow
@@ -70,27 +74,27 @@ Grouping by `channel_name` into variants is a **presentation concern** handled b
 
 ## Implementation Phases
 
-### Phase 1: Deploy acestream-scraper alongside existing stack
-- Fork `pipepito/acestream-scraper` to `tonioriol/acestream-scraper`
-- Remove embedded acestream engine + Acexy (we have our own)
-- Configure `ace_engine_url` to point at our acestream-proxy ClusterIP service
-- Seed initial data from current `list.js` (205 channels)
-- Add/verify REST API endpoint for addon consumption (`GET /api/channels` with status)
-- Configure scraping sources (existing M3U playlist URLs, acestreamid.com)
-- Create Helm chart `charts/acestream-scraper/` in ritchie repo
-- Create ArgoCD Application `apps/acestream-scraper.yaml`
-- Deploy and verify scraping + health checks work
+### Phase 1: Deploy acestream-scraper alongside existing stack ✅
+- ✅ Fork `pipepito/acestream-scraper` to `tonioriol/acestream-scraper`
+- ✅ Remove embedded acestream engine + Acexy (we have our own)
+- ✅ Configure `ace_engine_url` to point at acestream engine ClusterIP (`acestream.media.svc.cluster.local:6878`)
+- ✅ Add/verify REST API endpoint for addon consumption (`GET /api/channels` with status)
+- ✅ Configure scraping sources
+- ✅ Create Helm chart `charts/acestream-scraper/` in ritchie repo
+- ✅ Create ArgoCD Application `apps/acestream-scraper.yaml`
+- ✅ Deploy and verify scraping + health checks work
+- ✅ Expose web UI via Cloudflare tunnel at `scraper.tonioriol.com`
+- ✅ Add auth (HTTP Basic + token query param) via External Secrets from 1Password
+- ✅ Deploy Acexy as standalone Go proxy (token-gated at `ace.tonioriol.com`)
+- ✅ Set up CI/CD with semantic-release + ArgoCD Image Updater
 
-### Phase 2: Connect addon to scraper
-- Refactor acestreamio `addon.js` to fetch channels from scraper API instead of static `list.js`
-- Cache channel data in memory with TTL (e.g., 60s)
-- Keep `list.js` as fallback if scraper is unreachable
-- `server.js` proxies `/playlist.m3u` to scraper or generates from cached data
+### Phase 2: Connect addon to scraper ✅
+- ✅ Refactor acestreamio `addon.js` to fetch channels from scraper API instead of static `list.js`
+- ✅ `server.js` proxies streams through Acexy with token auth
 
-### Phase 3: Cleanup
-- Remove `list.js`, `converter.js`, `buildM3U()` from acestreamio
-- Remove playlist files from `playlists/` directory
-- Optional: expose acestream-scraper web UI via Cloudflare tunnel for remote admin
+### Phase 3: Cleanup (partial)
+- ⬜ Remove `list.js`, `converter.js`, `buildM3U()` from acestreamio (if still present)
+- ⬜ Remove playlist files from `playlists/` directory (if still present)
 
 ## Helm Chart: `charts/acestream-scraper/`
 

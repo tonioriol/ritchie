@@ -4,7 +4,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Stack & repo layout (non-obvious)
 
-- Tooling is provided via Devbox + direnv: [`.envrc`](.envrc:1) loads `devbox` and `dotenv_if_exists`, then exports `KUBECONFIG=${PWD}/clusters/neumann/kubeconfig`.
+- Tooling is provided via Devbox + direnv: [`.envrc`](.envrc:1) loads `devbox` and `dotenv_if_exists`, then exports `KUBECONFIG=${PWD}/clusters/neumann/kubeconfig`. **Note:** direnv is not active for agents; always use the explicit kubeconfig path shown in the [kubectl context](#kubectl-context-important-for-agents) section below.
 - Secrets live in [`.env`](.env:1) (gitignored by [`.gitignore`](.gitignore:1)); generated kubeconfigs are also ignored (`clusters/*/kubeconfig` and top-level `kubeconfig`).
 - GitOps “app-of-apps”: [`apps/root.yaml`](apps/root.yaml:1) points ArgoCD at this repo (`path: apps`) and auto-syncs (`prune` + `selfHeal`). Each file in `apps/` is an ArgoCD `Application`.
 - Helm charts live in `charts/` and are referenced by ArgoCD `Application.spec.source.path` (e.g. [`apps/acestream.yaml`](apps/acestream.yaml:1) -> `charts/acestream`).
@@ -134,9 +134,9 @@ These are **never** stored in git. If the cluster is rebuilt, recreate them:
 # 2. Base64-encode the JSON file content (Connect expects double-base64)
 base64 < 1password-credentials.json | tr -d '\n' > creds-b64.txt
 # 3. Create secrets
-KUBECONFIG=clusters/neumann/kubeconfig kubectl create ns 1password
-KUBECONFIG=clusters/neumann/kubeconfig kubectl create secret generic op-credentials -n 1password --from-file=1password-credentials.json=creds-b64.txt
-KUBECONFIG=clusters/neumann/kubeconfig kubectl create secret generic onepassword-token -n 1password --from-literal=token='<JWT from op connect token create>'
+KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl create ns 1password
+KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl create secret generic op-credentials -n 1password --from-file=1password-credentials.json=creds-b64.txt
+KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl create secret generic onepassword-token -n 1password --from-literal=token='<JWT from op connect token create>'
 ```
 
 ### acestream-scraper auth
@@ -188,11 +188,10 @@ KUBECONFIG=clusters/neumann/kubeconfig kubectl create secret generic onepassword
 
 3. Verify deployment:
    ```bash
-   export KUBECONFIG=${PWD}/clusters/neumann/kubeconfig
    # Check Image Updater logs
-   kubectl logs -l app.kubernetes.io/name=argocd-image-updater --tail=20 -n argocd
+   KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl logs -l app.kubernetes.io/name=argocd-image-updater --tail=20 -n argocd
    # Check current image
-   kubectl get deploy acestream-scraper -o jsonpath='{.spec.template.spec.containers[*].image}'
+   KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl get deploy acestream-scraper -o jsonpath='{.spec.template.spec.containers[*].image}'
    ```
 
 ### Important notes
@@ -205,5 +204,7 @@ KUBECONFIG=clusters/neumann/kubeconfig kubectl create secret generic onepassword
 
 ## kubectl context (important for agents)
 
-- Always use the neumann cluster kubeconfig when running `kubectl` or `helm` commands: `KUBECONFIG=${PWD}/clusters/neumann/kubeconfig`.
-- In terminal commands, prefix with `export KUBECONFIG=${PWD}/clusters/neumann/kubeconfig &&` or pass `--kubeconfig clusters/neumann/kubeconfig` to avoid hitting the wrong cluster context.
+- The workspace root is the **parent monorepo** (`neumann/`), not the `ritchie/` subdirectory. The kubeconfig lives at `ritchie/clusters/neumann/kubeconfig` relative to the workspace root.
+- Always prefix `kubectl` / `helm` commands with: `KUBECONFIG=ritchie/clusters/neumann/kubeconfig`.
+- Example: `KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl get nodes -o wide`.
+- Do **not** use `${PWD}/clusters/neumann/kubeconfig` — that only works when CWD is `ritchie/` and direnv is not available to agents.
