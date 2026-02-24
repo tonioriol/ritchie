@@ -163,8 +163,13 @@ KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl create secret generic one
 
 1. Update the `password` field in 1Password item `neumann / acestream-scraper`.
 2. ESO auto-refreshes every 1h, or force immediate sync: `kubectl annotate externalsecret <name> -n <ns> force-sync=$(date +%s) --overwrite`.
-3. Pods referencing the Secret will need a restart to pick up the new values (unless they watch for Secret changes).
+3. **Stakater Reloader** ([`apps/reloader.yaml`](apps/reloader.yaml:1)) automatically performs a rolling restart of Deployments annotated with `secret.reloader.stakater.com/reload: <secret-name>` when the Secret data changes. Currently annotated: `acestream-scraper` (default ns) and `acexy` (media ns). No manual `kubectl rollout restart` needed.
 4. For `acestreamio` (still uses inline `STREAM_TOKEN` in Helm values): update [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1) and push.
+
+**Full secret rotation flow:**
+```
+1Password item edit → ESO refresh (≤1h) → k8s Secret updated → Reloader detects hash change → rolling restart
+```
 
 ## Acestream-scraper release process (CI pipeline)
 

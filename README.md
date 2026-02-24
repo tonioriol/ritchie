@@ -56,9 +56,11 @@ Also running in cluster:
 
 1. Edit manifests/charts in this repo.
 2. Commit and push to `main`.
-3. ArgoCD auto-sync applies changes.
+3. ArgoCD auto-sync applies changes (~3min).
 
 ArgoCD `Application` definitions live in [`apps/`](apps/root.yaml:1). Helm charts live in [`charts/`](charts/acestream/Chart.yaml:1).
+
+For detailed deployment flows (infra changes, app code changes, secret rotation), see the root [`AGENTS.md`](../AGENTS.md:1).
 
 ## 5) How to add a new service
 
