@@ -51,6 +51,16 @@ ingress:
 auth:
   enabled: false
 
+# Resource limits for the scraper container.
+# On CX23 (2 vCPU/4GB), keep these conservative to leave room for k3s system components.
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
 # external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
 externalDns:
   enabled: false
