@@ -36,6 +36,8 @@ hosts:
     service: http://acestream-scraper.default.svc.cluster.local:8000
   - hostname: neumann.tonioriol.com
     service: http://argocd-server.argocd.svc.cluster.local:80
+  - hostname: code.tonioriol.com
+    service: http://code-workspaces.tools.svc.cluster.local:8080
 
 resources:
   requests:

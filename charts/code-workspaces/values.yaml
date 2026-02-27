@@ -1,0 +1,36 @@
+image:
+  repository: ghcr.io/tonioriol/code-workspaces
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+
+persistence:
+  enabled: true
+  size: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "hcloud-volumes"
+  mountPath: /data
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 4000m
+    memory: 4Gi
+
+serviceAccount:
+  create: true
+  clusterAdmin: true
+
+# code-server password (empty = --auth none, use Cloudflare Access instead)
+codeServerPassword: ""
+
+# Roo Code API provider config
+rooCode:
+  provider: anthropic
+  # apiKey is loaded from ExternalSecret
+  apiKeySecret: code-workspaces-apikey
+  apiKeySecretKey: api-key
