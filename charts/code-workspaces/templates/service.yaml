@@ -7,6 +7,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: code.tonioriol.com
     external-dns.alpha.kubernetes.io/target: 85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
 spec:
   type: ClusterIP
   ports:

@@ -41,11 +41,20 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Cloudflare Tunnel config (credentials-file, GitOps)
 
-The tunnel runs in **credentials-file mode**: the local ConfigMap IS the routing config. No remote config override, no imperative API calls. ArgoCD reconciles everything.
+The tunnel runs in **credentials-file mode**: the local ConfigMap IS the routing config. ArgoCD reconciles everything.
 
 - Tunnel identity: Secret `cloudflared/cloudflared-credentials` (key `credentials.json`, contains `AccountTag`, `TunnelID`, `TunnelSecret`) — created out-of-band, never committed.
 - Routing rules: [`charts/cloudflared/values.yaml`](charts/cloudflared/values.yaml:1) `hosts:` array → rendered into ConfigMap → mounted into the cloudflared pod.
 - DNS: **external-dns** (namespace `external-dns`) watches annotated Services/Ingresses and auto-creates/updates CNAME records pointing at `85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com`.
+
+> **⚠️ Remote config override**: The Cloudflare API has a remote tunnel configuration (managed via Zero Trust dashboard) that **overrides the local ConfigMap** on startup. When adding a new hostname, you must also update the remote config via the API:
+> ```bash
+> curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel/$CF_TUNNEL_ID/configurations" \
+>   -H "X-Auth-Email: $CF_EMAIL" -H "X-Auth-Key: $CF_API_KEY" \
+>   -H "Content-Type: application/json" \
+>   -d '{"config":{"ingress":[...all hostnames...,{"service":"http_status:404"}],"warp-routing":{"enabled":true}}}'
+> ```
+> Alternatively, delete the remote config entirely to let the local ConfigMap be authoritative.
 
 ### Required env vars (all in `.env`)
 
@@ -70,11 +79,11 @@ Secrets created out-of-band (never committed):
      service: http://myservice.mynamespace.svc.cluster.local:80
    ```
 2. Add `externalDns.enabled: true` + `hostname` + `target` to the Service template's chart `values.yaml` (or set them in the ArgoCD Application `helm.values`).
-3. Commit and push — ArgoCD auto-syncs:
+3. **Critical**: Add `external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"` annotation to the Service. Without this, external-dns creates DNS records with `proxied: false` (grey cloud), which breaks tunnel routing — `cfargotunnel.com` resolves to a private IPv6 address instead of Cloudflare Anycast IPs.
+4. Update the Cloudflare remote tunnel config via the API (see warning above) to include the new hostname.
+5. Commit and push — ArgoCD auto-syncs:
    - cloudflared Deployment rolls (checksum annotation detects ConfigMap change) and picks up the new route.
-   - external-dns reconciles and creates/updates the CNAME record.
-
-That's it. No scripts, no API calls, no manual DNS clicks.
+   - external-dns reconciles and creates/updates the CNAME record (proxied).
 
 ## Acestream-scraper API quirks
 
