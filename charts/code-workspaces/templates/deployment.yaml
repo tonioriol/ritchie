@@ -17,6 +17,8 @@ spec:
         {{- include "code-workspaces.labels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ .Release.Name }}
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: code-workspaces
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
