@@ -3,24 +3,24 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}
   labels:
-    {{- include "code-workspaces.labels" . | nindent 4 }}
+    {{- include "code.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      {{- include "code-workspaces.labels" . | nindent 6 }}
+      {{- include "code.labels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "code-workspaces.labels" . | nindent 8 }}
+        {{- include "code.labels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ .Release.Name }}
       imagePullSecrets:
         - name: ghcr-pull
       containers:
-        - name: code-workspaces
+        - name: code
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:

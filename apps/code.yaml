@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: code-workspaces
+  name: code
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/tonioriol/ritchie
     targetRevision: main
-    path: charts/code-workspaces
+    path: charts/code
   destination:
     server: https://kubernetes.default.svc
     namespace: tools

@@ -1,6 +1,0 @@
-apiVersion: v2
-name: code-workspaces
-description: Code Workspaces - Dynamic code-server workspaces with Roo Code AI
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}
   labels:
-    {{- include "code-workspaces.labels" . | nindent 4 }}
+    {{- include "code.labels" . | nindent 4 }}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: code.tonioriol.com
     external-dns.alpha.kubernetes.io/target: 85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com
@@ -20,4 +20,4 @@ spec:
       protocol: TCP
       name: ssh
   selector:
-    {{- include "code-workspaces.labels" . | nindent 4 }}
+    {{- include "code.labels" . | nindent 4 }}

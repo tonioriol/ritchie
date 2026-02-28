@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openclaw
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tonioriol/ritchie
+    targetRevision: main
+    path: charts/openclaw
+    helm:
+      values: |
+        env:
+          # AI provider — set at least one API key.
+          # See https://github.com/zeroclaw-labs/zeroclaw#configuration
+          API_KEY: "CHANGE_ME"
+          ZEROCLAW_DEFAULT_PROVIDER: "openrouter"
+          ZEROCLAW_DEFAULT_MODEL: "anthropic/claude-sonnet-4-6"
+          # Gateway must bind 0.0.0.0 inside the pod for the Service to reach it.
+          ZEROCLAW_GATEWAY_HOST: "0.0.0.0"
+          ZEROCLAW_GATEWAY_PORT: "42617"
+          # Pairing disabled — auth handled by Cloudflare Access / tunnel.
+          ZEROCLAW_GATEWAY_REQUIRE_PAIRING: "false"
+          # State persisted on PVC
+          ZEROCLAW_STATE_DIR: "/zeroclaw-data/.zeroclaw"
+          ZEROCLAW_WORKSPACE_DIR: "/zeroclaw-data/workspace"
+        externalDns:
+          enabled: true
+          hostname: claw.tonioriol.com
+          target: "85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tools
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
