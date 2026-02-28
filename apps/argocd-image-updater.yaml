@@ -66,6 +66,42 @@ spec:
                         helm:
                           name: image.repository
                           tag: image.tag
+                - namePattern: ccx
+                  images:
+                    - alias: ccx
+                      imageName: ghcr.io/tonioriol/ccx
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                        pullSecret: pullsecret:argocd/ghcr-pull
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
+                - namePattern: openclaw
+                  images:
+                    - alias: openclaw
+                      imageName: ghcr.io/zeroclaw-labs/zeroclaw
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                        pullSecret: pullsecret:argocd/ghcr-pull
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
+                - namePattern: code
+                  images:
+                    - alias: code
+                      imageName: ghcr.io/tonioriol/code-workspaces
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                        pullSecret: pullsecret:argocd/ghcr-pull
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
