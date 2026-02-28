@@ -5,7 +5,12 @@ metadata:
   labels:
     {{- include "openclaw.labels" . | nindent 4 }}
 data:
-  config.toml: |
+  init-config.sh: |
+    #!/bin/sh
+    set -e
+    CFG=/zeroclaw-data/.zeroclaw/config.toml
+    mkdir -p /zeroclaw-data/.zeroclaw
+    cat > "$CFG" <<EOF
     default_provider = "openrouter"
     default_model = "anthropic/claude-sonnet-4-6"
     default_temperature = 0.7
@@ -15,6 +20,8 @@ data:
     port = {{ .Values.service.port }}
     allow_public_bind = true
     require_pairing = false
-
-    [gateway.auth]
-    mode = "none"
+    paired_tokens = ["${ZEROCLAW_GATEWAY_TOKEN}"]
+    EOF
+    # Strip leading whitespace from heredoc (YAML indentation artifact)
+    sed -i 's/^    //' "$CFG"
+    chmod 600 "$CFG"

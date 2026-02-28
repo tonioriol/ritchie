@@ -21,12 +21,19 @@ spec:
       initContainers:
         - name: init-config
           image: busybox:1.36
-          command: ['sh', '-c', 'mkdir -p /zeroclaw-data/.zeroclaw && cp /config/config.toml /zeroclaw-data/.zeroclaw/config.toml && chmod 600 /zeroclaw-data/.zeroclaw/config.toml']
+          command: ['sh', '/scripts/init-config.sh']
+          env:
+            - name: ZEROCLAW_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: ZEROCLAW_GATEWAY_TOKEN
+                  optional: true
           volumeMounts:
             - name: data
               mountPath: /zeroclaw-data
             - name: config
-              mountPath: /config
+              mountPath: /scripts
           securityContext:
             runAsUser: 65534
             runAsGroup: 65534
