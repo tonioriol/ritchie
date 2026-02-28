@@ -30,6 +30,9 @@ spec:
             - name: manager
               containerPort: 9000
               protocol: TCP
+            - name: ssh
+              containerPort: 22
+              protocol: TCP
           env:
             - name: DATA_DIR
               value: {{ .Values.persistence.mountPath | quote }}

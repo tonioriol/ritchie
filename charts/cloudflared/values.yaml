@@ -38,6 +38,8 @@ hosts:
     service: http://argocd-server.argocd.svc.cluster.local:80
   - hostname: code.tonioriol.com
     service: http://code-workspaces.tools.svc.cluster.local:8080
+  - hostname: ssh-code.tonioriol.com
+    service: ssh://code-workspaces.tools.svc.cluster.local:22
 
 resources:
   requests:
