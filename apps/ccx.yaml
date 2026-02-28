@@ -3,6 +3,12 @@ kind: Application
 metadata:
   name: ccx
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: ccx=ghcr.io/tonioriol/ccx
+    argocd-image-updater.argoproj.io/ccx.update-strategy: semver
+    argocd-image-updater.argoproj.io/ccx.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+    argocd-image-updater.argoproj.io/ccx.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/ccx.helm.image-tag: image.tag
 spec:
   project: default
   source:

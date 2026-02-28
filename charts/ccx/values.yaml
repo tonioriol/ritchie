@@ -3,8 +3,9 @@ imagePullSecrets:
 
 image:
   repository: ghcr.io/tonioriol/ccx
-  tag: latest
-  pullPolicy: Always
+  # Pinned to current release; ArgoCD Image Updater bumps on new semver tags.
+  tag: v1.1.0
+  pullPolicy: IfNotPresent
 
 replicaCount: 1
 

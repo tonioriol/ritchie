@@ -3,6 +3,12 @@ kind: Application
 metadata:
   name: openclaw
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: openclaw=ghcr.io/zeroclaw-labs/zeroclaw
+    argocd-image-updater.argoproj.io/openclaw.update-strategy: semver
+    argocd-image-updater.argoproj.io/openclaw.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+    argocd-image-updater.argoproj.io/openclaw.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/openclaw.helm.image-tag: image.tag
 spec:
   project: default
   source:

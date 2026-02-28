@@ -1,7 +1,8 @@
 image:
   repository: ghcr.io/tonioriol/acexy
-  tag: latest
-  pullPolicy: Always
+  # Pinned to current release. TODO: fix semver tagging, then add Image Updater.
+  tag: v1.0.0-tonioriol
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 
