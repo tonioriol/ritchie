@@ -14,6 +14,10 @@ spec:
       labels:
         {{- include "openclaw.labels" . | nindent 8 }}
     spec:
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 65534
+        runAsGroup: 65534
       containers:
         - name: zeroclaw
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
