@@ -18,8 +18,6 @@ spec:
           # Gateway must bind 0.0.0.0 inside the pod for the Service to reach it.
           ZEROCLAW_GATEWAY_HOST: "0.0.0.0"
           ZEROCLAW_GATEWAY_PORT: "42617"
-          # Pairing disabled — auth handled by Cloudflare Access / tunnel.
-          ZEROCLAW_GATEWAY_REQUIRE_PAIRING: "false"
           # State persisted on PVC
           ZEROCLAW_STATE_DIR: "/zeroclaw-data/.zeroclaw"
           ZEROCLAW_WORKSPACE_DIR: "/zeroclaw-data/workspace"
@@ -31,7 +29,6 @@ spec:
               api_key: API_KEY
               default_provider: ZEROCLAW_DEFAULT_PROVIDER
               default_model: ZEROCLAW_DEFAULT_MODEL
-              gateway_token: ZEROCLAW_GATEWAY_TOKEN
         externalDns:
           enabled: true
           hostname: claw.tonioriol.com
