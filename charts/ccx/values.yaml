@@ -4,7 +4,8 @@ imagePullSecrets:
 image:
   repository: ghcr.io/tonioriol/ccx
   # Pinned to current release; ArgoCD Image Updater bumps on new semver tags.
-  tag: v1.2.0
+  # Note: semantic-release outputs versions without 'v' prefix (e.g. 1.2.0, not v1.2.0)
+  tag: "1.2.0"
   pullPolicy: IfNotPresent
 
 replicaCount: 1
