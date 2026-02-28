@@ -37,7 +37,7 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
-          args: ["gateway"]
+          args: ["gateway", "--token", "$(ZEROCLAW_GATEWAY_TOKEN)"]
           env:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
