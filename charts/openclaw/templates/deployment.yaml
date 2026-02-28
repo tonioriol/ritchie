@@ -18,6 +18,18 @@ spec:
         fsGroup: 65534
         runAsUser: 65534
         runAsGroup: 65534
+      initContainers:
+        - name: init-config
+          image: busybox:1.36
+          command: ['sh', '-c', 'mkdir -p /zeroclaw-data/.zeroclaw && cp /config/config.toml /zeroclaw-data/.zeroclaw/config.toml']
+          volumeMounts:
+            - name: data
+              mountPath: /zeroclaw-data
+            - name: config
+              mountPath: /config
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
       containers:
         - name: zeroclaw
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -66,3 +78,6 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-config
