@@ -1,7 +1,7 @@
 image:
   repository: ghcr.io/tonioriol/acexy
-  # Pinned to current release. TODO: fix semver tagging, then add Image Updater.
-  tag: v1.0.0-tonioriol
+  # Pinned to current release; ArgoCD Image Updater bumps on new semver tags.
+  tag: v1.0.0
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
