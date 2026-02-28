@@ -19,6 +19,7 @@ data:
     default_provider = "$PROVIDER"
     default_model = "$MODEL"
     default_temperature = 0.7
+    provider_api = "openai-chat-completions"
 
     [gateway]
     host = "0.0.0.0"
@@ -40,6 +41,10 @@ data:
         sed -i "s|^default_model = .*|default_model = \"$MODEL\"|" "$CFG"
       else
         sed -i "1a default_model = \"$MODEL\"" "$CFG"
+      fi
+      # Ensure provider_api is set for custom: endpoints
+      if ! grep -q '^provider_api' "$CFG"; then
+        sed -i '/^default_model/a provider_api = "openai-chat-completions"' "$CFG"
       fi
       # Ensure allow_public_bind is set on existing config
       if ! grep -q 'allow_public_bind' "$CFG"; then

@@ -24,10 +24,9 @@ spec:
             enabled: true
             itemId: openclaw
             fields:
-              api_key: OPENAI_API_KEY
+              api_key: API_KEY
               default_provider: ZEROCLAW_DEFAULT_PROVIDER
               default_model: ZEROCLAW_DEFAULT_MODEL
-              openai_api_base: OPENAI_BASE_URL
         externalDns:
           enabled: true
           hostname: claw.tonioriol.com
