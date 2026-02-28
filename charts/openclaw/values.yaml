@@ -26,6 +26,16 @@ persistence:
   accessModes:
     - ReadWriteOnce
 
+# Auth via 1Password ExternalSecret
+auth:
+  externalSecret:
+    enabled: false
+    # 1Password item ID from the neumann vault
+    itemId: ""
+    # Map 1Password fields to k8s Secret keys (which become env vars)
+    # Example: { api_key: API_KEY, api_url: ZEROCLAW_API_URL }
+    fields: {}
+
 resources:
   requests:
     cpu: 10m

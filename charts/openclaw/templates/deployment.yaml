@@ -27,6 +27,12 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+          {{- if .Values.auth.externalSecret.enabled }}
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-secrets
+                optional: true
+          {{- end }}
           volumeMounts:
             - name: data
               mountPath: /zeroclaw-data

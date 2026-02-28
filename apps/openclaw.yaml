@@ -12,11 +12,9 @@ spec:
     helm:
       values: |
         env:
-          # AI provider — set at least one API key.
-          # See https://github.com/zeroclaw-labs/zeroclaw#configuration
-          API_KEY: "CHANGE_ME"
-          ZEROCLAW_DEFAULT_PROVIDER: "openrouter"
-          ZEROCLAW_DEFAULT_MODEL: "anthropic/claude-sonnet-4-6"
+          # AI provider — custom OpenAI-compatible endpoint.
+          # API_KEY injected via ExternalSecret from 1Password.
+          # ZEROCLAW_DEFAULT_PROVIDER and ZEROCLAW_DEFAULT_MODEL also from 1Password.
           # Gateway must bind 0.0.0.0 inside the pod for the Service to reach it.
           ZEROCLAW_GATEWAY_HOST: "0.0.0.0"
           ZEROCLAW_GATEWAY_PORT: "42617"
@@ -25,6 +23,14 @@ spec:
           # State persisted on PVC
           ZEROCLAW_STATE_DIR: "/zeroclaw-data/.zeroclaw"
           ZEROCLAW_WORKSPACE_DIR: "/zeroclaw-data/workspace"
+        auth:
+          externalSecret:
+            enabled: true
+            itemId: openclaw
+            fields:
+              api_key: API_KEY
+              default_provider: ZEROCLAW_DEFAULT_PROVIDER
+              default_model: ZEROCLAW_DEFAULT_MODEL
         externalDns:
           enabled: true
           hostname: claw.tonioriol.com
