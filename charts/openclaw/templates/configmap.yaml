@@ -15,3 +15,6 @@ data:
     port = {{ .Values.service.port }}
     allow_public_bind = true
     require_pairing = false
+
+    [gateway.auth]
+    mode = "none"
