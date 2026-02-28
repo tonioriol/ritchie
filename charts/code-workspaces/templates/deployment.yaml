@@ -24,11 +24,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-            - name: manager
-              containerPort: 9000
+            - name: xpra
+              containerPort: 14500
               protocol: TCP
             - name: ssh
               containerPort: 22
@@ -36,18 +33,6 @@ spec:
           env:
             - name: DATA_DIR
               value: {{ .Values.persistence.mountPath | quote }}
-            {{- if .Values.codeServerPassword }}
-            - name: CODE_SERVER_PASSWORD
-              value: {{ .Values.codeServerPassword | quote }}
-            {{- end }}
-            {{- if .Values.rooCode.apiKeySecret }}
-            - name: ANTHROPIC_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.rooCode.apiKeySecret }}
-                  key: {{ .Values.rooCode.apiKeySecretKey }}
-                  optional: true
-            {{- end }}
           volumeMounts:
             {{- if .Values.persistence.enabled }}
             - name: data
@@ -56,16 +41,14 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
-            httpGet:
-              path: /api/workspaces
-              port: manager
-            initialDelaySeconds: 10
+            tcpSocket:
+              port: xpra
+            initialDelaySeconds: 15
             periodSeconds: 30
           readinessProbe:
-            httpGet:
-              path: /api/workspaces
-              port: manager
-            initialDelaySeconds: 5
+            tcpSocket:
+              port: xpra
+            initialDelaySeconds: 10
             periodSeconds: 10
       volumes:
         {{- if .Values.persistence.enabled }}

@@ -11,10 +11,10 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
-      targetPort: http
+    - port: 14500
+      targetPort: xpra
       protocol: TCP
-      name: http
+      name: xpra
     - port: 22
       targetPort: ssh
       protocol: TCP

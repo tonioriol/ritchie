@@ -37,7 +37,7 @@ hosts:
   - hostname: neumann.tonioriol.com
     service: http://argocd-server.argocd.svc.cluster.local:80
   - hostname: code.tonioriol.com
-    service: http://code-workspaces.tools.svc.cluster.local:8080
+    service: http://code-workspaces.tools.svc.cluster.local:14500
   - hostname: ssh-code.tonioriol.com
     service: ssh://code-workspaces.tools.svc.cluster.local:22
 

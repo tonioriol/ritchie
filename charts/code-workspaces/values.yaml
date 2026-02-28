@@ -24,13 +24,3 @@ resources:
 serviceAccount:
   create: true
   clusterAdmin: true
-
-# code-server password (empty = --auth none, use Cloudflare Access instead)
-codeServerPassword: ""
-
-# Roo Code API provider config
-rooCode:
-  provider: anthropic
-  # apiKey is loaded from ExternalSecret
-  apiKeySecret: code-workspaces-apikey
-  apiKeySecretKey: api-key
