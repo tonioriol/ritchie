@@ -1,0 +1,44 @@
+image:
+  repository: ghcr.io/tonioriol/ccx
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+
+service:
+  port: 8000
+
+# Environment variables passed to the container.
+env: {}
+
+# Persistence for /home/ccx/.config/ccx (accounts, credentials)
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 1Gi
+  accessModes:
+    - ReadWriteOnce
+
+# Auth via 1Password ExternalSecret
+auth:
+  externalSecret:
+    enabled: false
+    # 1Password item ID from the neumann vault
+    itemId: ""
+    # Map 1Password fields to k8s Secret keys (which become env vars)
+    # Example: { api_key: API_KEY }
+    fields: {}
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    cpu: 500m
+    memory: 128Mi
+
+# external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
+externalDns:
+  enabled: false
+  hostname: ""
+  target: ""

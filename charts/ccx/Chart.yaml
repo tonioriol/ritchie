@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ccx
+description: ccx — Multi-account Claude Code OAuth proxy
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

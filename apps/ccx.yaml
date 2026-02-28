@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ccx
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tonioriol/ritchie
+    targetRevision: main
+    path: charts/ccx
+    helm:
+      values: |
+        auth:
+          externalSecret:
+            enabled: true
+            itemId: ccx
+            fields:
+              api_key: API_KEY
+        externalDns:
+          enabled: true
+          hostname: ccx.tonioriol.com
+          target: "85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tools
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

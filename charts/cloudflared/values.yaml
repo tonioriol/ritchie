@@ -42,6 +42,8 @@ hosts:
     service: ssh://code.tools.svc.cluster.local:22
   - hostname: claw.tonioriol.com
     service: http://openclaw.tools.svc.cluster.local:80
+  - hostname: ccx.tonioriol.com
+    service: http://ccx.tools.svc.cluster.local:80
 
 resources:
   requests:
