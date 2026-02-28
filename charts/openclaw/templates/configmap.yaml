@@ -10,7 +10,9 @@ data:
     set -e
     CFG=/zeroclaw-data/.zeroclaw/config.toml
     mkdir -p /zeroclaw-data/.zeroclaw
-    cat > "$CFG" <<EOF
+    # Only write config if it doesn't exist yet — preserves persisted paired_tokens
+    if [ ! -f "$CFG" ]; then
+      cat > "$CFG" <<EOF
     default_provider = "openrouter"
     default_model = "anthropic/claude-sonnet-4-6"
     default_temperature = 0.7
@@ -19,9 +21,18 @@ data:
     host = "0.0.0.0"
     port = {{ .Values.service.port }}
     allow_public_bind = true
-    require_pairing = false
-    paired_tokens = ["${ZEROCLAW_GATEWAY_TOKEN}"]
+    require_pairing = true
     EOF
-    # Strip leading whitespace from heredoc (YAML indentation artifact)
-    sed -i 's/^    //' "$CFG"
-    chmod 600 "$CFG"
+      # Strip leading whitespace from heredoc (YAML indentation artifact)
+      sed -i 's/^    //' "$CFG"
+      chmod 600 "$CFG"
+    else
+      # Ensure allow_public_bind is set on existing config
+      if ! grep -q 'allow_public_bind' "$CFG"; then
+        if grep -q '\[gateway\]' "$CFG"; then
+          sed -i '/\[gateway\]/a allow_public_bind = true' "$CFG"
+        else
+          printf '\n[gateway]\nallow_public_bind = true\n' >> "$CFG"
+        fi
+      fi
+    fi
