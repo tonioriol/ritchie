@@ -17,6 +17,7 @@ env:
   # Security is enforced via Cloudflare Tunnel + pairing.
   ZEROCLAW_GATEWAY_HOST: "0.0.0.0"
   ZEROCLAW_GATEWAY_PORT: "42617"
+  ZEROCLAW_GATEWAY_ALLOW_PUBLIC_BIND: "true"
 
 # Persistence for /zeroclaw-data (state, config, memory, workspace)
 persistence:
