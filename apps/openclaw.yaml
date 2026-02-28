@@ -12,9 +12,7 @@ spec:
     helm:
       values: |
         env:
-          # AI provider — custom OpenAI-compatible endpoint.
-          # API_KEY injected via ExternalSecret from 1Password.
-          # ZEROCLAW_DEFAULT_PROVIDER and ZEROCLAW_DEFAULT_MODEL also from 1Password.
+          # AI provider config injected via ExternalSecret from 1Password.
           # Gateway must bind 0.0.0.0 inside the pod for the Service to reach it.
           ZEROCLAW_GATEWAY_HOST: "0.0.0.0"
           ZEROCLAW_GATEWAY_PORT: "42617"
@@ -29,6 +27,7 @@ spec:
               api_key: API_KEY
               default_provider: ZEROCLAW_DEFAULT_PROVIDER
               default_model: ZEROCLAW_DEFAULT_MODEL
+              openai_api_base: OPENAI_API_BASE
         externalDns:
           enabled: true
           hostname: claw.tonioriol.com
