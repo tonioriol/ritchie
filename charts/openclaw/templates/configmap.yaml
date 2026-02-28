@@ -13,8 +13,6 @@ data:
     # Only write config if it doesn't exist yet — preserves persisted paired_tokens
     if [ ! -f "$CFG" ]; then
       cat > "$CFG" <<EOF
-    default_provider = "openrouter"
-    default_model = "anthropic/claude-sonnet-4-6"
     default_temperature = 0.7
 
     [gateway]
