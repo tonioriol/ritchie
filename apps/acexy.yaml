@@ -3,6 +3,12 @@ kind: Application
 metadata:
   name: acexy
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: acexy=ghcr.io/tonioriol/acexy
+    argocd-image-updater.argoproj.io/acexy.update-strategy: semver
+    argocd-image-updater.argoproj.io/acexy.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+    argocd-image-updater.argoproj.io/acexy.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/acexy.helm.image-tag: image.tag
 spec:
   project: default
   source:

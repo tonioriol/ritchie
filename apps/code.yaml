@@ -3,6 +3,12 @@ kind: Application
 metadata:
   name: code
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: code=ghcr.io/tonioriol/code
+    argocd-image-updater.argoproj.io/code.update-strategy: semver
+    argocd-image-updater.argoproj.io/code.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+    argocd-image-updater.argoproj.io/code.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/code.helm.image-tag: image.tag
 spec:
   project: default
   source:
