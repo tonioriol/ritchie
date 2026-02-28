@@ -22,13 +22,12 @@ spec:
         - name: init-config
           image: busybox:1.36
           command: ['sh', '/scripts/init-config.sh']
-          env:
-            - name: ZEROCLAW_GATEWAY_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-secrets
-                  key: ZEROCLAW_GATEWAY_TOKEN
-                  optional: true
+          {{- if .Values.auth.externalSecret.enabled }}
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-secrets
+                optional: true
+          {{- end }}
           volumeMounts:
             - name: data
               mountPath: /zeroclaw-data
