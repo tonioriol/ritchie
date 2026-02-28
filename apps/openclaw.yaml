@@ -27,6 +27,7 @@ spec:
               api_key: API_KEY
               default_provider: ZEROCLAW_DEFAULT_PROVIDER
               default_model: ZEROCLAW_DEFAULT_MODEL
+              api_url: ZEROCLAW_API_URL
         externalDns:
           enabled: true
           hostname: claw.tonioriol.com

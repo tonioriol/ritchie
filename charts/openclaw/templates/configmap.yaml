@@ -10,16 +10,16 @@ data:
     set -e
     CFG=/zeroclaw-data/.zeroclaw/config.toml
     mkdir -p /zeroclaw-data/.zeroclaw
-    # Resolve provider/model from env (ExternalSecret) with defaults
-    PROVIDER="${ZEROCLAW_DEFAULT_PROVIDER:-openrouter}"
-    MODEL="${ZEROCLAW_DEFAULT_MODEL:-anthropic/claude-sonnet-4-6}"
+    # Resolve provider/model/api_url from env (ExternalSecret) with defaults
+    PROVIDER="${ZEROCLAW_DEFAULT_PROVIDER:-openai}"
+    MODEL="${ZEROCLAW_DEFAULT_MODEL:-claude-sonnet-4-6}"
+    API_URL="${ZEROCLAW_API_URL:-}"
     # Only write config if it doesn't exist yet — preserves persisted paired_tokens
     if [ ! -f "$CFG" ]; then
       cat > "$CFG" <<EOF
     default_provider = "$PROVIDER"
     default_model = "$MODEL"
     default_temperature = 0.7
-    provider_api = "openai-chat-completions"
 
     [gateway]
     host = "0.0.0.0"
@@ -29,9 +29,13 @@ data:
     EOF
       # Strip leading whitespace from heredoc (YAML indentation artifact)
       sed -i 's/^    //' "$CFG"
+      # Append api_url if set (must be top-level, not inside [gateway])
+      if [ -n "$API_URL" ]; then
+        sed -i "1a api_url = \"$API_URL\"" "$CFG"
+      fi
       chmod 600 "$CFG"
     else
-      # Update provider/model on every restart (env may change via ESO)
+      # Update provider/model/api_url on every restart (env may change via ESO)
       if grep -q '^default_provider' "$CFG"; then
         sed -i "s|^default_provider = .*|default_provider = \"$PROVIDER\"|" "$CFG"
       else
@@ -42,10 +46,18 @@ data:
       else
         sed -i "1a default_model = \"$MODEL\"" "$CFG"
       fi
-      # Ensure provider_api is set for custom: endpoints
-      if ! grep -q '^provider_api' "$CFG"; then
-        sed -i '/^default_model/a provider_api = "openai-chat-completions"' "$CFG"
+      # Update or insert api_url
+      if [ -n "$API_URL" ]; then
+        if grep -q '^api_url' "$CFG"; then
+          sed -i "s|^api_url = .*|api_url = \"$API_URL\"|" "$CFG"
+        else
+          sed -i "/^default_model/a api_url = \"$API_URL\"" "$CFG"
+        fi
       fi
+      # Remove bogus provider_api field (not a real ZeroClaw config key)
+      sed -i '/^provider_api/d' "$CFG"
+      # Remove stale api_key lines (credential resolved from API_KEY env var)
+      sed -i '/^api_key/d' "$CFG"
       # Ensure allow_public_bind is set on existing config
       if ! grep -q 'allow_public_bind' "$CFG"; then
         if grep -q '\[gateway\]' "$CFG"; then
