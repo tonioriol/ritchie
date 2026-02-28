@@ -31,8 +31,16 @@ data:
       chmod 600 "$CFG"
     else
       # Update provider/model on every restart (env may change via ESO)
-      sed -i "s|^default_provider = .*|default_provider = \"$PROVIDER\"|" "$CFG"
-      sed -i "s|^default_model = .*|default_model = \"$MODEL\"|" "$CFG"
+      if grep -q '^default_provider' "$CFG"; then
+        sed -i "s|^default_provider = .*|default_provider = \"$PROVIDER\"|" "$CFG"
+      else
+        sed -i "1i default_provider = \"$PROVIDER\"" "$CFG"
+      fi
+      if grep -q '^default_model' "$CFG"; then
+        sed -i "s|^default_model = .*|default_model = \"$MODEL\"|" "$CFG"
+      else
+        sed -i "1a default_model = \"$MODEL\"" "$CFG"
+      fi
       # Ensure allow_public_bind is set on existing config
       if ! grep -q 'allow_public_bind' "$CFG"; then
         if grep -q '\[gateway\]' "$CFG"; then
