@@ -51,7 +51,8 @@ data:
           "token": "$OPENCLAW_GATEWAY_TOKEN"
         },
         "controlUi": {
-          "allowedOrigins": ["https://claw.tonioriol.com"]
+          "allowedOrigins": ["https://claw.tonioriol.com"],
+          "dangerouslyDisableDeviceAuth": true
         }
       }
     }
