@@ -48,11 +48,14 @@ data:
         "bind": "lan",
         "port": {{ .Values.service.port }},
         "auth": {
+          "mode": "token",
           "token": "$OPENCLAW_GATEWAY_TOKEN"
         },
+        "trustedProxies": ["10.244.0.0/16", "10.43.0.0/16"],
         "controlUi": {
           "allowedOrigins": ["https://claw.tonioriol.com"],
-          "dangerouslyDisableDeviceAuth": true
+          "dangerouslyDisableDeviceAuth": true,
+          "allowInsecureAuth": true
         }
       }
     }
