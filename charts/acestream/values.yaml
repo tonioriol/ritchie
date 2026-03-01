@@ -1,7 +1,8 @@
 image:
   repository: ghcr.io/martinbjeldbak/acestream-http-proxy
   # Pinned to upstream release for reproducibility. Update manually when needed.
-  tag: v3.1.1
+  # Note: upstream tags do NOT include the 'v' prefix.
+  tag: "3.1.1"
   pullPolicy: IfNotPresent
 
 # Match the known-good legacy ritchie setup:
