@@ -1,6 +1,6 @@
 apiVersion: v2
 name: openclaw
-description: ZeroClaw AI assistant — lightweight Rust-based OpenClaw alternative
+description: OpenClaw AI gateway — multi-channel AI assistant with built-in web UI
 type: application
-version: 0.1.0
-appVersion: "0.1.7"
+version: 0.2.0
+appVersion: "2026.2.27"

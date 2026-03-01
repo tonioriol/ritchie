@@ -1,26 +1,24 @@
 image:
-  repository: ghcr.io/zeroclaw-labs/zeroclaw
+  repository: ghcr.io/openclaw/openclaw
   # Pinned to current release; ArgoCD Image Updater bumps on new semver tags.
-  tag: v0.1.7
+  tag: "2026.2.27"
   pullPolicy: IfNotPresent
 
 replicaCount: 1
 
 service:
-  # Gateway default port
-  port: 42617
+  # Gateway default port (WS + HTTP multiplexed, serves Control UI at /)
+  port: 18789
 
 # Environment variables passed directly to the container.
-# At minimum, set an AI provider key + API_KEY in the ArgoCD Application helm.values.
-# Full list: https://github.com/zeroclaw-labs/zeroclaw#configuration
+# OpenClaw uses env vars for gateway config.
+# Sensitive values come from ExternalSecret (auth.externalSecret).
 env:
-  # Gateway binds to 0.0.0.0 inside the pod so the Service can reach it.
-  # Security is enforced via Cloudflare Tunnel + pairing.
-  ZEROCLAW_GATEWAY_HOST: "0.0.0.0"
-  ZEROCLAW_GATEWAY_PORT: "42617"
-  ZEROCLAW_GATEWAY_ALLOW_PUBLIC_BIND: "true"
+  HOME: /home/node
+  TERM: xterm-256color
+  OPENCLAW_STATE_DIR: /openclaw-data
 
-# Persistence for /zeroclaw-data (state, config, memory, workspace)
+# Persistence for /openclaw-data (state, config, workspace)
 persistence:
   enabled: true
   storageClass: ""
@@ -35,16 +33,15 @@ auth:
     # 1Password item ID from the neumann vault
     itemId: ""
     # Map 1Password fields to k8s Secret keys (which become env vars)
-    # Example: { api_key: API_KEY, api_url: ZEROCLAW_API_URL }
     fields: {}
 
 resources:
   requests:
-    cpu: 10m
-    memory: 16Mi
+    cpu: 50m
+    memory: 256Mi
   limits:
-    cpu: 500m
-    memory: 128Mi
+    cpu: "1"
+    memory: 1Gi
 
 # external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
 externalDns:

@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openclaw
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: openclaw=ghcr.io/openclaw/openclaw
+    argocd-image-updater.argoproj.io/openclaw.update-strategy: semver
+    argocd-image-updater.argoproj.io/openclaw.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/openclaw.helm.image-tag: image.tag
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tonioriol/ritchie
+    targetRevision: main
+    path: charts/openclaw
+    helm:
+      values: |
+        env:
+          HOME: /home/node
+          TERM: xterm-256color
+          OPENCLAW_STATE_DIR: /openclaw-data
+          OPENCLAW_CONFIG_PATH: /openclaw-data/config/openclaw.json
+        auth:
+          externalSecret:
+            enabled: true
+            itemId: openclaw
+            fields:
+              # API_KEY — used in openclaw.json via ${API_KEY} env interpolation
+              api_key: API_KEY
+              # ccx proxy URL — used by init-config.sh
+              api_url: OPENCLAW_CCX_URL
+              # Gateway auth token — required for non-loopback bind
+              gateway_token: OPENCLAW_GATEWAY_TOKEN
+        externalDns:
+          enabled: true
+          hostname: claw.tonioriol.com
+          target: "85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tools
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
