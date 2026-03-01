@@ -32,6 +32,8 @@ spec:
               api_url: OPENCLAW_CCX_URL
               # Gateway auth token — required for non-loopback bind
               gateway_token: OPENCLAW_GATEWAY_TOKEN
+              # Telegram bot token — used in openclaw.json channels config
+              telegram_bot_token: TELEGRAM_BOT_TOKEN
         externalDns:
           enabled: true
           hostname: claw.tonioriol.com

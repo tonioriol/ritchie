@@ -44,6 +44,13 @@ data:
           "workspace": "/openclaw-data/workspace"
         }
       },
+      "channels": {
+        "telegram": {
+          "enabled": true,
+          "botToken": "$TELEGRAM_BOT_TOKEN",
+          "dmPolicy": "pairing"
+        }
+      },
       "gateway": {
         "bind": "lan",
         "port": {{ .Values.service.port }},
