@@ -15,9 +15,8 @@ data:
     # Resolve ccx proxy URL from env (ExternalSecret)
     CCX_URL="${OPENCLAW_CCX_URL:-http://ccx.tools.svc:80/work/v1}"
 
-    # Only write config if it doesn't exist yet — preserves gateway token/state
-    if [ ! -f "$CFG" ]; then
-      cat > "$CFG" <<JSONEOF
+    # Always regenerate config from env vars (secrets come from ExternalSecret)
+    cat > "$CFG" <<JSONEOF
     {
       "models": {
         "providers": {
@@ -50,13 +49,13 @@ data:
         "port": {{ .Values.service.port }},
         "auth": {
           "token": "$OPENCLAW_GATEWAY_TOKEN"
+        },
+        "controlUi": {
+          "allowedOrigins": ["https://claw.tonioriol.com"]
         }
       }
     }
     JSONEOF
-      # Strip leading whitespace from heredoc (YAML indentation artifact)
-      sed -i 's/^    //' "$CFG"
-      chmod 600 "$CFG"
-    else
-      echo "Config already exists at $CFG, skipping creation"
-    fi
+    # Strip leading whitespace from heredoc (YAML indentation artifact)
+    sed -i 's/^    //' "$CFG"
+    chmod 600 "$CFG"
