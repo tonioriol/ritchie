@@ -14,13 +14,23 @@ data:
     PROVIDER="${NULLCLAW_PROVIDER:-openrouter}"
     MODEL="${NULLCLAW_MODEL:-anthropic/claude-sonnet-4}"
     API_URL="${NULLCLAW_API_URL:-}"
+    # Build model primary as provider/model (NullClaw format)
+    MODEL_PRIMARY="$PROVIDER/$MODEL"
     # Only write config if it doesn't exist yet
     if [ ! -f "$CFG" ]; then
       cat > "$CFG" <<EOF
     {
-      "default_provider": "$PROVIDER",
-      "default_model": "$MODEL",
       "default_temperature": 0.7,
+      "models": {
+        "providers": {}
+      },
+      "agents": {
+        "defaults": {
+          "model": {
+            "primary": "$MODEL_PRIMARY"
+          }
+        }
+      },
       "gateway": {
         "port": {{ .Values.service.port }},
         "host": "::",
@@ -32,8 +42,6 @@ data:
       sed -i 's/^    //' "$CFG"
       chmod 600 "$CFG"
     else
-      # Update provider/model on every restart (env may change via ESO)
-      # Use sed for JSON — simple key-value replacements
-      sed -i "s|\"default_provider\": \"[^\"]*\"|\"default_provider\": \"$PROVIDER\"|" "$CFG"
-      sed -i "s|\"default_model\": \"[^\"]*\"|\"default_model\": \"$MODEL\"|" "$CFG"
+      # Update model primary on every restart (env may change via ESO)
+      sed -i "s|\"primary\": \"[^\"]*\"|\"primary\": \"$MODEL_PRIMARY\"|" "$CFG"
     fi
