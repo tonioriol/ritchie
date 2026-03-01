@@ -18,8 +18,6 @@ spec:
     helm:
       values: |
         env:
-          # NullClaw resolves API key from provider-specific env (e.g. OPENROUTER_API_KEY)
-          # then NULLCLAW_API_KEY, then API_KEY as fallback.
           NULLCLAW_GATEWAY_HOST: "::"
           NULLCLAW_GATEWAY_PORT: "3000"
           NULLCLAW_ALLOW_PUBLIC_BIND: "true"
@@ -29,10 +27,10 @@ spec:
             enabled: true
             itemId: openclaw
             fields:
+              # API_KEY env var — NullClaw resolves from OPENAI_API_KEY then API_KEY
               api_key: API_KEY
-              default_provider: NULLCLAW_PROVIDER
-              default_model: NULLCLAW_MODEL
-              api_url: NULLCLAW_API_URL
+              # ccx proxy URL — used by init-config.sh to set models.providers.openai.base_url
+              api_url: NULLCLAW_CCX_URL
         externalDns:
           enabled: true
           hostname: claw.tonioriol.com

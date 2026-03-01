@@ -10,24 +10,27 @@ data:
     set -e
     CFG=/nullclaw-data/.nullclaw/config.json
     mkdir -p /nullclaw-data/.nullclaw /nullclaw-data/workspace
-    # Resolve provider/model from env (ExternalSecret) with defaults
-    PROVIDER="${NULLCLAW_PROVIDER:-openrouter}"
-    MODEL="${NULLCLAW_MODEL:-anthropic/claude-sonnet-4}"
-    API_URL="${NULLCLAW_API_URL:-}"
-    # Build model primary as provider/model (NullClaw format)
-    MODEL_PRIMARY="$PROVIDER/$MODEL"
+    # NullClaw v2026+ uses agents.defaults.model.primary = "provider/model"
+    # and models.providers.<name>.base_url for custom API endpoints.
+    # API_KEY is resolved from env (OPENAI_API_KEY, API_KEY, etc.)
+    CCX_URL="${NULLCLAW_CCX_URL:-}"
     # Only write config if it doesn't exist yet
     if [ ! -f "$CFG" ]; then
-      cat > "$CFG" <<EOF
+      if [ -n "$CCX_URL" ]; then
+        cat > "$CFG" <<EOF
     {
       "default_temperature": 0.7,
       "models": {
-        "providers": {}
+        "providers": {
+          "openai": {
+            "base_url": "$CCX_URL"
+          }
+        }
       },
       "agents": {
         "defaults": {
           "model": {
-            "primary": "$MODEL_PRIMARY"
+            "primary": "openai/claude-opus-4-6"
           }
         }
       },
@@ -38,10 +41,34 @@ data:
       }
     }
     EOF
+      else
+        cat > "$CFG" <<EOF
+    {
+      "default_temperature": 0.7,
+      "models": {
+        "providers": {}
+      },
+      "agents": {
+        "defaults": {
+          "model": {
+            "primary": "openrouter/anthropic/claude-sonnet-4"
+          }
+        }
+      },
+      "gateway": {
+        "port": {{ .Values.service.port }},
+        "host": "::",
+        "allow_public_bind": true
+      }
+    }
+    EOF
+      fi
       # Strip leading whitespace from heredoc (YAML indentation artifact)
       sed -i 's/^    //' "$CFG"
       chmod 600 "$CFG"
     else
-      # Update model primary on every restart (env may change via ESO)
-      sed -i "s|\"primary\": \"[^\"]*\"|\"primary\": \"$MODEL_PRIMARY\"|" "$CFG"
+      # Update base_url on restart if CCX_URL changed
+      if [ -n "$CCX_URL" ]; then
+        sed -i "s|\"base_url\": \"[^\"]*\"|\"base_url\": \"$CCX_URL\"|" "$CFG"
+      fi
     fi
