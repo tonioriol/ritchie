@@ -17,6 +17,7 @@ env:
   HOME: /home/node
   TERM: xterm-256color
   OPENCLAW_STATE_DIR: /openclaw-data
+  NODE_OPTIONS: "--max-old-space-size=1536"
 
 # Persistence for /openclaw-data (state, config, workspace)
 persistence:
@@ -37,11 +38,11 @@ auth:
 
 resources:
   requests:
-    cpu: 50m
-    memory: 256Mi
+    cpu: 100m
+    memory: 512Mi
   limits:
-    cpu: "1"
-    memory: 1Gi
+    cpu: "2"
+    memory: 2Gi
 
 # external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
 externalDns:
