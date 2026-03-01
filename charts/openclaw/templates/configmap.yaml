@@ -17,21 +17,31 @@ data:
 
     # Only write config if it doesn't exist yet — preserves gateway token/state
     if [ ! -f "$CFG" ]; then
-      cat > "$CFG" <<'JSONEOF'
+      cat > "$CFG" <<JSONEOF
     {
       "models": {
         "providers": {
-          "custom": {
-            "name": "ccx",
-            "apiKey": "${API_KEY}",
-            "baseUrl": "CCX_URL_PLACEHOLDER",
-            "compatibility": "anthropic"
+          "ccx": {
+            "baseUrl": "$CCX_URL",
+            "apiKey": "$API_KEY",
+            "api": "openai-completions",
+            "models": [
+              {
+                "id": "claude-opus-4-6",
+                "name": "Claude Opus 4.6",
+                "reasoning": false,
+                "input": ["text", "image"],
+                "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+                "contextWindow": 200000,
+                "maxTokens": 16384
+              }
+            ]
           }
         }
       },
       "agents": {
         "defaults": {
-          "model": "custom/claude-opus-4-6",
+          "model": "ccx/claude-opus-4-6",
           "workspace": "/openclaw-data/workspace"
         }
       },
@@ -39,15 +49,13 @@ data:
         "bind": "lan",
         "port": {{ .Values.service.port }},
         "auth": {
-          "token": "${OPENCLAW_GATEWAY_TOKEN}"
+          "token": "$OPENCLAW_GATEWAY_TOKEN"
         }
       }
     }
     JSONEOF
       # Strip leading whitespace from heredoc (YAML indentation artifact)
       sed -i 's/^    //' "$CFG"
-      # Replace placeholder with actual ccx URL
-      sed -i "s|CCX_URL_PLACEHOLDER|$CCX_URL|" "$CFG"
       chmod 600 "$CFG"
     else
       echo "Config already exists at $CFG, skipping creation"
