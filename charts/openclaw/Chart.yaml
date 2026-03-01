@@ -3,4 +3,4 @@ name: openclaw
 description: OpenClaw AI gateway — multi-channel AI assistant with built-in web UI
 type: application
 version: 0.2.0
-appVersion: "2026.2.27"
+appVersion: "2026.2.26"
