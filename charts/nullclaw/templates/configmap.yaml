@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    {{- include "nullclaw.labels" . | nindent 4 }}
+data:
+  init-config.sh: |
+    #!/bin/sh
+    set -e
+    CFG=/nullclaw-data/.nullclaw/config.json
+    mkdir -p /nullclaw-data/.nullclaw /nullclaw-data/workspace
+    # Resolve provider/model from env (ExternalSecret) with defaults
+    PROVIDER="${NULLCLAW_PROVIDER:-openrouter}"
+    MODEL="${NULLCLAW_MODEL:-anthropic/claude-sonnet-4}"
+    API_URL="${NULLCLAW_API_URL:-}"
+    # Only write config if it doesn't exist yet
+    if [ ! -f "$CFG" ]; then
+      cat > "$CFG" <<EOF
+    {
+      "default_provider": "$PROVIDER",
+      "default_model": "$MODEL",
+      "default_temperature": 0.7,
+      "gateway": {
+        "port": {{ .Values.service.port }},
+        "host": "::",
+        "allow_public_bind": true
+      }
+    }
+    EOF
+      # Strip leading whitespace from heredoc (YAML indentation artifact)
+      sed -i 's/^    //' "$CFG"
+      chmod 600 "$CFG"
+    else
+      # Update provider/model on every restart (env may change via ESO)
+      # Use sed for JSON — simple key-value replacements
+      sed -i "s|\"default_provider\": \"[^\"]*\"|\"default_provider\": \"$PROVIDER\"|" "$CFG"
+      sed -i "s|\"default_model\": \"[^\"]*\"|\"default_model\": \"$MODEL\"|" "$CFG"
+    fi

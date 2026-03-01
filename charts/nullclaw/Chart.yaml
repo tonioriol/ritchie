@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nullclaw
+description: NullClaw AI assistant — lightweight Zig-based agent with full tool support
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

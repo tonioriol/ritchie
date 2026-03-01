@@ -1,0 +1,52 @@
+image:
+  repository: ghcr.io/nullclaw/nullclaw
+  # Pinned to current release; ArgoCD Image Updater bumps on new semver tags.
+  tag: v2026.2.26
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  # NullClaw gateway default port
+  port: 3000
+
+# Environment variables passed directly to the container.
+# NullClaw resolves API keys from provider-specific env vars (e.g. OPENROUTER_API_KEY),
+# then NULLCLAW_API_KEY, then API_KEY as fallback.
+env:
+  NULLCLAW_GATEWAY_HOST: "::"
+  NULLCLAW_GATEWAY_PORT: "3000"
+  NULLCLAW_ALLOW_PUBLIC_BIND: "true"
+  NULLCLAW_WORKSPACE: "/nullclaw-data/workspace"
+
+# Persistence for /nullclaw-data (state, config, memory, workspace)
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 5Gi
+  accessModes:
+    - ReadWriteOnce
+
+# Auth via 1Password ExternalSecret
+auth:
+  externalSecret:
+    enabled: false
+    # 1Password item ID from the neumann vault
+    itemId: ""
+    # Map 1Password fields to k8s Secret keys (which become env vars)
+    # Example: { api_key: API_KEY, default_provider: NULLCLAW_PROVIDER, default_model: NULLCLAW_MODEL }
+    fields: {}
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 8Mi
+  limits:
+    cpu: 500m
+    memory: 64Mi
+
+# external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
+externalDns:
+  enabled: false
+  hostname: ""
+  target: ""
