@@ -81,11 +81,10 @@ spec:
                 - namePattern: openclaw
                   images:
                     - alias: openclaw
-                      imageName: ghcr.io/zeroclaw-labs/zeroclaw
+                      imageName: ghcr.io/openclaw/openclaw
                       commonUpdateSettings:
                         updateStrategy: semver
-                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
-                        pullSecret: pullsecret:argocd/ghcr-pull
+                        allowTags: "regexp:^\\d+\\.\\d+\\.\\d+$"
                       manifestTargets:
                         helm:
                           name: image.repository
