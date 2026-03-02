@@ -51,6 +51,14 @@ data:
           "dmPolicy": "pairing"
         }
       },
+      "tools": {
+        "web": {
+          "search": {
+            "provider": "brave",
+            "apiKey": "$BRAVE_API_KEY"
+          }
+        }
+      },
       "gateway": {
         "bind": "lan",
         "port": {{ .Values.service.port }},
