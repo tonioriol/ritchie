@@ -36,6 +36,8 @@ spec:
               telegram_bot_token: TELEGRAM_BOT_TOKEN
               # Brave Search API key — used in openclaw.json tools.web config
               brave_api_key: BRAVE_API_KEY
+        kubectl:
+          enabled: true
         externalDns:
           enabled: true
           hostname: claw.tonioriol.com

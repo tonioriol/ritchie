@@ -57,7 +57,21 @@ data:
             "provider": "brave",
             "apiKey": "$BRAVE_API_KEY"
           }
+        },
+        "exec": {
+          "host": "gateway",
+          "security": "full",
+          "ask": "off"
+        },
+        "elevated": {
+          "enabled": true
         }
+      },
+      "browser": {
+        "enabled": true,
+        "headless": true,
+        "noSandbox": true,
+        "defaultProfile": "openclaw"
       },
       "gateway": {
         "bind": "lan",

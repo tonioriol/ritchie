@@ -44,6 +44,10 @@ resources:
     cpu: "2"
     memory: 2Gi
 
+# kubectl: enable ServiceAccount + RBAC for in-cluster kubectl access
+kubectl:
+  enabled: false
+
 # external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
 externalDns:
   enabled: false
