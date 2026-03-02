@@ -23,10 +23,8 @@ spec:
       {{- end }}
       securityContext:
         fsGroup: 1000
-        runAsUser: 1000
-        runAsGroup: 1000
       initContainers:
-        # 1. Install system deps + Playwright browser (runs as root)
+        # 1. Install kubectl + Playwright Chromium to PVC (runs as root, idempotent)
         - name: install-deps
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -35,27 +33,13 @@ spec:
             - |
               set -e
               MARKER="/openclaw-data/.deps-installed-{{ .Values.image.tag }}"
-              if [ -f "$MARKER" ]; then
-                echo "Deps already installed for {{ .Values.image.tag }}, checking system libs..."
+              # Install kubectl static binary to shared PVC
+              mkdir -p /openclaw-data/bin
+              if [ ! -f /openclaw-data/bin/kubectl ]; then
+                echo "Downloading kubectl..."
+                curl -fsSL "https://dl.k8s.io/release/v1.31.4/bin/linux/amd64/kubectl" -o /openclaw-data/bin/kubectl
+                chmod +x /openclaw-data/bin/kubectl
               fi
-              # Install system packages (needed every restart since container fs is ephemeral)
-              apt-get update -qq
-              apt-get install -y --no-install-recommends \
-                git curl wget jq ripgrep htop vim-tiny \
-                python3 python3-pip python3-venv \
-                build-essential \
-                libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
-                libcups2 libdbus-1-3 libxkbcommon0 libatspi2.0-0 \
-                libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
-                libgbm1 libasound2 libpango-1.0-0 libcairo2 \
-                libdrm2 libx11-xcb1 libxcb1 \
-                fonts-liberation fonts-noto-color-emoji \
-                ca-certificates procps apt-transport-https gnupg
-              # Install kubectl
-              curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-              echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /" > /etc/apt/sources.list.d/kubernetes.list
-              apt-get update -qq && apt-get install -y kubectl
-              rm -rf /var/lib/apt/lists/*
               # Install Playwright Chromium browser (persisted on PVC)
               export PLAYWRIGHT_BROWSERS_PATH=/openclaw-data/playwright-browsers
               if [ ! -f "$MARKER" ]; then
@@ -64,13 +48,11 @@ spec:
                 touch "$MARKER"
               fi
               # Fix ownership for node user
-              chown -R 1000:1000 /openclaw-data/playwright-browsers 2>/dev/null || true
-              echo "Deps installation complete."
+              chown -R 1000:1000 /openclaw-data 2>/dev/null || true
+              echo "PVC deps installation complete."
           env:
             - name: PLAYWRIGHT_BROWSERS_PATH
               value: /openclaw-data/playwright-browsers
-            - name: DEBIAN_FRONTEND
-              value: noninteractive
           volumeMounts:
             - name: data
               mountPath: /openclaw-data
@@ -102,10 +84,17 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
-          command: ["node", "openclaw.mjs", "gateway", "--allow-unconfigured", "--bind", "lan", "--port", "{{ .Values.service.port }}"]
+          command: ['sh', '/scripts/startup.sh']
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
           env:
+            - name: OPENCLAW_PORT
+              value: "{{ .Values.service.port }}"
             - name: PLAYWRIGHT_BROWSERS_PATH
               value: /openclaw-data/playwright-browsers
+            - name: PATH
+              value: /openclaw-data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
@@ -123,6 +112,8 @@ spec:
             - name: data
               mountPath: /home/node/.openclaw
               subPath: config
+            - name: config
+              mountPath: /scripts
           readinessProbe:
             tcpSocket:
               port: http
@@ -138,9 +129,9 @@ spec:
           startupProbe:
             tcpSocket:
               port: http
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            failureThreshold: 24
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 36
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
