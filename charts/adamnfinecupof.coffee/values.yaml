@@ -1,0 +1,30 @@
+# k8s resource name (no dots — dots break DNS resolution in svc.cluster.local)
+fullname: adamnfinecupof-coffee
+
+image:
+  repository: ghcr.io/tonioriol/adamnfinecupof.coffee
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  port: 80
+  targetPort: 80
+
+hostname: adamnfinecupof.coffee
+
+resources:
+  requests:
+    cpu: 5m
+    memory: 32Mi
+  limits:
+    cpu: 50m
+    memory: 64Mi
+
+imagePullSecrets: []
+
+externalDns:
+  enabled: false
+  hostname: ""
+  target: ""

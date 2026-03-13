@@ -44,6 +44,8 @@ hosts:
     service: http://openclaw.tools.svc.cluster.local:80
   - hostname: ccx.tonioriol.com
     service: http://ccx.tools.svc.cluster.local:80
+  - hostname: adamnfinecupof.coffee
+    service: http://adamnfinecupof-coffee.default.svc.cluster.local:80
 
 resources:
   requests:

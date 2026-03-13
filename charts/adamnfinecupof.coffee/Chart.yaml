@@ -1,0 +1,6 @@
+apiVersion: v2
+name: adamnfinecupof.coffee
+description: A damn fine cup of coffee — Twin Peaks fan page served by nginx.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

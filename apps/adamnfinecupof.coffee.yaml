@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: adamnfinecupof.coffee
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: app=ghcr.io/tonioriol/adamnfinecupof.coffee
+    argocd-image-updater.argoproj.io/app.update-strategy: semver
+    argocd-image-updater.argoproj.io/app.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tonioriol/ritchie
+    targetRevision: main
+    path: charts/adamnfinecupof.coffee
+    helm:
+      values: |
+        imagePullSecrets:
+          - name: ghcr-pull
+        externalDns:
+          enabled: true
+          hostname: adamnfinecupof.coffee
+          target: "85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
