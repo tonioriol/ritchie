@@ -91,9 +91,12 @@ Secrets created out-of-band (never committed):
 - **Config API endpoint**: `PUT /api/config/<key>` (not `/api/v1/config/`). Each endpoint expects a specific JSON key:
   ```bash
   # Set base URL (used in playlist.m3u output) — point at Acexy (token-gated via ACEXY_TOKEN)
+  # IMPORTANT: use ?infohash= (NOT ?id=). The ?id= parameter requires acestream's
+  # content server which was decommissioned in April 2026. ?infohash= resolves
+  # directly via P2P/DHT and works for ALL channels.
   curl -X PUT https://scraper.tonioriol.com/api/config/base_url \
     -H "Content-Type: application/json" \
-    -d '{"base_url":"https://ace.tonioriol.com/ace/getstream?id="}'
+    -d '{"base_url":"https://ace.tonioriol.com/ace/getstream?infohash="}'
 
   # Set Ace Engine URL (external engine in media namespace)
   curl -X PUT https://scraper.tonioriol.com/api/config/ace_engine_url \
@@ -110,10 +113,12 @@ Secrets created out-of-band (never committed):
 - **Channel data**: `GET /api/channels/` returns all channels; filter with `ch.status === 'active' && ch.is_online !== false`.
 - **Ports**: Flask on `8000` (acestream-scraper, `media` ns), Acexy on `8080` (standalone Deployment, `media` ns), Acestream Engine on `6878` (standalone Deployment, `media` ns).
 - **Acexy vs raw engine**: Acexy (`ace.tonioriol.com`, publicly exposed via CF tunnel, token-gated by `ACEXY_TOKEN`) is a Go proxy wrapping the engine API. Key differences:
-  - Acexy **rejects the `pid` parameter** with HTTP 400 ("PID parameter is not allowed"). Never include `&pid=` in Acexy URLs.
-  - Acexy only supports MPEG-TS via `/ace/getstream?id=<hash>` — no HLS (`/ace/manifest.m3u8` returns 404).
-  - The raw engine (port 6878) supports both HLS and MPEG-TS, and accepts `pid`.
-  - The scraper Config page has an "Add PID parameter to URLs" checkbox — must be **unchecked** when using Acexy.
+   - Acexy **rejects the `pid` parameter** with HTTP 400 ("PID parameter is not allowed"). Never include `&pid=` in Acexy URLs.
+   - Acexy supports both `?id=<hash>` and `?infohash=<hash>` for `/ace/getstream`. **Always use `?infohash=`** — the `?id=` parameter requires acestream's content server (decommissioned since April 2026).
+   - Acexy only supports MPEG-TS — no HLS (`/ace/manifest.m3u8` returns 404).
+   - The raw engine (port 6878) supports both HLS and MPEG-TS, and accepts `pid`.
+   - The scraper Config page has an "Add PID parameter to URLs" checkbox — must be **unchecked** when using Acexy.
+- **Acestream engine image**: Custom `ghcr.io/tonioriol/acestream-engine:latest` based on `jopsis/acestream:latest` (engine 3.2.17). Includes attestation bypass via `ssl_fix.py` — patches Python SSL/socket to redirect attestation requests to a local fake HTTPS server. Source: [`docs/feat/20260510225602-acestream-scraper-health-audit/Dockerfile`](../docs/feat/20260510225602-acestream-scraper-health-audit/Dockerfile:1).
 - **Config is stored in SQLite** (`/app/config/acestream_scraper.db`), persisted via PVC at `/app/config`.
 
 ## Authentication
