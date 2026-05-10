@@ -33,7 +33,7 @@ hosts:
   - hostname: tv.tonioriol.com
     service: http://iptv-relay.media.svc.cluster.local:80
   - hostname: scraper.tonioriol.com
-    service: http://acestream-scraper.default.svc.cluster.local:8000
+    service: http://acestream-scraper.media.svc.cluster.local:8000
   - hostname: neumann.tonioriol.com
     service: http://argocd-server.argocd.svc.cluster.local:80
   - hostname: code.tonioriol.com

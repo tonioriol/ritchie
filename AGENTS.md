@@ -108,7 +108,7 @@ Secrets created out-of-band (never committed):
 - The **Config web UI** (`/config`) is a React SPA. If the "Update" button appears to do nothing (value disappears from the field), use the API directly — the frontend may have a bug with certain URL formats.
 - **URL management**: `POST /api/urls/` to add, `DELETE /api/urls/{id}` (no trailing slash) to remove. Trailing slash on DELETE returns 404.
 - **Channel data**: `GET /api/channels/` returns all channels; filter with `ch.status === 'active' && ch.is_online !== false`.
-- **Ports**: Flask on `8000` (acestream-scraper, `default` ns), Acexy on `8080` (standalone Deployment, `media` ns), Acestream Engine on `6878` (standalone Deployment, `media` ns).
+- **Ports**: Flask on `8000` (acestream-scraper, `media` ns), Acexy on `8080` (standalone Deployment, `media` ns), Acestream Engine on `6878` (standalone Deployment, `media` ns).
 - **Acexy vs raw engine**: Acexy (`ace.tonioriol.com`, publicly exposed via CF tunnel, token-gated by `ACEXY_TOKEN`) is a Go proxy wrapping the engine API. Key differences:
   - Acexy **rejects the `pid` parameter** with HTTP 400 ("PID parameter is not allowed"). Never include `&pid=` in Acexy URLs.
   - Acexy only supports MPEG-TS via `/ace/getstream?id=<hash>` — no HLS (`/ace/manifest.m3u8` returns 404).
