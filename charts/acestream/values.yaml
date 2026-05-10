@@ -1,9 +1,9 @@
 image:
-  repository: jopsis/acestream
-  # Pinned to upstream release for reproducibility. Update manually when needed.
-  # jopsis/acestream:latest ships engine 3.2.17 (minimum required since April 2026).
-  # Previous image (martinbjeldbak/acestream-http-proxy:3.1.1) had engine 3.2.11
-  # which was deprecated — versions below 3.2.17 require Premium.
+  repository: ghcr.io/tonioriol/acestream-engine
+  # Custom image based on jopsis/acestream (engine 3.2.17) with attestation bypass.
+  # Adds ssl_fix.py that patches Python SSL + socket to redirect attestation
+  # endpoints to local fake HTTPS servers, bypassing acestream's DRM.
+  # Source: docs/feat/20260510225602-acestream-scraper-health-audit/Dockerfile
   tag: "latest"
   pullPolicy: Always
 
