@@ -25,7 +25,7 @@ env:
   # PROXY_URL: public base URL for /ace/getstream stream URLs returned to Stremio clients.
   # Acexy sidecar is now directly exposed at ace.tonioriol.com with ACEXY_TOKEN auth.
   proxyUrl: "https://ace.tonioriol.com"
-  scraperApiUrl: "http://acestream-scraper.default.svc.cluster.local:8000"
+  scraperApiUrl: "http://acestream-scraper.media.svc.cluster.local:8000"
   enableLocalEngine: "false"
   localUrl: "http://127.0.0.1:6878"
 
