@@ -1,16 +1,16 @@
 image:
-  repository: ghcr.io/martinbjeldbak/acestream-http-proxy
+  repository: jopsis/acestream
   # Pinned to upstream release for reproducibility. Update manually when needed.
-  # Note: upstream tags do NOT include the 'v' prefix.
-  tag: "3.1.1"
-  pullPolicy: IfNotPresent
+  # jopsis/acestream:latest ships engine 3.2.17 (minimum required since April 2026).
+  # Previous image (martinbjeldbak/acestream-http-proxy:3.1.1) had engine 3.2.11
+  # which was deprecated — versions below 3.2.17 require Premium.
+  tag: "latest"
+  pullPolicy: Always
 
-# Match the known-good legacy ritchie setup:
-# - run privileged
-# - persist engine state under /root/.ACEStream
-# - do NOT pin AceStream engine version (let the image defaults decide)
+# jopsis/acestream uses /dev/shm as AceStream home (hardcoded in main.py).
+# State is stored at /dev/shm/.ACEStream. We mount the PVC there for persistence.
 acestream:
-  stateDir: "/root/.ACEStream"
+  stateDir: "/dev/shm/.ACEStream"
   privileged: true
   runAsUser: 0
 

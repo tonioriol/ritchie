@@ -24,18 +24,9 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
-          env:
-            # Required to allow access from outside the container network namespace.
-            # See upstream README: ALLOW_REMOTE_ACCESS=yes.
-            - name: ALLOW_REMOTE_ACCESS
-              value: "yes"
-            # Ensure the engine uses the persisted state dir (also matches legacy).
-            - name: HOME
-              value: "/root"
-            # Reduce noisy/possibly harmful local DB usage (we don't need local indexing
-            # for our "manifest.m3u8 by infohash" use-case).
-            - name: USE_LOCAL_DB
-              value: "0"
+          # jopsis/acestream sets its own env vars (ACESTREAM_HOME, PYTHONPATH, etc.)
+          # via the image. No extra env vars needed — remote access is enabled by
+          # default and --bind-all is in the CMD.
           securityContext:
             privileged: {{ .Values.acestream.privileged }}
           # AceStream engine health: /webui/api/service?method=get_version returns
@@ -89,9 +80,6 @@ spec:
           volumeMounts:
             - name: acestream-data
               mountPath: {{ .Values.acestream.stateDir }}
-            - name: host-dev-disk-by-id
-              mountPath: /dev/disk/by-id
-              readOnly: true
       volumes:
         - name: acestream-data
           {{- if .Values.persistence.enabled }}
@@ -100,7 +88,3 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
-        - name: host-dev-disk-by-id
-          hostPath:
-            path: /dev/disk/by-id
-            type: Directory
