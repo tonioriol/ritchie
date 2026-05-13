@@ -1,7 +1,7 @@
 image:
   repository: ghcr.io/tonioriol/acexy
   # Pinned to current release; ArgoCD Image Updater bumps on new semver tags.
-  tag: v1.0.0
+  tag: v1.0.1
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -10,7 +10,7 @@ replicaCount: 1
 
 # AceStream engine connection
 acestream:
-  host: acestream  # k8s service name (same namespace: media)
+  host: acestream # k8s service name (same namespace: media)
   port: 6878
 
 service:
