@@ -33,17 +33,17 @@ spec:
               containerPort: 5001
             - name: gateway
               containerPort: 8080
+          # Kubo API v0 endpoints require POST, so we use TCP probes on the
+          # API port (5001) to confirm the daemon is running.
           readinessProbe:
-            httpGet:
-              path: /api/v0/version
+            tcpSocket:
               port: api
             initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
           livenessProbe:
-            httpGet:
-              path: /api/v0/version
+            tcpSocket:
               port: api
             initialDelaySeconds: 30
             periodSeconds: 30
