@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: ipfs
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.resources }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: swarm-tcp
+              containerPort: 4001
+              protocol: TCP
+            - name: swarm-udp
+              containerPort: 4001
+              protocol: UDP
+            - name: api
+              containerPort: 5001
+            - name: gateway
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /api/v0/version
+              port: api
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/v0/version
+              port: api
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          volumeMounts:
+            - name: ipfs-data
+              mountPath: {{ .Values.ipfs.dataDir }}
+      volumes:
+        - name: ipfs-data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

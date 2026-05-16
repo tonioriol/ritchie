@@ -1,0 +1,33 @@
+image:
+  repository: ipfs/kubo
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Kubo data directory. Default in the image is /data/ipfs.
+ipfs:
+  dataDir: "/data/ipfs"
+
+# Persist IPFS repo data (block cache, config, peer DB).
+persistence:
+  enabled: true
+  storageClassName: "hcloud-volumes"
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+
+service:
+  type: ClusterIP
+  # Gateway port — this is what consumers use to fetch IPFS/IPNS content.
+  gatewayPort: 8080
+  # Swarm port — P2P connectivity.
+  swarmPort: 4001
+  # API port — admin RPC. NOT exposed outside the pod.
+  apiPort: 5001
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
