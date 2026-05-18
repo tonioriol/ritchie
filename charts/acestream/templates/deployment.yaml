@@ -64,6 +64,9 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+            - name: probe
+              containerPort: {{ .Values.probe.port }}
+              protocol: TCP
             {{- if .Values.p2p.enabled }}
             # Improve inbound connectivity: bind P2P/control ports on the node.
             - name: p2p-tcp
