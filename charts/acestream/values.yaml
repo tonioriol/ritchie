@@ -81,3 +81,9 @@ ingress:
     enabled: true
     issuer: letsencrypt-prod
     secretName: ace-tonioriol-com-tls
+
+# Daily engine restart to flush zombie P2P downloads.
+# Status check probes leave residual downloads; this guarantees cleanup.
+restartCronJob:
+  enabled: true
+  schedule: "0 6 * * *" # 06:00 UTC = 08:00 CEST

@@ -1,0 +1,25 @@
+{{- if .Values.restartCronJob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-restart
+spec:
+  schedule: {{ .Values.restartCronJob.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ .Release.Name }}-restart
+          restartPolicy: OnFailure
+          containers:
+            - name: restart
+              image: bitnami/kubectl:latest
+              command:
+                - kubectl
+                - rollout
+                - restart
+                - deployment/{{ .Release.Name }}
+{{- end }}
