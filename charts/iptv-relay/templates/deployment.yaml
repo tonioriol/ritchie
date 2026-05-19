@@ -11,6 +11,8 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "{{ now | date "2006-01-02T15:04:05Z07:00" }}"
     spec:
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 8 }}
