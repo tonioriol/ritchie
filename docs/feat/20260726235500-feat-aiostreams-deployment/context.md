@@ -142,6 +142,51 @@ Also noisy on every request (harmless, no measurable latency): `Trakt aliases
 403`, `TMDB Access Token or API Key is not set`, `TVDB API key is not set`.
 Setting a TMDB access token would additionally enable title matching.
 
+### Display formatting and service ordering
+
+The built-in `torbox` formatter renders cached status as the confusing string
+`(Instant TB)` — from `{service.cached::istrue[" (Instant "||""]}` — and buries
+the file size on a truncated third line.
+
+Replaced with a custom formatter:
+
+```
+name:  {service.shortName} ⚡|⏳ {resolution} · {size}
+desc:  {quality} · {visualTags} · {audioTags}
+       {filename}
+       {addon.name} · {languages}
+```
+
+Renders as `TB ⚡ 2160p · 30.12 GB` — service, cache state, resolution and size
+all on the title line. `⚡` = cached (instantly playable), `⏳` = uncached.
+
+Gotchas:
+
+- Inside `::join()` the separator **must be quoted**: `::join(' · ')`. Writing
+  `::join(., )` emits the template literally into the output.
+- To group all TorBox results before Real-Debrid, put `service` **first** in
+  `sortCriteria.global`. It ranks by index into `services[]`, same mechanism as
+  the `preferred*` lists.
+- `hideErrors: true` suppresses the `[❌] <addon>: operation was aborted due to
+  timeout` rows that otherwise appear as fake streams.
+
+### StremThru Torz: removed
+
+Disabled after measuring it: 7.5 s alone versus ~1.8 s for every other scraper,
+contributing only 1–2 streams per title, and timing out often enough to produce
+error rows. Removing it took responses from ~8.5 s to **2.1 s** (movies) and
+1.3 s (episodes) with no meaningful loss of results.
+
+Re-enable by setting `presets[] | select(.instanceId=="stz") | .enabled = true`.
+
+### Known issue: wrong titles in results
+
+A search for The Matrix still returns 4/10 results that are *Reloaded*,
+*Revolutions* or *Resurrections* — scrapers match loosely on title. Fixing this
+requires `titleMatching`, which is gated on a TMDB credential
+(`tmdbAccessToken` / `tmdbApiKey`); `seasonEpisodeMatching` alone does not filter
+movies. A free TMDB API token would enable it.
+
 ## Goal
 
 Consolidate the Stremio debrid setup behind a single self-hosted addon so the
