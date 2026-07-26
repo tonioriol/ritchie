@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "aiostreams.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "aiostreams.labels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- if .Values.externalSecret.enabled }}
+      annotations:
+        # Stakater Reloader: roll the pod when the debrid keys / SECRET_KEY change.
+        secret.reloader.stakater.com/reload: {{ .Release.Name }}-secrets
+      {{- end }}
+      labels:
+        {{- include "aiostreams.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: aiostreams
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "{{ .Values.service.port }}"
+            - name: BASE_URL
+              value: "{{ .Values.env.baseUrl }}"
+            - name: DATABASE_URI
+              value: "{{ .Values.env.databaseUri }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.env.logLevel }}"
+            - name: LOG_FORMAT
+              value: "{{ .Values.env.logFormat }}"
+            # Encrypts stored configurations. Must never change after first run.
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: SECRET_KEY
+            # Pre-fills the debrid credentials on the configure page so a new
+            # configuration starts with TorBox + Real-Debrid already populated.
+            - name: DEFAULT_SERVICE_CREDENTIALS
+              value: "torbox.apiKey=$(TORBOX_API_KEY)\nrealdebrid.apiKey=$(REALDEBRID_API_KEY)"
+            - name: TORBOX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: TORBOX_API_KEY
+            - name: REALDEBRID_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: REALDEBRID_API_KEY
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          readinessProbe:
+            httpGet:
+              path: /api/v1/status
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /api/v1/status
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

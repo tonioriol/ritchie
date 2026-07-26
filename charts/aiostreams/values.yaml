@@ -1,0 +1,69 @@
+image:
+  repository: ghcr.io/viren070/aiostreams
+  # Public image; pinned to a released tag for reproducibility.
+  tag: v2.31.1
+  pullPolicy: IfNotPresent
+
+# Public image — no imagePullSecrets needed (unlike ghcr.io/tonioriol/* charts).
+imagePullSecrets: []
+
+replicaCount: 1
+
+service:
+  # Container listens on 3000 (PORT); Service exposes 80 like the other addon charts.
+  port: 3000
+
+env:
+  # BASE_URL is required by AIOStreams to generate manifest/install URLs.
+  baseUrl: "https://aiostreams.tonioriol.com"
+  # SQLite is sufficient for a single-replica deployment; stored on the PVC.
+  databaseUri: "sqlite:///app/data/db.sqlite"
+  logLevel: "info"
+  logFormat: "json"
+
+# Secrets pulled from 1Password (neumann vault / aiostreams item) via ESO.
+# SECRET_KEY encrypts stored configurations and MUST NOT change after first run
+# (changing it makes every existing stored configuration undecryptable).
+#
+# The debrid keys are exposed as DEFAULT_SERVICE_CREDENTIALS, which pre-fills the
+# Services form on /stremio/configure. Verified behaviour: this only populates the
+# UI form — it does NOT inject credentials into a stored configuration. Configs
+# created via POST /api/v1/user must carry the keys in `services[]` themselves.
+externalSecret:
+  enabled: true
+  itemId: aiostreams
+  # 1Password field label -> k8s Secret key
+  fields:
+    secret_key: SECRET_KEY
+    torbox_api_key: TORBOX_API_KEY
+    realdebrid_api_key: REALDEBRID_API_KEY
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: hcloud-volumes
+  accessModes:
+    - ReadWriteOnce
+
+ingress:
+  # Traffic is served via Cloudflare Tunnel (no public Ingress required).
+  enabled: false
+  host: aiostreams.tonioriol.com
+  tls:
+    enabled: true
+    issuer: letsencrypt-prod
+    secretName: aiostreams-tonioriol-com-tls
+
+# external-dns: set enabled + hostname + target in the ArgoCD Application helm.values.
+externalDns:
+  enabled: false
+  hostname: ""
+  target: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
