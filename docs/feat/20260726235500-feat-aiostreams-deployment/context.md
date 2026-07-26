@@ -37,6 +37,9 @@ Applied:
   "p2p": "single_result"
 },
 "resultLimits": { "global": 40, "service": 25, "addon": 8, "resolution": 5 },
+"preferredResolutions": ["2160p","1080p","1440p","720p","576p","480p","Unknown"],
+"preferredQualities":   ["BluRay REMUX","BluRay","WEB-DL","Unknown"],
+"excludedResolutions":  ["480p","360p","240p","144p"],
 "sortCriteria": { "global": [
   {"key":"cached","direction":"desc"}, {"key":"quality","direction":"desc"},
   {"key":"resolution","direction":"desc"}, {"key":"size","direction":"desc"}
@@ -70,6 +73,47 @@ Notes learned while tuning:
 
 A credential-free copy of the working config is in 1Password as document
 `aiostreams-config-template`.
+
+### Sorting by resolution/quality needs the `preferred*` lists
+
+`sortCriteria` keys `resolution`, `quality`, `visualTag`, `audioTag`, `language`,
+`encode`, `streamType` and `releaseGroup` rank by **index into the matching
+`preferred*` array**. Without it the comparator returns `0` and the key is a
+silent no-op:
+
+```js
+case 'quality': { if (!userData.preferredQualities) { return 0; } ... }
+```
+
+So `sortCriteria` alone did nothing — resolutions came back interleaved. Setting
+`preferredResolutions` and `preferredQualities` made the ordering take effect.
+
+Valid values in v2.31.1 — resolutions: `2160p`, `1440p`, `1080p`, `720p`, `576p`,
+`480p`, `360p`, `240p`, `144p`, `Unknown`; qualities: `BluRay REMUX`, `BluRay`,
+`WEB-DL`, `WEBRip`, `HDRip`, `DVDRip`, `Unknown`.
+
+Also set a size *floor* — several results reported 0 bytes and sorted above real
+files. `excludedResolutions` removes the 480p-and-below junk.
+
+### How providers and addons are picked per result
+
+Two orderings drive it, both taken from the config arrays:
+
+- **Service order** (`services[]`) — TorBox, then Real-Debrid. Used as the dedup
+  priority and by the `service` sort key.
+- **Addon order** (`presets[]`) — Comet, MediaFusion, Torz, Torrentio. Used as
+  the dedup tiebreaker within a service.
+
+With `deduplicator.cached: "per_service"`, each unique file keeps its best copy
+**per service** — so one TorBox row and one Real-Debrid row can both survive, and
+the addon order decides which scraper's copy represents each. That is why the
+same file appears twice as `(Instant TB)` and `(Instant RD)`.
+
+`resultLimits` has no `mode` set, so limits are **disjunctive**: `global`,
+`service`, `addon` and `resolution` are independent counters applied after
+sorting, not per-block quotas. Setting `mode: "conjunctive"` instead builds a
+composite key per combination and caps each at `min(enabled limits)` — that is
+the option to use for true "N per resolution *per* service" blocks.
 
 ## Goal
 
