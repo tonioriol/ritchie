@@ -179,9 +179,27 @@ limit on their own. Trimming the `manifest.catalogs` array brings them under it:
 | AIOMetadata | 24 | 21.6 KB | rejected |
 | Cyberflix | 12 | 5.5 KB | OK |
 
-Both were re-installed with trimmed catalog lists. Reinstalling either from its
-own configure page will restore the full catalog list and make the collection
-unwritable again until trimmed.
+Size does not scale linearly with catalog count — a few catalogs carry large
+`extra`/`genres` arrays. Selecting *which* catalogs to keep beats truncating the
+array: filtering by id kept 26 AIOMetadata + 24 Cyberflix catalogs at 15.5 KB,
+whereas a blind `[0:20]` truncation kept only 20 at 16.6 KB.
+
+Applied selection:
+
+- **AIOMetadata (36 → 26)** — kept all `*search*` catalogs,
+  `tmdb.{top,trending,year,language}`, `tvdb.{trending,genres,collections}`,
+  `mal.{airing,upcoming,schedule,seasons,top_anime,genres}`.
+  Dropped: MAL decade lists, `mal.studios`, `mal.most_*`, `mal.top_{movies,series}`.
+- **Cyberflix (60 → 24)** — kept `premieres.*`, `trending.*` and the Netflix,
+  Disney+, HBO Max, Amazon Prime and Apple TV+ rows.
+  Dropped: Hulu, Paramount+, Peacock and the remaining regional services.
+
+Keep the `search` catalogs: dropping them removes search from Stremio's Discover
+for those content types. A naive `catalogs[0:N]` truncation loses them because
+they are ordered last.
+
+Reinstalling either addon from its own configure page restores the full catalog
+list and makes the collection unwritable again until trimmed.
 
 Beware: padding a descriptor's `description` field to 28 KB *was* accepted, so
 the threshold is not a naive byte count of the JSON. Test with real catalog data.
