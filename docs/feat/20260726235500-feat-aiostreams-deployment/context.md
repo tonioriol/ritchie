@@ -187,6 +187,46 @@ requires `titleMatching`, which is gated on a TMDB credential
 (`tmdbAccessToken` / `tmdbApiKey`); `seasonEpisodeMatching` alone does not filter
 movies. A free TMDB API token would enable it.
 
+### Per-block limits: `mode: "conjunctive"`
+
+To get "N results per resolution **per** provider", `resultLimits` needs
+`mode: "conjunctive"`. The limiter then builds a composite key from **only the
+categories that have a value set**, and caps each combination at
+`min(enabled limits)`:
+
+```jsonc
+"resultLimits": { "mode": "conjunctive", "global": 40, "resolution": 2, "service": 2 }
+```
+
+Composite key = `(resolution, service)`, cap = `min(2,2)` = 2 → exactly 2 rows
+per resolution per debrid service. Leave `addon` and `quality` unset, or they
+join the key and multiply the blocks.
+
+Default (no `mode`) is disjunctive: each category is an independent counter, so
+`resolution: 2` means 2 total across all services — not per service.
+
+### Sort within a block
+
+`size` must come **before** `quality`, otherwise a small BluRay outranks a large
+WEB-DL and blocks look unsorted (observed: an 8.09 GB row above a 26.22 GB row in
+the same 2160p block).
+
+```jsonc
+"sortCriteria": { "global": [
+  {"key":"service","direction":"desc"},   // groups TB before RD
+  {"key":"cached","direction":"desc"},
+  {"key":"resolution","direction":"desc"},
+  {"key":"size","direction":"desc"},      // biggest first inside the block
+  {"key":"quality","direction":"desc"}    // tiebreak only
+]}
+```
+
+Also excluded `Unknown` and `576p`-and-below from `excludedResolutions` —
+untagged streams produced `N/A` rows that formed their own block.
+
+Verified across three titles: 12 rows each, every block size-descending, TB
+before RD, ~1.1–2.6 s.
+
 ## Goal
 
 Consolidate the Stremio debrid setup behind a single self-hosted addon so the
