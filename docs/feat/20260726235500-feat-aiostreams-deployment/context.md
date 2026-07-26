@@ -1,5 +1,25 @@
 # AIOStreams deployment (Stremio addon aggregator)
 
+## Restoring the Stremio addon collection
+
+Backups of the pre-migration collection live in 1Password (vault `neumann`) as
+documents, so recovery does not depend on any local file:
+
+| Document | Contents |
+|---|---|
+| `stremio-addons-full-backup` | complete pre-migration collection (29 addons, credentials included) |
+| `stremio-removed-debrid-addons` | just the 5 removed debrid addons, full fidelity |
+
+```bash
+./restore-stremio-addons.sh removed   # re-add the 5 removed debrid addons
+./restore-stremio-addons.sh full      # restore the entire pre-migration collection
+```
+
+The script logs in via the `Stremio` 1Password item, merges without creating
+duplicates, and verifies the result. Note that `full` will fail with
+`Max descriptor size reached` because the original collection contains the
+oversized AIOMetadata/Cyberflix descriptors — see the per-addon limit section.
+
 ## Goal
 
 Consolidate the Stremio debrid setup behind a single self-hosted addon so the
@@ -131,6 +151,40 @@ ADDON_PROXY_CONFIG=*:false,*.strem.fun:true
 ### Probe endpoint
 
 `/api/v1/status` returns 200 and a version payload; `/health` is 404.
+
+## Stremio's per-addon descriptor limit
+
+Installing into the account initially failed with `Max descriptor size reached`
+from `addonCollectionSet`. The limit is **per addon descriptor (~20 KB)**, not a
+cap on the collection as a whole. Evidence:
+
+| Payload | Largest addon | Result |
+|---|---|---|
+| Cinemeta + MediaFusion | 12.6 KB | OK |
+| Cinemeta + AIOMetadata | 23.6 KB | rejected |
+| Cinemeta + Cyberflix | 22.6 KB | rejected |
+| 27 addons, 52.9 KB total, none oversized | — | OK |
+| 22 addons, 48.5 KB total, one oversized | 23.6 KB | rejected |
+
+A 27-addon / 52.9 KB collection succeeds while a 22-addon / 48.5 KB one fails,
+so total size is not the constraint — the presence of a single oversized
+descriptor is.
+
+`AIOMetadata` (36 catalogs) and `Cyberflix Catalog` (60 catalogs) each exceed the
+limit on their own. Trimming the `manifest.catalogs` array brings them under it:
+
+| Addon | Catalogs | Size | Result |
+|---|---|---|---|
+| AIOMetadata | 20 | 16.6 KB | OK |
+| AIOMetadata | 24 | 21.6 KB | rejected |
+| Cyberflix | 12 | 5.5 KB | OK |
+
+Both were re-installed with trimmed catalog lists. Reinstalling either from its
+own configure page will restore the full catalog list and make the collection
+unwritable again until trimmed.
+
+Beware: padding a descriptor's `description` field to 28 KB *was* accepted, so
+the threshold is not a naive byte count of the JSON. Test with real catalog data.
 
 ## Verification
 
