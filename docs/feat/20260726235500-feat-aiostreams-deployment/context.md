@@ -20,6 +20,57 @@ duplicates, and verifies the result. Note that `full` will fail with
 `Max descriptor size reached` because the original collection contains the
 oversized AIOMetadata/Cyberflix descriptors — see the per-addon limit section.
 
+## Stream result tuning
+
+A minimal config (no `deduplicator`, no `resultLimits`) returned **4049 streams**
+for one movie — 1194 unique files, each listed up to 24 times, because every
+scraper × service × cache-state combination is a separate stream.
+
+Applied:
+
+```jsonc
+"deduplicator": {
+  "enabled": true,
+  "keys": ["infoHash", "filename", "smartDetect"],
+  "cached": "per_service",     // keep the best cached copy from TorBox AND Real-Debrid
+  "uncached": "single_result",
+  "p2p": "single_result"
+},
+"resultLimits": { "global": 40, "service": 25, "addon": 8, "resolution": 5 },
+"sortCriteria": { "global": [
+  {"key":"cached","direction":"desc"}, {"key":"quality","direction":"desc"},
+  {"key":"resolution","direction":"desc"}, {"key":"size","direction":"desc"}
+]},
+"size": {
+  "global":     { "movies": [0,32212254720], "series": [0,10737418240] },
+  "resolution": { "2160p": { "movies":[0,32212254720], "series":[0,10737418240] },
+                  "1080p": { "movies":[0,21474836480], "series":[0,5368709120] },
+                  "720p":  { "movies":[0,10737418240], "series":[0,3221225472] } }
+}
+```
+
+Result: **4049 → 11 streams** for a movie, 1564 → 19 for an episode, with both
+services still represented and all four scrapers able to appear.
+
+Notes learned while tuning:
+
+- `size` ranges are **tuples** `[min,max]`, not `{min,max}` objects — the object
+  form fails with `expected tuple, received object`.
+- Dedup modes: `single_result` / `per_service` / `per_addon`. Detection keys:
+  `filename` / `infoHash` / `smartDetect`.
+- Limit groups: `global`, `service`, `addon`, `resolution`, `quality`, `indexer`,
+  `releaseGroup`, `streamType`. They apply *after* sorting.
+- Sort keys available in v2.31.1: `addon`, `age`, `audioTag`, `bitrate`, `cached`,
+  `encode`, `language`, `library`, `quality`, `regexPatterns`, `resolution`,
+  `seeders`, `service`, `size`, `streamType`, `visualTag`.
+- `size` before `quality` in the sort order surfaced 300 GB remuxes first; the
+  per-resolution size caps plus `quality` ahead of `size` fixed the ordering.
+- An `addon` limit that is too low lets one prolific scraper (Comet) crowd the
+  others out — 8 leaves room for all four.
+
+A credential-free copy of the working config is in 1Password as document
+`aiostreams-config-template`.
+
 ## Goal
 
 Consolidate the Stremio debrid setup behind a single self-hosted addon so the
