@@ -115,6 +115,33 @@ sorting, not per-block quotas. Setting `mode: "conjunctive"` instead builds a
 composite key per combination and caps each at `min(enabled limits)` — that is
 the option to use for true "N per resolution *per* service" blocks.
 
+### Response time: one slow addon sets the floor
+
+Stream requests took 7–12 s. The instance itself answers `/api/v1/status` in
+0.19 s, and no addon was erroring, so nothing was timing out — the scrapers were
+simply slow. Isolating each preset (enable one, disable the rest) gave:
+
+| Addon | Time alone |
+|---|---|
+| Comet | 1.81 s |
+| MediaFusion | 1.87 s |
+| Torrentio (wrapped) | 1.67 s |
+| **StremThru Torz** | **7.53 s** |
+
+Addons are queried in parallel, so the response waits for the slowest — Torz
+alone set the total. Default preset timeouts were 15–20 s, which let it.
+
+Fix: cap `presets[].options.timeout` — 5000 ms for the fast three, 3000 ms for
+Torz. Result **7–12 s → ~3.5 s**.
+
+Torz contributes only 1–2 streams per title and still costs ~0.8 s at a 3 s
+timeout; disabling it entirely gives ~2.4–3.5 s. Kept enabled for coverage, but
+it is the first thing to drop if latency matters more.
+
+Also noisy on every request (harmless, no measurable latency): `Trakt aliases
+403`, `TMDB Access Token or API Key is not set`, `TVDB API key is not set`.
+Setting a TMDB access token would additionally enable title matching.
+
 ## Goal
 
 Consolidate the Stremio debrid setup behind a single self-hosted addon so the
