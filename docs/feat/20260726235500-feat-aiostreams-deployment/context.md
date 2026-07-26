@@ -227,6 +227,51 @@ untagged streams produced `N/A` rows that formed their own block.
 Verified across three titles: 12 rows each, every block size-descending, TB
 before RD, ~1.1–2.6 s.
 
+### Title matching (fixes wrong titles in results)
+
+Scrapers match loosely, so a search for The Matrix returned *Reloaded*,
+*Revolutions* and *Resurrections* rows. `titleMatching` fixes it but needs a TMDB
+credential:
+
+```jsonc
+"tmdbApiKey": "<32-char v3 key>",
+"titleMatching": { "enabled": true, "mode": "exact",
+                   "requestTypes": ["movie","series"], "addons": [] }
+```
+
+`mode` must be **`exact`** — it is the only value in the v2.31.1 enum, and
+`"contains"` (which the docs mention) is accepted by the schema but barely helps:
+"The Matrix Revolutions" *contains* "The Matrix", so mismatches only dropped from
+4 to 3. With `exact` it went to **0**.
+
+The key is a v3 API key (`?api_key=`), not a v4 bearer token — verified by calling
+`api.themoviedb.org/3/movie/603` both ways. It lives in 1Password as
+`neumann/aiostreams` → `tmdb_api_key` (also on `Private/TMDB` → `api_key`) and is
+stripped from the exported config template.
+
+Residual limitation: exact matching is on the *parsed* title, so sibling
+franchises still slip through occasionally — a Walking Dead S03E05 search can
+return a *Fear the Walking Dead* S03E05 row.
+
+Enabling it costs ~1 s per request (TMDB lookup, cached afterwards).
+
+### Quality vs visual/audio tags
+
+`quality` is **only a filename source tag** — `BluRay REMUX` / `BluRay` /
+`WEB-DL` / `WEBRip` / `HDRip` / `DVDRip`, matched by regex. It has no relation to
+bitrate or size anywhere in the code, so an 8 GB "BluRay" re-encode outranks a
+26 GB WEB-DL if `quality` is sorted above `size`. That is why `size` must come
+first.
+
+HDR / Dolby Vision / Atmos are **separate parsed fields** (`visualTags`,
+`audioTags`) and are unaffected by the quality ranking. The custom formatter
+already prints them:
+
+```
+TB ⚡ 2160p · 27.41 GB
+BluRay · HDR10+ DV · TrueHD
+```
+
 ## Goal
 
 Consolidate the Stremio debrid setup behind a single self-hosted addon so the
