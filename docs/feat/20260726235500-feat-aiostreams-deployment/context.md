@@ -80,22 +80,53 @@ grep -ohE "ID = ['\"][^'\"]+['\"]" /tmp/aio-presets/*.js | sed -E "s/.*['\"]([^'
 The image is distroless — no `sh` utilities and `node` is not on `PATH`, so
 inspect it locally with `docker cp` rather than `kubectl exec`.
 
-### Torrentio 403s from this cluster
+### Torrentio 403s from this cluster — solved by wrapping
 
-`torrentio.strem.fun` blocks Hetzner IP ranges: 403 from the pod, 200 from a
-home connection. This is upstream behaviour, not a config error, and it makes
-`{"type":"torrentio"}` presets fail config validation with
-`Failed to fetch manifest for Torrentio`.
+`torrentio.strem.fun` deliberately blocks datacenter IPs. A direct
+`{"type":"torrentio"}` preset fails config validation with
+`Failed to fetch manifest for Torrentio: 403`.
 
-Workaround if Torrentio is ever needed (per upstream deployment docs): route
-`*.strem.fun` through a gluetun VPN sidecar.
+Evidence gathered (in this order):
+
+| Test | Result |
+|---|---|
+| `wget`/`curl` from home, any User-Agent (incl. none) | 200 |
+| Browser User-Agent **from the pod** | 403 → not a header/UA issue |
+| Response shape | Cloudflare error page, **no `cf-mitigated` header** → WAF IP rule, not a solvable JS challenge |
+| Cloudflare WARP sidecar (`caomingjun/warp`) | connects (`warp=on`), Torrentio still **403** |
+| PureVPN via gluetun | TUN device works with `privileged` + `hostPath /dev/net/tun`, but `AUTH_FAILED` — the 1Password `PureVPN` password is not the OpenVPN password |
+| `torrentio.elfhosted.com` mirror | also blocked |
+
+Root cause: **IP reputation of the Hetzner range (`5.75.129.215`)**, enforced at
+Cloudflare. Upstream confirms there is "no reliable workaround"; WARP and cheap
+VPN exits are themselves already blocked.
+
+**Working solution — instance wrapping.** Torrentio runs on a public AIOStreams
+instance whose IP is not blocked, and our instance wraps it via the `aiostreams`
+preset:
+
+```jsonc
+{ "type": "aiostreams", "instanceId": "wtio", "enabled": true,
+  "options": { "name": "Torrentio",
+               "manifestUrl": "https://aiostreams.fortheweak.cloud/stremio/<uuid>/<encpw>/manifest.json" } }
+```
+
+The wrapper config holds the same TorBox + Real-Debrid keys, so cache lookups
+still resolve against our own accounts. Its UUID/password are stored in
+1Password (`torrentio_wrapper_*` fields). Verified: 221 Torrentio streams for a
+movie, 148 for a series, alongside Comet/Torz/MediaFusion.
+
+Tradeoff: this depends on a third-party instance staying up, and our debrid keys
+are held by it. If it disappears, swap `manifestUrl` for another public instance
+from the AIOStreams docs — the rest of the config is unaffected.
+
+If a VPN egress is ever wanted instead, gluetun needs working OpenVPN
+credentials plus:
 
 ```
 ADDON_PROXY=http://gluetun:8080
 ADDON_PROXY_CONFIG=*:false,*.strem.fun:true
 ```
-
-Comet, MediaFusion and StremThru Torz cover the same trackers and are unaffected.
 
 ### Probe endpoint
 
