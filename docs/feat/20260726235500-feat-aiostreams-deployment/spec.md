@@ -502,6 +502,129 @@ the threshold is not a naive byte count of the JSON. Test with real catalog data
 `tv.tonioriol.com` (iptv-relay) returns 502, including in-cluster. Pre-existing
 and unrelated to this work.
 
+## Extension: representative movie sizes per resolution and provider
+
+### Goal
+
+Replace the four largest near-identical movie rows in each
+`(service, resolution)` block with four distinct size choices. Keep the current
+TorBox-first ordering, cached-first preference, deduplication, formatter, title
+matching, addon set and latency profile.
+
+The target choices are:
+
+| Resolution | Choice 1 | Choice 2 | Choice 3 | Choice 4 |
+|---|---:|---:|---:|---:|
+| 2160p | largest | largest ≤20 GB | largest ≤10 GB | largest ≤5 GB |
+| 1080p | largest | largest ≤10 GB | largest ≤5 GB | largest ≤2 GB |
+| 720p | largest | largest ≤2 GB | largest ≤1 GB | largest ≤500 MB |
+
+This extension is movie-only. Series and anime keep their existing output until
+separate episode-size targets are chosen; movie thresholds are not suitable for
+typical episode files.
+
+### Design
+
+Use AIOStreams' native ordered `requiredStreamExpressions`. Do not create
+duplicate preset instances and do not fork AIOStreams.
+
+Each expression:
+
+1. returns all streams unchanged when `queryType != 'movie'`;
+2. filters one movie resolution and, where applicable, a maximum size;
+3. calls `perGroup(..., 'service', 1, 'torbox', 'realdebrid')` to select one
+   result for each enabled debrid service.
+
+The expressions run after deduplication and global sorting but before
+`resultLimits`. The current sort is cached-first and then size-descending inside
+the relevant service/resolution group. Consequently, "largest" means the
+largest highest-priority result that survives the existing filters: a cached
+row is preferred to a larger uncached row. This deliberately preserves the
+current instant-playback preference.
+
+AIOStreams evaluates required expressions in array order. Before evaluating the
+next expression it removes streams selected by earlier expressions from the
+candidate array. This makes all four choices distinct even though the maximum
+size predicates overlap. If a threshold has no remaining candidate, that choice
+is omitted rather than duplicating an earlier row.
+
+### Configuration
+
+Set `requiredStreamExpressions` to the following ordered array:
+
+```jsonc
+[
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(resolution(streams, '2160p'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '2160p'), '1MB', '20GB'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '2160p'), '1MB', '10GB'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '2160p'), '1MB', '5GB'), 'service', 1, 'torbox', 'realdebrid')" },
+
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(resolution(streams, '1080p'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '1080p'), '1MB', '10GB'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '1080p'), '1MB', '5GB'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '1080p'), '1MB', '2GB'), 'service', 1, 'torbox', 'realdebrid')" },
+
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(resolution(streams, '720p'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '720p'), '1MB', '2GB'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '720p'), '1MB', '1GB'), 'service', 1, 'torbox', 'realdebrid')" },
+  { "enabled": true, "expression": "queryType != 'movie' ? streams : perGroup(size(resolution(streams, '720p'), '1MB', '500MB'), 'service', 1, 'torbox', 'realdebrid')" }
+]
+```
+
+Human-readable size strings are accepted by the pinned v2.31.1 expression
+parser. The `1MB` lower bound excludes streams with absent/zero size metadata;
+those cannot satisfy a meaningful size choice.
+
+Keep the existing conjunctive safety limit:
+
+```json
+{ "mode": "conjunctive", "global": 60, "resolution": 4, "service": 4 }
+```
+
+Keep existing per-resolution maximum filters for the first rollout. Therefore,
+the unconstrained "largest" choices remain bounded by the current movie caps:
+30 GB at 2160p, 20 GB at 1080p and 10 GB at 720p. The existing per-resolution
+ranges have a zero-byte lower bound and override the global movie range, so no
+filter change is needed for the 500 MB choice.
+
+### Safe application
+
+1. Read the complete live user config with `GET /api/v1/user?raw=true` and save a
+   timestamped local backup outside Git.
+2. Add only `requiredStreamExpressions`; submit the entire config with
+   `PUT /api/v1/user` because the endpoint is replacement-only.
+3. Read the config back and compare every unrelated top-level field with the
+   backup. The only intended difference is `requiredStreamExpressions`.
+4. Query representative recent, classic and sparse movies. For every service and
+   resolution, verify at most four distinct rows and the requested ceilings.
+5. Query representative series/anime episodes and compare stream identities with
+   the baseline; the movie-only conditional must leave them unchanged.
+6. Measure response latency before and after. The expressions are local array
+   filters and must not add upstream requests; reject the change if latency
+   regresses materially.
+7. After verification, replace the 1Password `aiostreams-config-template`
+   document with the exact read-back config and update the operator guide.
+
+### Acceptance criteria
+
+- Each populated `(service, resolution)` movie block contains no more than four
+  distinct streams.
+- The second, third and fourth choices are at or below their configured maximum.
+- The first choice remains cached-first and size-descending under the existing
+  caps.
+- A missing tier is omitted; no stream is repeated to fill it.
+- TorBox remains before Real-Debrid, and existing labels and file sizes remain
+  visible.
+- Series and anime output is unchanged from the baseline.
+- No addon calls are added and median response latency does not materially
+  regress.
+
+### Extension rollback
+
+Restore the timestamped complete config backup with `PUT /api/v1/user`, then
+read it back and verify `requiredStreamExpressions` has returned to its previous
+value. Do not try to roll back with a partial object.
+
 ## Rollback
 
 ```bash
