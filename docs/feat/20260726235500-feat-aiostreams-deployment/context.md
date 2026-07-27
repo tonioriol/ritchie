@@ -276,6 +276,13 @@ attackontitan unchanged
 
 - Commit: this local documentation commit.
 
+### 2026-07-27 12:27 — Representative-size rollout verified end to end
+
+- Completed: captured a recoverable pre-change baseline, retained the atomic 12-expression live update after all behavior gates passed, and refreshed the credential-free 1Password recovery template plus operator documentation.
+- Commits: design `1282591`; rollback baseline `02e796a`; verified rollout documentation `16f75a9`. Independent task reviews found no blocking or follow-up defects.
+- Verification: live candidate/read-back equality passed; six movie samples had no tier-audit failures; series and anime were unchanged; median latency moved from `3.002s` to `3.150s` below the `3.752s` rejection threshold; current 1Password template read-back remains identical with 12 selectors and a clean credential-shape scan.
+- Follow-up: Real-Debrid still expires on 2026-08-08; decide separately whether to remove it or retain it as fallback. No push was performed.
+
 ### Final state
 
 - Deployment: `aiostreams` pod `1/1 Running`, ArgoCD `Synced/Healthy`, `https://aiostreams.tonioriol.com`.
