@@ -155,6 +155,16 @@ Open decision left with the user: drop Real-Debrid when it expires 2026-08-08, o
 - Verification: live config read back — `titleMatching: exact/enabled`, `dedup cached: per_service`, presets `Comet, MediaFusion, Torrentio` with Torz disabled, timeouts 8000, `hideErrors: true`, TMDB key set. Secret scan on both commits → 0 hits. Root repo: committed only `AGENTS.md`, leaving the user's unrelated `iptv-merger/` changes untouched.
 - Commit: `0cc22b6` (ritchie), `7726fc1` (workspace root).
 
+### 2026-07-27 00:29 — Memory flush; secret scan caught a leak in my own log
+
+- Why: user requested a full flush ("we want A TOTAL reconstruction") and a commit.
+- What changed: `context.md` rebuilt to the memory schema; the prior 508-line technical reference preserved as `spec.md` via `git mv`.
+- How (action): audited before writing — listed the existing dir, checked for frontmatter (none), enumerated all 12 task commits, confirmed a clean working tree, and collected the four Desktop backups and live cluster state. Then wrote frontmatter + TASK/SPEC/FILES/PLAN/LOG with one entry per milestone.
+- Decisions: no `plan.md` — the work was exploratory and interleaved with user feedback, so a checkbox plan would be invented after the fact; the sequence lives in LOG instead. Kept `spec.md` as the single home for the technical reference rather than duplicating it into LOG.
+- Evidence: schema check confirmed all 5 sections present, 10 milestone entries + final state, and that `spec.md`, `restore-stremio-addons.sh` and `../../STREMIO-AIOSTREAMS.md` all resolve.
+- Verification: **the pre-push secret scan returned 1 hit and I had already pushed.** The match was a full VPN account username I had written into the 2026-07-26 23:45 entry myself. No API key or password was exposed. Redacted to `purevpn0s…` and re-scanned all four task files → 0 hits; `git grep` at HEAD confirms it is gone from tracked files. **It remains in history at `bc534b8`** — a dead account and a username only, so not worth a history rewrite, but noted here rather than quietly fixed. Lesson: run the scan *before* `git push`, not after.
+- Commit: `bc534b8` (restructure), `bf38424` (redaction).
+
 ### Final state
 
 - Deployment: `aiostreams` pod `1/1 Running`, ArgoCD `Synced/Healthy`, `https://aiostreams.tonioriol.com`.
