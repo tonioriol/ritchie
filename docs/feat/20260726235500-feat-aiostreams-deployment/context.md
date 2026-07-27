@@ -230,6 +230,17 @@ movie rejection-threshold=4.320s accepted=True
 - Verification: live candidate/read-back equality passed; six movie samples had no tier-audit failures and repeated movie pairs matched exactly; series and anime were unchanged; all-endpoint median latency moved from `3.002s` to `3.150s` below the `3.752s` rejection threshold; movie-only latency moved from `3.456s` to `3.337s` below the `4.320s` rejection threshold; current 1Password template read-back remains identical with 12 selectors and a clean credential-shape scan.
 - Follow-up: Real-Debrid still expires on 2026-08-08; decide separately whether to remove it or retain it as fallback. No push was performed.
 
+### 2026-07-27 13:14 — Fresh completion gate
+
+- Why: completion required a fresh end-to-end check after the final verification hardening, rather than relying only on the rollout samples.
+- What changed: no live or tracked behavior changed. Created a new mode-`0700` private verification directory, queried all five encrypted Stremio endpoints twice, replayed the strengthened movie audit, compared non-movie identities, recalculated movie-only latency and checked Git scope/confidentiality. The final focused review reported no Critical, Important or Minor issues.
+- How (investigation): a fresh authenticated `GET /api/v1/user?raw=true` and 1Password document read were attempted first, but `op read` stopped before returning credentials with `authorization timeout` after the desktop authorization expired. No API request or external mutation occurred in that failed attempt. The public encrypted route was then verified with the UUID and encrypted password already held in the mode-`0700` rollout artifacts; no secret value was printed.
+- How (action): not applicable — this was read-only verification. Live AIOStreams, Stremio, Kubernetes, Cloudflare and 1Password state were not mutated; no Git push was performed.
+- Decisions: the fresh behavior check is sufficient to prove the installed encrypted route still serves the intended policy. It does not replace the earlier exact authenticated live candidate/read-back equality or exact 1Password template read-back; those remain the most recent direct config/template proofs. A new direct authenticated re-read remains unverified solely because local 1Password authorization expired.
+- Evidence: `fresh_stream_responses=10 fresh_latency_samples=10`; fresh movie audit `pass`; pair equality passed for `matrix`, `dune2` and `godfather`; `breakingbad` and `attackontitan` unchanged; fresh movie latency `before_median=3.456s after_median=3.066s threshold=4.320s accepted=True`; saved candidate/read-back artifacts still compare equal with 12 selectors and preserved conjunctive `60/4/4` limits.
+- Verification: tracked diff whitespace/confidentiality scan clean; HEAD `e8648e2`; branch five commits ahead of `origin/main`; working tree contains only the user-owned untracked `scratch.md`. Direct authenticated config/template re-read was not refreshed because of the recorded authorization timeout.
+- Commit: this final task-record commit.
+
 ### Final state
 
 - Deployment: `aiostreams` pod `1/1 Running`, ArgoCD `Synced/Healthy`, `https://aiostreams.tonioriol.com`.
