@@ -37,10 +37,14 @@ instead of reinstalling N addons.
 | `tmdb_api_key` | enables title matching |
 | `config_uuid`, `config_password` | login for the config page and the API |
 | `torrentio_wrapper_*` | the wrapped-Torrentio instance credentials |
-| doc `aiostreams-config-template` | credential-free copy of the working config |
+| doc `aiostreams-config-template` | credential-free copy of the working config shape and expressions |
 | doc `stremio-addons-full-backup` | pre-migration Stremio collection (29 addons) |
 | doc `stremio-addons-current` | post-migration collection |
 | doc `stremio-removed-debrid-addons` | the 5 removed debrid addons, restorable |
+
+The credential-free AIOStreams template restores config shape and expressions;
+live TorBox and Real-Debrid credentials remain in `neumann/aiostreams` and are
+still required for a complete service restore.
 
 ---
 
@@ -87,14 +91,19 @@ distinct files per debrid provider and resolution:
 
 Expressions are evaluated after sorting. Earlier selections are removed before
 the next expression, so overlapping ceilings yield distinct rows. Missing
-tiers are omitted rather than duplicated. `queryType != 'movie'` returns all
-streams, leaving series and anime unchanged. The existing 4-per-resolution,
-per-service conjunctive limit remains the final safety cap.
+tiers are omitted rather than duplicated. The unconstrained selectors preserve a
+fallback when surviving candidates lack useful size metadata; the capped
+selectors retain the `1MB` lower bound because they promise meaningful ceilings.
+`queryType != 'movie'` returns all streams, leaving series and anime unchanged.
+The existing 4-per-resolution, per-service conjunctive limit remains the final
+safety cap.
 
-Verified 2026-07-27: the three-movie audit reported no `FAIL` across six
-post-change samples, `breakingbad` and `attackontitan` normalized output stayed
-unchanged, and latency moved from median 3.002 s to 3.150 s, below the 3.752 s
-rejection threshold.
+Verified 2026-07-27: the strengthened three-movie audit reported no `FAIL`
+across six post-change samples, all three repeated movie pairs matched exactly,
+`breakingbad` and `attackontitan` normalized output stayed unchanged, all-endpoint
+latency moved from median 3.002 s to 3.150 s below the 3.752 s rejection
+threshold, and movie-only latency moved from median 3.456 s to 3.337 s below the
+4.320 s rejection threshold.
 
 ---
 

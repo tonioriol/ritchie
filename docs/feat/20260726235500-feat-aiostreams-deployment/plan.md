@@ -1,6 +1,6 @@
 # Representative Movie Size Tiers Implementation Plan
 
-> **For Roo workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` for one Roo subtask at a time, or `executing-plans` for same-session execution. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Tasks run sequentially. Checkboxes are marked complete only after the documented gate succeeds.
 
 **Goal:** Make each populated movie `(debrid service, resolution)` block expose up to four distinct files at deliberate size targets while leaving series and anime behavior unchanged.
 
@@ -286,7 +286,8 @@ Expected: ten valid post-change responses.
 Create `$WORK/audit-size-tiers.py` with:
 
 ```python
-from collections import defaultdict
+from collections import OrderedDict
+from itertools import combinations
 from pathlib import Path
 import json
 import re
@@ -299,60 +300,80 @@ CAPS = {
 }
 ORDER = {("TB", "2160p"): 0, ("TB", "1080p"): 1, ("TB", "720p"): 2,
          ("RD", "2160p"): 3, ("RD", "1080p"): 4, ("RD", "720p"): 5}
-ROW = re.compile(r"^(TB|RD) [⚡⏳] (2160p|1080p|720p)\b")
+ROW = re.compile(r"^(TB|RD) ([⚡⏳]) (2160p|1080p|720p)\b")
+CACHE_ORDER = {"⚡": 0, "⏳": 1}
+PAIR_RUN = re.compile(r"(.+)-([12])\.json$")
 
 failed = False
+pair_fingerprints = {}
 for filename in sys.argv[1:]:
     payload = json.loads(Path(filename).read_text())
-    groups = defaultdict(list)
+    groups = OrderedDict()
     observed_services = []
+    relevant = []
     for stream in payload["streams"]:
-        match = ROW.match(stream.get("name", ""))
+        name = stream.get("name", "")
+        match = ROW.match(name)
         if not match:
             continue
-        key = match.groups()
+        service, cache_marker, resolution = match.groups()
+        key = (service, resolution)
         size = stream.get("behaviorHints", {}).get("videoSize")
-        fingerprint = (stream.get("behaviorHints", {}).get("filename"), size, stream.get("name"))
+        fingerprint = (stream.get("behaviorHints", {}).get("filename"), size, name)
+        relevant.append(fingerprint)
         if size is not None:
-            groups[key].append((int(size), fingerprint))
-            observed_services.append(key[0])
+            groups.setdefault(key, []).append((cache_marker, int(size), fingerprint))
+            observed_services.append(service)
     if not groups:
         print(f"FAIL {filename}: no formatted TB/RD size rows found")
         failed = True
+    pair_match = PAIR_RUN.search(Path(filename).name)
+    if pair_match:
+        label, run = pair_match.groups()
+        pair_fingerprints.setdefault(label, {})[run] = relevant
     if "RD" in observed_services and "TB" in observed_services[observed_services.index("RD"):]:
         print(f"FAIL {filename}: TorBox row appears after Real-Debrid")
         failed = True
     for key, rows in sorted(groups.items(), key=lambda item: ORDER[item[0]]):
-        sizes = sorted(size for size, _ in rows)
-        unique = len({fingerprint for _, fingerprint in rows})
-        print(f"{filename} {key[0]} {key[1]}: {[round(size / 1e9, 2) for size in sizes]} GB")
+        sizes = [size for _, size, _ in rows]
+        unique = len({fingerprint for _, _, fingerprint in rows})
+        display_sizes = sorted(sizes)
+        print(f"{filename} {key[0]} {key[1]}: {[round(size / 1e9, 2) for size in display_sizes]} GB")
         if len(rows) > 4 or unique != len(rows):
             print(f"FAIL {key}: rows={len(rows)} unique={unique}")
             failed = True
-        # One row is the unconstrained choice. Cached-first ordering can make it
-        # physically smaller than a later uncached capped choice, so try every
-        # row as the unconstrained one. All remaining rows must map one-to-one to
-        # distinct configured ceilings. Sparse blocks may use any ceiling subset.
+        for previous, current in zip(rows, rows[1:]):
+            previous_marker, previous_size, _ = previous
+            current_marker, current_size, _ = current
+            if CACHE_ORDER[previous_marker] > CACHE_ORDER[current_marker]:
+                print(f"FAIL {filename} {key}: cached rows do not precede uncached rows")
+                failed = True
+            if previous_marker == current_marker and previous_size < current_size:
+                print(f"FAIL {filename} {key}: rows are not size-descending within {previous_marker}")
+                failed = True
+        capped_sizes = sorted(sizes[1:])
         caps = CAPS[key[1]]
-        from itertools import combinations
-        assignable = False
-        for unconstrained_index in range(len(sizes)):
-            capped_sizes = sizes[:unconstrained_index] + sizes[unconstrained_index + 1:]
-            if any(
-                all(size <= cap for size, cap in zip(capped_sizes, selected_caps))
-                for selected_caps in combinations(caps, len(capped_sizes))
-            ):
-                assignable = True
-                break
+        assignable = any(
+            all(size <= cap for size, cap in zip(capped_sizes, selected_caps))
+            for selected_caps in combinations(caps, len(capped_sizes))
+        )
         if not assignable:
-            print(f"FAIL {key}: rows fit no unconstrained + distinct-tier assignment")
+            print(f"FAIL {key}: capped rows fit no distinct-tier assignment")
             failed = True
         if len(rows) < 4:
             print(f"INFO {key}: {len(rows)} populated choices; absent tiers are allowed when no candidate exists")
+
+for label, runs in sorted(pair_fingerprints.items()):
+    if {"1", "2"} <= runs.keys():
+        if runs["1"] != runs["2"]:
+            print(f"FAIL {label}: run 1 and 2 relevant stream fingerprints differ")
+            failed = True
+        else:
+            print(f"PAIR {label}: run 1 and 2 relevant stream fingerprints match")
 raise SystemExit(1 if failed else 0)
 ```
 
-Expected: a deterministic audit using exact `behaviorHints.videoSize` bytes, not rounded formatter text.
+Expected: a deterministic audit using exact `behaviorHints.videoSize` bytes, not rounded formatter text. It preserves response order within each group, treats the first observed group row as the unconstrained choice, checks cached-first/size-descending order, and requires repeated movie sample fingerprints to match.
 
 - [x] **Step 8: Run the movie audit on both post-change samples**
 
@@ -368,7 +389,7 @@ python3 "$WORK/audit-size-tiers.py" \
 cat "$WORK/movie-audit.txt"
 ```
 
-Expected: no `FAIL`; each dense block has four unique rows satisfying ascending 5/10/20, 2/5/10 or 0.5/1/2 GB assignment caps. Sparse blocks may report allowed absent tiers.
+Expected: no `FAIL`; each dense block has four unique rows, the first observed row is the unconstrained cached-first/size-descending choice, remaining rows satisfy ascending 5/10/20, 2/5/10 or 0.5/1/2 GB assignment caps, and each movie pair reports matching relevant stream fingerprints. Sparse blocks may report allowed absent tiers.
 
 - [x] **Step 9: Prove series and anime normalized output is unchanged**
 
@@ -416,11 +437,14 @@ from statistics import median
 import sys
 
 root = Path(sys.argv[1])
-before = [float(path.read_text()) for path in (root / "baseline").glob("*.seconds")]
-after = [float(path.read_text()) for path in (root / "after").glob("*.seconds")]
+labels = ("matrix", "dune2", "godfather")
+before = [float((root / "baseline" / f"{label}-{run}.seconds").read_text()) for label in labels for run in (1, 2)]
+after = [float((root / "after" / f"{label}-{run}.seconds").read_text()) for label in labels for run in (1, 2)]
 b, a = median(before), median(after)
 limit = max(b * 1.25, b + 0.5)
-print(f"before median={b:.3f}s after median={a:.3f}s rejection-threshold={limit:.3f}s")
+print(f"before movie samples={len(before)} median={b:.3f}s max={max(before):.3f}s")
+print(f"after movie samples={len(after)} median={a:.3f}s max={max(after):.3f}s")
+print(f"movie rejection-threshold={limit:.3f}s accepted={a <= limit}")
 if a > limit:
     raise SystemExit(1)
 PY
@@ -432,7 +456,7 @@ fi
 cat "$WORK/latency-summary.txt"
 ```
 
-Expected: after median at or below the larger of 25% or 0.5 seconds over baseline. On failure, run `rollback` and stop.
+Expected: movie-only after median at or below the larger of 25% or 0.5 seconds over the movie-only baseline median. On failure, run `rollback` and stop.
 
 ### Task 3: Persist the recoverable template and document verified behavior
 
@@ -552,7 +576,7 @@ Copy the complete contents of `$WORK/movie-audit.txt` and `$WORK/latency-summary
 
 - [x] **Step 7: Mark this plan complete and self-review all documentation**
 
-Completed verification: placeholder scan found no unresolved placeholders after removing this step's self-referential pattern text from the completed plan record; whitespace check was clean. Check all plan boxes only after their commands have succeeded.
+Completed verification: placeholder scan found no unresolved placeholders after removing this step's self-referential pattern text from the completed plan record; whitespace check was clean. Check all plan boxes only after their commands have succeeded. Final review later strengthened the movie audit and narrowed the latency gate to movie samples only.
 
 - [x] **Step 8: Secret-scan the exact pending documentation diff**
 

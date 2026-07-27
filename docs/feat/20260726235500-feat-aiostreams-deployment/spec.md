@@ -575,6 +575,12 @@ Human-readable size strings are accepted by the pinned v2.31.1 expression
 parser. The `1MB` lower bound excludes streams with absent/zero size metadata;
 those cannot satisfy a meaningful size choice.
 
+The three unconstrained selectors intentionally remain `resolution(...)` only.
+They select the highest-priority surviving row under cached-first/size-descending
+sort and existing maximum filters, and they preserve fallback output when every
+surviving candidate lacks useful size metadata. Only the capped choices promise a
+meaningful size ceiling and therefore use the `1MB` lower bound.
+
 Keep the existing conjunctive safety limit:
 
 ```json
