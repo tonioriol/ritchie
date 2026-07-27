@@ -272,6 +272,36 @@ TB ⚡ 2160p · 27.41 GB
 BluRay · HDR10+ DV · TrueHD
 ```
 
+### TorBox vs Real-Debrid measurement (2026-07-27)
+
+Method: limits and dedup temporarily disabled to see the full candidate pool,
+15 titles spanning recent releases, classics, vintage, animation, foreign and
+series — 9,795 streams total. Config restored afterwards.
+
+**Cache hit rate** (`⚡` = instantly playable):
+
+| | streams | cached | hit rate |
+|---|---|---|---|
+| TorBox | 5175 | 1773 | **34%** |
+| Real-Debrid | 4620 | 450 | **10%** |
+
+TorBox had the higher hit rate on **all 15 titles**, ranging 16–49% vs RD's 5–27%.
+
+**Coverage** — cached 4K available for 13/15 titles on *both*. Titles where a
+cached 4K existed on RD but not TorBox: **0**. Same in reverse: **0**. RD
+contributed no unique coverage in this sample.
+
+**Playback** — 26 best-4K links resolved, all returned data. Throughput on the
+first 12 MB was comparable, RD often faster (RD up to 52 Mb/s, TB up to 49).
+
+Three RD links stalled ~21 s and returned HTTP 200 instead of 206. **These came
+from MediaFusion's proxy** (`mediafusion.elfhosted.com`), not from Real-Debrid
+directly — reproducible on retry, and a proxy limitation rather than a debrid
+one. Do not attribute it to RD.
+
+Caveat: cache state is a point-in-time measurement of one library and skewed by
+which scrapers surface which hashes. It is indicative, not definitive.
+
 ## Goal
 
 Consolidate the Stremio debrid setup behind a single self-hosted addon so the
