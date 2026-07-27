@@ -1,6 +1,6 @@
 ---
 title: "Migrate Stremio to TorBox via self-hosted AIOStreams"
-status: in-progress
+status: done
 repos: [ritchie]
 tags: [deployment, kubernetes, secrets]
 created: 2026-07-26
@@ -42,8 +42,8 @@ Operator guide (workspace-level, for future agents): [`docs/STREMIO-AIOSTREAMS.m
 ## PLAN
 
 **Plan:** [plan.md](./plan.md) — three tasks: secure baseline and rollback point; atomic expression rollout with movie/non-movie/latency audits; verified 1Password template and documentation persistence.
-**Cursor:** Task 1 — capture a secure rollback point and reproducible baseline
-**Status:** in progress
+**Cursor:** complete
+**Status:** done
 
 Open decision left with the user: drop Real-Debrid when it expires 2026-08-08, or keep it as fallback. Evidence in the 2026-07-27 00:05 LOG entry favours dropping it.
 
@@ -195,10 +195,91 @@ Open decision left with the user: drop Real-Debrid when it expires 2026-08-08, o
 - Verification: normalized `breakingbad` and `attackontitan` baselines were stable across both calls. Latency summary: `baseline samples=10 median=3.002s max=5.918s`. Pre-existing working tree had modified `context.md` plus untracked controller/user files; only this single Task 1 LOG entry was appended here.
 - Commit: pending.
 
+### 2026-07-27 11:58 — Task 2 representative movie-size tiers retained
+
+- Why: the live AIOStreams config needed the approved movie-only representative-size expressions applied through complete-config replacement with rollback gates, because partial writes would be unsafe and non-movie output must remain unchanged.
+- What changed: live AIOStreams user config was retained with exactly 12 `requiredStreamExpressions`; no Stremio, Kubernetes, Cloudflare, 1Password, `plan.md`, progress ledger or `scratch.md` state was changed.
+- How (investigation): verified the reused private work directory `/tmp/aiostreams-size-tiers-20260727T092508Z` was mode `700`; confirmed Git HEAD `02e796a`, pre-change `requiredStreamExpressions` count `0`, five endpoints, stable `breakingbad`/`attackontitan` baselines, and baseline latency `samples=10 median=3.002s max=5.918s`. Reloaded AIOStreams API credentials from 1Password without printing them. Extracted the approved 12-expression block from `spec.md` and built `candidate-config.json`; `cmp` of sorted configs with `requiredStreamExpressions` removed exited zero, proving the candidate changed only that field. A first local wrapper failed before any live request because `/bin/sh` could not parse process substitution; the approved block was then rerun under `zsh`. A later post-change gate wrapper failed before fetching because `zsh` treated an empty `after/*` cleanup glob as an error; after confirming `after_file_count=0` and no rollback files/processes, reran with a null-glob cleanup.
+- How (action): with rollback defined first, submitted the complete `put.json` to `PUT /api/v1/user`, required response `success=true` and `detail="User updated successfully"`, fetched `GET /api/v1/user?raw=true`, extracted `readback-config.json`, and diffed sorted read-back against `candidate-config.json` with no differences. Then fetched the five representative stream endpoints twice each through the read-back encrypted endpoint and validated every response had a `.streams` array.
+- Decisions: retained the live config because every required post-change gate passed. Did not invoke rollback. Did not update the 1Password `aiostreams-config-template`, operator guide, `plan.md` or progress ledger because those are Task 3/controller-owned. Did not commit because the Task 2 brief did not call for a commit and existing controller-owned changes in `context.md` cannot be safely isolated as a Task 2-only commit without rewriting prior uncommitted work.
+- Evidence: read-back count `12`; one-field candidate proof passed. Movie audit reported no `FAIL` across six post-change movie samples. Populated group counts were: `matrix` both runs — TB 2160p/1080p `4`, TB 720p `3`, RD 2160p/1080p `4`, RD 720p `1`; `dune2` both runs — TB 2160p/1080p `4`, TB 720p `3`, RD 2160p `4`, RD 1080p `3`; `godfather` both runs — TB 2160p/1080p `4`, TB 720p `3`, RD 2160p `4`, RD 1080p `2`, RD 720p `3`. Sparse blocks emitted only the allowed absent-tier `INFO` lines. Non-movie audit output: `breakingbad unchanged`; `attackontitan unchanged`. Latency output: `before median=3.002s after median=3.150s rejection-threshold=3.752s`.
+- Verification: post-change responses `valid=10 latency_samples=10`; exact semantic read-back diff passed; required-expression length gate passed; movie audit script exited zero; non-movie normalized comparisons matched at least one stable baseline for both labels; after median stayed below the rejection threshold; `rollback-response.json` and `rollback-readback.json` are absent, confirming rollback was not invoked. Live config retained.
+- Commit: none; current HEAD remains `02e796a`.
+
+### 2026-07-27 — Representative movie-size tiers applied
+
+- Why: four largest rows per block were near-identical and did not provide useful bandwidth choices.
+- What changed: added 12 movie-only ordered required stream expressions; refreshed the credential-free 1Password config template.
+- How: complete-config backup, one-field candidate diff, whole-config PUT, exact read-back comparison, three-movie tier audit, series/anime identity comparison and before/after latency sampling.
+- Evidence:
+
+```text
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-1.json TB 2160p: [5.35, 10.7, 20.54, 30.12] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-1.json TB 1080p: [2.12, 5.22, 10.51, 20.23] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-1.json TB 720p: [1.04, 2.04, 9.28] GB
+INFO ('TB', '720p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-1.json RD 2160p: [4.29, 6.96, 21.16, 31.35] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-1.json RD 1080p: [2.0, 4.23, 7.46, 20.21] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-1.json RD 720p: [1.13] GB
+INFO ('RD', '720p'): 1 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-2.json TB 2160p: [5.35, 10.7, 20.54, 30.12] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-2.json TB 1080p: [2.12, 5.22, 10.51, 20.23] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-2.json TB 720p: [1.04, 2.04, 9.28] GB
+INFO ('TB', '720p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-2.json RD 2160p: [4.29, 6.96, 21.16, 31.35] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-2.json RD 1080p: [2.0, 4.23, 7.46, 20.21] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/matrix-2.json RD 720p: [1.13] GB
+INFO ('RD', '720p'): 1 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-1.json TB 2160p: [5.19, 10.07, 21.25, 32.06] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-1.json TB 1080p: [2.14, 5.36, 10.69, 20.2] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-1.json TB 720p: [0.94, 1.6, 9.36] GB
+INFO ('TB', '720p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-1.json RD 2160p: [5.19, 7.95, 20.89, 31.37] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-1.json RD 1080p: [4.17, 7.91, 20.58] GB
+INFO ('RD', '1080p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-2.json TB 2160p: [5.19, 10.07, 21.25, 32.06] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-2.json TB 1080p: [2.14, 5.36, 10.69, 20.2] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-2.json TB 720p: [0.94, 1.6, 9.36] GB
+INFO ('TB', '720p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-2.json RD 2160p: [5.19, 7.95, 20.89, 31.37] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/dune2-2.json RD 1080p: [4.17, 7.91, 20.58] GB
+INFO ('RD', '1080p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-1.json TB 2160p: [5.16, 9.95, 20.42, 26.76] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-1.json TB 1080p: [1.47, 5.28, 10.28, 21.45] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-1.json TB 720p: [1.05, 1.84, 8.53] GB
+INFO ('TB', '720p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-1.json RD 2160p: [5.16, 9.68, 15.78, 27.62] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-1.json RD 1080p: [4.55, 10.28] GB
+INFO ('RD', '1080p'): 2 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-1.json RD 720p: [0.95, 1.29, 1.55] GB
+INFO ('RD', '720p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-2.json TB 2160p: [5.16, 9.95, 20.42, 26.76] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-2.json TB 1080p: [1.47, 5.28, 10.28, 21.45] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-2.json TB 720p: [1.05, 1.84, 8.53] GB
+INFO ('TB', '720p'): 3 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-2.json RD 2160p: [5.16, 9.68, 15.78, 27.62] GB
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-2.json RD 1080p: [4.55, 10.28] GB
+INFO ('RD', '1080p'): 2 populated choices; absent tiers are allowed when no candidate exists
+/tmp/aiostreams-size-tiers-20260727T092508Z/after/godfather-2.json RD 720p: [0.95, 1.29, 1.55] GB
+INFO ('RD', '720p'): 3 populated choices; absent tiers are allowed when no candidate exists
+before median=3.002s after median=3.150s rejection-threshold=3.752s
+```
+
+- Verification:
+
+```text
+readback requiredStreamExpressions count: 12
+1Password template read-back diff: no diff
+breakingbad unchanged
+attackontitan unchanged
+```
+
+- Commit: this local documentation commit.
+
 ### Final state
 
 - Deployment: `aiostreams` pod `1/1 Running`, ArgoCD `Synced/Healthy`, `https://aiostreams.tonioriol.com`.
 - Stremio: 25 addons, AIOStreams at position 2; the 5 redundant debrid addons removed and restorable.
-- Output: ~12–21 rows per title in ~1–3 s, 4 per resolution per provider, TB before RD, size-descending per block, 0 wrong titles.
+- Output: ~12–21 rows per title in ~1–3 s, 4 per resolution per provider, TB before RD, up to four representative sizes per movie resolution/provider, 0 wrong titles.
 - Backups: `~/Desktop/stremio-addons-{backup,FULL,AFTER,FINAL}-*.json` plus 1Password documents `stremio-addons-full-backup`, `stremio-addons-current`, `stremio-removed-debrid-addons`, `aiostreams-config-template`.
 - Known open items: RD subscription decision (expires 2026-08-08); RD key was exposed in plaintext in Stremio local storage and is worth rotating; `tv.tonioriol.com` 502 pre-existing and unrelated; sibling-franchise title leaks; `1440p` excluded by choice.

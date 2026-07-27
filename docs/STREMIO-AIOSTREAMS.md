@@ -74,6 +74,28 @@ $B/stremio/<uuid>/<encryptedPassword>/stream/movie/tt0133093.json
 $B/stremio/<uuid>/<encryptedPassword>/stream/series/tt0903747:1:1.json
 ```
 
+### Representative movie sizes
+
+Movie blocks use 12 ordered `requiredStreamExpressions` to select up to four
+distinct files per debrid provider and resolution:
+
+| Resolution | Choices |
+|---|---|
+| 2160p | largest cached-first result, then ≤20 GB, ≤10 GB, ≤5 GB |
+| 1080p | largest cached-first result, then ≤10 GB, ≤5 GB, ≤2 GB |
+| 720p | largest cached-first result, then ≤2 GB, ≤1 GB, ≤500 MB |
+
+Expressions are evaluated after sorting. Earlier selections are removed before
+the next expression, so overlapping ceilings yield distinct rows. Missing
+tiers are omitted rather than duplicated. `queryType != 'movie'` returns all
+streams, leaving series and anime unchanged. The existing 4-per-resolution,
+per-service conjunctive limit remains the final safety cap.
+
+Verified 2026-07-27: the three-movie audit reported no `FAIL` across six
+post-change samples, `breakingbad` and `attackontitan` normalized output stayed
+unchanged, and latency moved from median 3.002 s to 3.150 s, below the 3.752 s
+rejection threshold.
+
 ---
 
 ## Managing the Stremio addon collection
@@ -247,6 +269,7 @@ key set).
 services:   [torbox, realdebrid]          // order = dedup priority + service sort
 presets:    Comet, MediaFusion, Torrentio(wrapped)   // all timeout 8000; Torz disabled
 resultLimits: { mode: "conjunctive", global: 60, resolution: 4, service: 4 }
+requiredStreamExpressions: 12 movie-only representative-size selectors
 sortCriteria.global: [service, cached, resolution, size, quality]
 deduplicator: { enabled: true, keys: [infoHash, filename, smartDetect],
                 cached: "per_service", uncached: "single_result", p2p: "single_result" }
@@ -272,8 +295,9 @@ Comet
 
 `⚡` cached (instant) · `⏳` uncached · `TB`/`RD` the debrid service.
 
-Result: ~12–21 rows per title in ~1–3 s, 4 per resolution per provider, sorted
-biggest-first inside each block.
+Result: ~12–21 rows per title in ~1–3 s, 4 per resolution per provider.
+Movie blocks now expose up to four representative sizes per resolution/provider
+instead of four near-identical largest rows.
 
 ---
 
