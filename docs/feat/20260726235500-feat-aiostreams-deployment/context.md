@@ -1,6 +1,6 @@
 ---
 title: "Migrate Stremio to TorBox via self-hosted AIOStreams"
-status: done
+status: in-progress
 repos: [ritchie]
 tags: [deployment, kubernetes, secrets]
 created: 2026-07-26
@@ -14,7 +14,7 @@ created: 2026-07-26
 
 User cancelled Real-Debrid and bought TorBox, then asked to "update all my stremio exts to use torbox". Investigation showed the premise was off: RD was still premium until 2026-08-08, TorBox Essential active until 2026-08-24, and the user wanted *both* configured. The real problem was architectural — debrid keys were embedded inside individual addon manifest URLs, so switching services meant reinstalling addons. Scope grew through the session into result tuning (4049 streams → ~21), latency work (7–12 s → ~2 s), a TorBox-vs-RD evaluation to inform dropping RD, and an operator guide.
 
-**Done when:** AIOStreams deployed via GitOps with both keys in 1Password, installed in Stremio, returning a short correctly-ordered list quickly, with findings documented for the next agent.
+**Done when:** AIOStreams is deployed via GitOps with both keys in 1Password, installed in Stremio, and returns a short correctly ordered list quickly. Movie blocks must additionally expose up to four distinct representative sizes per resolution and provider, while series/anime output remains unchanged and the exact verified config is recoverable from 1Password.
 
 ## SPEC
 
@@ -35,14 +35,15 @@ Operator guide (workspace-level, for future agents): [`docs/STREMIO-AIOSTREAMS.m
 - charts/cloudflared/values.yaml
 - docs/STREMIO-AIOSTREAMS.md
 - docs/feat/20260726235500-feat-aiostreams-deployment/spec.md
+- docs/feat/20260726235500-feat-aiostreams-deployment/plan.md
 - docs/feat/20260726235500-feat-aiostreams-deployment/restore-stremio-addons.sh
 - ../AGENTS.md (workspace root repo — secrets + URL tables, guide link)
 
 ## PLAN
 
-**Plan:** no separate plan.md — work was exploratory and interleaved with user feedback; sequence is captured in LOG.
-**Cursor:** complete
-**Status:** done
+**Plan:** [plan.md](./plan.md) — three tasks: secure baseline and rollback point; atomic expression rollout with movie/non-movie/latency audits; verified 1Password template and documentation persistence.
+**Cursor:** Task 1 — capture a secure rollback point and reproducible baseline
+**Status:** in progress
 
 Open decision left with the user: drop Real-Debrid when it expires 2026-08-08, or keep it as fallback. Evidence in the 2026-07-27 00:05 LOG entry favours dropping it.
 
@@ -164,6 +165,35 @@ Open decision left with the user: drop Real-Debrid when it expires 2026-08-08, o
 - Evidence: schema check confirmed all 5 sections present, 10 milestone entries + final state, and that `spec.md`, `restore-stremio-addons.sh` and `../../STREMIO-AIOSTREAMS.md` all resolve.
 - Verification: **the pre-push secret scan returned 1 hit and I had already pushed.** The match was a full VPN account username I had written into the 2026-07-26 23:45 entry myself. No API key or password was exposed. Redacted to `purevpn0s…` and re-scanned all four task files → 0 hits; `git grep` at HEAD confirms it is gone from tracked files. **It remains in history at `bc534b8`** — a dead account and a username only, so not worth a history rewrite, but noted here rather than quietly fixed. Lesson: run the scan *before* `git push`, not after.
 - Commit: `bc534b8` (restructure), `bf38424` (redaction).
+
+### 2026-07-27 11:07 — Approved representative movie-size tiers
+
+- Why: four size-descending rows per resolution/provider were often near-identical; the user requested deliberate choices at progressively smaller download sizes.
+- What changed: design only — added the approved extension to `spec.md`; live AIOStreams config is unchanged at this point.
+- How (investigation): inspected the pinned v2.31.1 `limiter.js`, `filterer.js`, `precomputer.js`, `resources.js` and `streamExpression.js` from the container image. Native `resultLimits` cannot count size buckets, but ordered `requiredStreamExpressions` run after deduplication/sorting and before limiting. They support `resolution`, `size`, `perGroup` and movie-only `queryType` gating. Required expressions remove prior selections before evaluating the next rule, making overlapping size ceilings produce distinct rows.
+- Decisions: movie-only rollout; 2160p targets largest/≤20/≤10/≤5 GB, 1080p largest/≤10/≤5/≤2 GB, 720p largest/≤2/≤1/≤500 MB. Preserve cached-first behavior, current maximum filters, provider ordering, formatter, deduplication and 4-per-block conjunctive safety limits. Series/anime remain unchanged until separate episode-size targets are chosen.
+- Evidence: all 12 exact expressions in `spec.md` parsed successfully with the deployed v2.31.1 image. Rejected duplicate preset instances (extra requests/latency) and a custom fork (native selector is sufficient).
+- Verification: spec self-review found no new placeholders or secrets; `git diff --check` clean; only `spec.md` committed, leaving the user's untracked `scratch.md` untouched.
+- Commit: `1282591` docs(aiostreams): design representative size tiers.
+
+### 2026-07-27 11:22 — Representative-size implementation plan generated
+
+- Why: the approved config change mutates replacement-only live state and needs evidence-driven rollback gates rather than an ad-hoc `PUT`.
+- What changed: added `plan.md` with 3 tasks and 26 executable steps.
+- How: Task 1 captures a private complete-config rollback point, five endpoint baselines and latency; Task 2 applies only the 12-expression array, verifies exact read-back, audits three movies with binary-byte ceilings, proves two non-movie endpoints unchanged and rejects latency regression; Task 3 refreshes the credential-free 1Password template and documentation only after verification.
+- Decisions: no application code, Helm or Stremio manifest changes. Temporary responses remain mode-0700 under `/tmp`; the user's untracked `scratch.md` remains untouched. Push is explicitly deferred for separate approval.
+- Evidence: all 22 shell and 1 Python fenced blocks parse; every spec requirement maps to a task; placeholder and whitespace scans clean. Unit check against the pinned image confirmed `20GB = 21474836480` bytes, so audits use binary units.
+- Verification: plan self-review corrected two defects before execution — unresolved evidence markers and decimal-byte audit caps — and made sparse-tier assignment compatible with cached-first ordering.
+- Commit: pending with the implementation documentation commit.
+
+### 2026-07-27 11:26 — Task 1 secure rollback baseline captured
+
+- Why: Task 1 is the read-only safety gate before applying representative movie-size expressions to the replacement-only live AIOStreams config.
+- What changed: no live AIOStreams, Stremio, Kubernetes, Cloudflare or 1Password state was mutated. Captured private rollback and baseline artifacts under `/tmp/aiostreams-size-tiers-20260727T092508Z`.
+- How: read the required operator-guide and spec sections; created a mode-0700 run directory with `baseline/` and `after/`; loaded the AIOStreams API credentials from 1Password without printing them; fetched `GET /api/v1/user?raw=true`; saved the complete raw response and extracted complete config locally; captured five representative stream endpoints twice each.
+- Evidence: rollback config validation passed with `success=true`, object `userData` and present encrypted password; structural summary matched the documented baseline: `resultLimits` conjunctive with global 60, service 4 and resolution 4; `requiredStreamExpressions` count 0; presets `cmt`/`mfn`/`wtio` enabled with `stz` disabled; enabled services `torbox` and `realdebrid`. Captured 10 valid stream-array responses, 10 latency files and 4 normalized non-movie files.
+- Verification: normalized `breakingbad` and `attackontitan` baselines were stable across both calls. Latency summary: `baseline samples=10 median=3.002s max=5.918s`. Pre-existing working tree had modified `context.md` plus untracked controller/user files; only this single Task 1 LOG entry was appended here.
+- Commit: pending.
 
 ### Final state
 
