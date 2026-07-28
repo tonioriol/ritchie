@@ -1,0 +1,30 @@
+# k8s resource name (no dots — dots break DNS resolution in svc.cluster.local)
+fullname: detour-radio-web
+
+image:
+  repository: ghcr.io/tonioriol/detour-radio-web
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  port: 80
+  targetPort: 80
+
+hostname: detour.tonioriol.com
+
+resources:
+  requests:
+    cpu: 5m
+    memory: 32Mi
+  limits:
+    cpu: 50m
+    memory: 64Mi
+
+imagePullSecrets: []
+
+externalDns:
+  enabled: false
+  hostname: ""
+  target: ""
