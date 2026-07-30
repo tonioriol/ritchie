@@ -181,3 +181,12 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 - Evidence: The complete generated candidate contains 54 stream expressions totaling 32,110 characters; the longest is 1,464 characters, within pinned v2.31.1 limits of 200 expressions, 50,000 total characters and 3,000 characters per expression. Exact-image validation passed 18 regex cases, eight language/precedence/480p/provider/passthrough cases and five dynamic-pool cases, including reversed pre-sort input, cached-reference behavior, missing sizes, sparse pools and exact unique `min(4, candidate count)` output.
 - Verification: Every embedded Python block compiled; the embedded generator reproduced the expected counts and limits from the verified saved-config artifact; the embedded JavaScript validator passed inside `ghcr.io/viren070/aiostreams:v2.31.1`; placeholder/conflict and whitespace checks passed after self-review corrections. Live-state mutation remains zero.
 - Commit: pending with `plan.md` and this ledger update.
+
+### 2026-07-30 12:42 — Task 1 read-only rollback and runtime baseline captured
+
+- Private work directory: `/tmp/aiostreams-language-tiers-20260730T103840Z` (mode 0700).
+- Baseline config SHA-256: `4f6a4862ef2f22fc4013b502c5f279e65ec1aea91fa8c377ff40537e5fb9924a`.
+- Endpoint/sample evidence: 11 representative endpoints; 55 successful timed responses with `streamData`; 158 first-response rows classified (Catalan 6, Spanish 14, English 25).
+- Catalan-positive evidence: 6 rows in sample `alcarras`.
+- Adjacent-pair overlap: `breakingbad` 22/23 rows, 19/19 unique groups, 13 shared groups, E01 coverage 0.727273; `attackontitan` 17/14 rows, 14/11 unique groups, 10 shared groups, E01 coverage 0.705882.
+- Latency medians (seconds): `matrix` 2.454915; `godfather` 2.756854; `dune2` 3.125734; `alcarras` 0.622151; `el47` 0.677976; `casaenflames` 0.278836; `creatura` 0.294913; `breakingbad-e01` 1.733256; `breakingbad-e02` 1.604964; `attackontitan-e01` 1.067365; `attackontitan-e02` 0.960206.
