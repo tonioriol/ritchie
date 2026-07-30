@@ -190,3 +190,12 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 - Catalan-positive evidence: 6 rows in sample `alcarras`.
 - Adjacent-pair overlap: `breakingbad` 22/23 rows, 19/19 unique groups, 13 shared groups, E01 coverage 0.727273; `attackontitan` 17/14 rows, 14/11 unique groups, 10 shared groups, E01 coverage 0.705882.
 - Latency medians (seconds): `matrix` 2.454915; `godfather` 2.756854; `dune2` 3.125734; `alcarras` 0.622151; `el47` 0.677976; `casaenflames` 0.278836; `creatura` 0.294913; `breakingbad-e01` 1.733256; `breakingbad-e02` 1.604964; `attackontitan-e01` 1.067365; `attackontitan-e02` 0.960206.
+
+### 2026-07-30 12:12 — Task 2 complete candidate proved offline
+
+- Private artifacts: generated under `/tmp/aiostreams-language-tiers-20260730T103840Z` (mode 0700); candidate SHA-256 `cde1f81c0bde3c6c6d9925de07a3b44f0549998363f7cc5e863003950cce6f5e`; frozen replacement payload SHA-256 `87348007dcdf559f2be9bc3acf70820a24c3c83aedb07eac71c4de5c78fc4dea`.
+- Seven-field proof: only `preferredResolutions`, `excludedResolutions`, `sortCriteria`, `rankedRegexPatterns`, `rankedStreamExpressions`, `preferredStreamExpressions`, and `requiredStreamExpressions` changed; every other top-level field matched the Task 1 baseline byte-for-byte after canonical projection.
+- Candidate limits: 3 regex patterns; 35 ranked, 3 preferred, and 16 required expressions; 54 total expressions; 32,110 characters total; 1,464-character maximum; maximum 40 results.
+- Offline fixtures: 18 regex cases; 8 language/precedence/480p/provider/passthrough cases; 5 dynamic-pool cases (spread, clustered, sparse, missing-size, cached-reference); all expression arrays parsed.
+- Pinned-image proof: `ghcr.io/viren070/aiostreams:v2.31.1` returned `{"regexCases":18,"languageCases":8,"poolCases":5,"expressionArraysParsed":true}` against read-only synthetic fixtures.
+- Verification: generator compilation, baseline invariance comparison, semantic assertions, exact seven-field enumeration, frozen payload construction, and local hash inspection passed. Zero live AIOStreams requests or mutations occurred; 1Password, Kubernetes, Cloudflare, Stremio, providers, images, and credentials were not read or changed.
