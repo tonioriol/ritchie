@@ -225,3 +225,8 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 
 - Review fixes: Task 3 now materializes and checks every secret-bearing projection/digest instead of using unchecked process substitutions, never prints complete-config diffs, returns from response-capture failures to the rollback wrapper, fixes the English-ID uniqueness assertion, requires an unwaived successful Tizen transition, and fail-closes runtime-summary generation.
 - Rollback verification: a restore is successful only after exact complete semantic/hash equality, one validated representative response for all 11 endpoints, and passing adjacent-episode group checks. The Reloader comment and global read-only Kubernetes exception now match the approved trust rollout. All changes remain local; no push, deployment, cluster request, 1Password edit or live PUT occurred.
+
+### 2026-07-30 16:49 — Final evidence gates made explicit
+
+- Final review fixes: every post-write evidence display now fails through the rollback wrapper; Tizen evidence is structured and must explicitly record a passing Stremio `1.12.1`/Tizen `6` transition; and the runtime summary includes all 11 latency entries and revalidates five baseline samples, five post samples and `accepted: true` for each endpoint.
+- Completion semantics: an on-device failure always triggers verified rollback and blocks completion/candidate retention. It may be classified as a separate client issue only after rollback; classification cannot waive this rollout's acceptance criteria. No external action occurred.

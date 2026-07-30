@@ -327,8 +327,10 @@ the next episode to start playback rather than merely open its page or stream
 list.
 
 An on-device failure blocks completion even when server-side overlap is stable.
-The implementation must restore the prior configuration unless the user
-explicitly accepts the observed behavior as a separate client issue.
+The implementation must restore the active rollback source. After verified
+rollback, the user may classify the observation as a separate client issue for
+future investigation, but that classification cannot waive completion,
+rollback, or candidate retention requirements for this rollout.
 
 ## Safe rollout
 

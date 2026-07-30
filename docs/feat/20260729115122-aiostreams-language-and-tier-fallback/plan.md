@@ -1161,7 +1161,8 @@ python3 "$WORK/audit-responses.py" \
   "$WORK/after" "$WORK/baseline-candidates.json" \
   > "$WORK/response-audit.json" \
   || { cat "$WORK/response-audit.json"; abort_with_rollback 'live response audit failed'; exit $?; }
-cat "$WORK/response-audit.json"
+cat "$WORK/response-audit.json" \
+  || { abort_with_rollback 'response audit display failed'; exit $?; }
 ```
 
 Expected: no `FAIL`; at least one retained Catalan row; all categories disjoint and ordered; at most one Catalan/Spanish row per resolution; TorBox selected whenever a baseline-visible eligible TorBox candidate exists; each English pool has at most four unique IDs in cached-first/size-descending response order; every response is at most 40. The exact dynamic membership and sparse-pool count invariant are guaranteed by the pinned-image proof and must also be manually inspected in `streamData.rankedStreamExpressionsMatched` for at least one dense movie, one regular-series episode and one anime episode.
@@ -1187,7 +1188,8 @@ for label in matrix breakingbad-e01 attackontitan-e01; do
       (. as $ids | ($ids | length) == ($ids | unique | length)))
   ' "$WORK/$label-membership.json" >/dev/null \
     || { abort_with_rollback "dynamic membership failed for $label"; exit $?; }
-  cat "$WORK/$label-membership.json"
+  cat "$WORK/$label-membership.json" \
+    || { abort_with_rollback "dynamic membership display failed for $label"; exit $?; }
 done
 ```
 
@@ -1231,7 +1233,8 @@ Run:
 python3 "$WORK/compare-latency.py" "$WORK" after \
   > "$WORK/latency-after.json" \
   || { cat "$WORK/latency-after.json"; abort_with_rollback 'latency gate failed'; exit $?; }
-cat "$WORK/latency-after.json"
+cat "$WORK/latency-after.json" \
+  || { abort_with_rollback 'latency evidence display failed'; exit $?; }
 ```
 
 Expected: for every endpoint, five post samples and a median no higher than `max(baseline × 1.10, baseline + 0.500s)`. This plan deliberately uses the stricter permitted behavior of rejecting the first failed paired sample rather than performing a second live config cycle merely to exercise the optional retry allowance.
@@ -1271,7 +1274,8 @@ print(json.dumps(comparison, indent=2, sort_keys=True))
 raise SystemExit(1 if failed else 0)
 PY
 status=$?
-cat "$WORK/autoplay-comparison.json"
+cat "$WORK/autoplay-comparison.json" \
+  || { abort_with_rollback 'autoplay comparison display failed'; exit $?; }
 if [ "$status" -ne 0 ]; then
   abort_with_rollback 'adjacent-episode overlap gate failed'
   exit $?
@@ -1289,7 +1293,22 @@ Using the actual Samsung/Tizen client:
 3. Let the episode reach its automatic transition.
 4. Confirm that the next episode starts playback; opening only the next episode page or stream list is a failure.
 
-Record only title, episode pair, client `Stremio 1.12.1`, platform `Tizen 6`, selected non-secret display identity and pass/fail in `$WORK/tizen-autoplay.txt`.
+After observing successful next-episode playback, record only title, episode
+pair, client `Stremio 1.12.1`, platform `Tizen 6`, selected non-secret display
+identity and an explicit passing boolean:
+
+```bash
+jq -n \
+  --arg title '<observed title>' \
+  --arg episodes '<episode pair>' \
+  --arg identity '<non-secret display identity>' \
+  '{title:$title,episodes:$episodes,client:"Stremio 1.12.1",platform:"Tizen 6",identity:$identity,passed:true}' \
+  > "$WORK/tizen-autoplay.json" \
+  || { abort_with_rollback 'Tizen autoplay evidence creation failed'; exit $?; }
+jq -e '.passed == true and .client == "Stremio 1.12.1" and .platform == "Tizen 6"' \
+  "$WORK/tizen-autoplay.json" >/dev/null \
+  || { abort_with_rollback 'Tizen autoplay evidence is not passing'; exit $?; }
+```
 
 Expected: real playback starts automatically. On failure, run
 `abort_with_rollback 'Tizen autoplay transition failed'` immediately and exit
@@ -1304,15 +1323,33 @@ Run:
 jq -n \
   --slurpfile candidate "$WORK/candidate-summary.json" \
   --slurpfile response "$WORK/response-audit.json" \
+  --slurpfile latency "$WORK/latency-after.json" \
   --slurpfile autoplay "$WORK/autoplay-comparison.json" \
-  '{candidate:$candidate[0], response:$response[0], autoplay:$autoplay[0]}' \
+  --slurpfile tizen "$WORK/tizen-autoplay.json" \
+  '($latency[0] | to_entries) as $latencyEntries |
+   if ($latencyEntries | length) != 11 or
+      any($latencyEntries[];
+        .value.baselineSamples != 5 or
+        .value.postSamples != 5 or
+        .value.accepted != true)
+   then error("latency evidence is incomplete or rejected")
+   elif $tizen[0].passed != true
+   then error("Tizen evidence is not passing")
+   else {
+     candidate:$candidate[0],
+     response:$response[0],
+     latency:$latency[0],
+     autoplay:$autoplay[0],
+     tizen:$tizen[0]
+   }
+   end' \
   > "$WORK/runtime-summary.json" \
   || { abort_with_rollback 'runtime summary generation failed'; exit $?; }
 cat "$WORK/runtime-summary.json" \
   || { abort_with_rollback 'runtime summary display failed'; exit $?; }
-test -s "$WORK/tizen-autoplay.txt" \
-  || { abort_with_rollback 'Tizen autoplay evidence is absent'; exit $?; }
-cat "$WORK/tizen-autoplay.txt" \
+jq -e '.passed == true' "$WORK/tizen-autoplay.json" >/dev/null \
+  || { abort_with_rollback 'Tizen autoplay evidence is absent or failing'; exit $?; }
+cat "$WORK/tizen-autoplay.json" \
   || { abort_with_rollback 'Tizen autoplay evidence display failed'; exit $?; }
 ```
 
