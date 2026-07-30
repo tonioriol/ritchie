@@ -13,7 +13,7 @@ spec:
     metadata:
       {{- if .Values.externalSecret.enabled }}
       annotations:
-        # Stakater Reloader: roll the pod when the debrid keys / SECRET_KEY change.
+        # Stakater Reloader: roll the pod when SECRET_KEY, TRUSTED_UUIDS, or debrid keys change.
         secret.reloader.stakater.com/reload: {{ .Release.Name }}-secrets
       {{- end }}
       labels:

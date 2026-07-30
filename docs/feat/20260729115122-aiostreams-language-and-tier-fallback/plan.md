@@ -20,8 +20,8 @@
 - English requires explicit parsed `English`; unknown, unlabelled, `Multi`-only and `Dual Audio`-only rows are not English.
 - Store credentials, route components, complete live configs and raw authenticated responses only under a mode-`0700` timestamped `/tmp` directory; never add them to Git or print them.
 - Use 1Password account `PRBEZ6ELGNCMDIK6YVMRW5TTXQ` for every `op` command.
-- On any parser, expression, write, readback, unrelated-field, language, ordering, fallback, pool-count, overflow, repeated-latency, adjacent-episode or Samsung/Tizen gate failure, restore the exact complete pre-change config and verify the restore before stopping.
-- Do not run Kubernetes, Helm, Cloudflare, image-build, container-restart or Stremio-reinstall operations.
+- On any parser, expression, write, readback, unrelated-field, language, ordering, fallback, pool-count, overflow, repeated-latency, adjacent-episode or Samsung/Tizen gate failure, restore the exact complete active rollback source and verify its configuration, representative responses and adjacent-episode behavior before stopping.
+- Do not run mutating Kubernetes, Cloudflare, image-build, manual container-restart or Stremio-reinstall operations. Local Helm validation is allowed; the read-only Kubernetes readiness checks in Task 3 Step 1 are allowed only after separate push/deployment approval.
 - Do not modify `docs/feat/20260726235500-feat-aiostreams-deployment/scratch.md`.
 - Do not push any commit without explicit user approval.
 
@@ -806,12 +806,23 @@ jq -e '.data.userData.trusted == true' \
 jq '.data.userData' "$WORK/trusted-before-response.json" \
   > "$WORK/trusted-before-config.json" \
   || { echo 'post-trust baseline extraction failed' >&2; exit 1; }
+chmod 600 "$WORK/trusted-before-config.json" \
+  || { echo 'post-trust baseline permission update failed' >&2; exit 1; }
 
-diff -u \
-  <(jq -S 'del(.trusted)' "$WORK/before-config.json") \
-  <(jq -S 'del(.trusted)' "$WORK/trusted-before-config.json") \
-  > "$WORK/trusted-baseline.diff" \
-  || { cat "$WORK/trusted-baseline.diff"; echo 'post-trust baseline changed outside trusted' >&2; exit 1; }
+jq -S 'del(.trusted)' "$WORK/before-config.json" \
+  > "$WORK/before-without-trusted.json" \
+  || { echo 'original baseline projection failed' >&2; exit 1; }
+jq -S 'del(.trusted)' "$WORK/trusted-before-config.json" \
+  > "$WORK/trusted-before-without-trusted.json" \
+  || { echo 'post-trust baseline projection failed' >&2; exit 1; }
+chmod 600 \
+  "$WORK/before-without-trusted.json" \
+  "$WORK/trusted-before-without-trusted.json" \
+  || { echo 'baseline projection permission update failed' >&2; exit 1; }
+cmp -s \
+  "$WORK/before-without-trusted.json" \
+  "$WORK/trusted-before-without-trusted.json" \
+  || { echo 'post-trust baseline changed outside trusted; inspect private projections' >&2; exit 1; }
 shasum -a 256 "$WORK/trusted-before-config.json" \
   > "$WORK/trusted-before-config.sha256" \
   || { echo 'post-trust baseline hash failed' >&2; exit 1; }
@@ -851,16 +862,53 @@ rollback() {
   jq '.data.userData' "$WORK/rollback-readback-response.json" \
     > "$WORK/rollback-config.json" \
     || { echo 'rollback readback extraction failed' >&2; return 1; }
-  cmp \
-    <(jq -S . "$WORK/trusted-before-config.json") \
-    <(jq -S . "$WORK/rollback-config.json") \
+  chmod 600 "$WORK/rollback-config.json" \
+    || { echo 'rollback config permission update failed' >&2; return 1; }
+  jq -S . "$WORK/trusted-before-config.json" \
+    > "$WORK/trusted-before-canonical.json" \
+    || { echo 'rollback source canonicalization failed' >&2; return 1; }
+  jq -S . "$WORK/rollback-config.json" \
+    > "$WORK/rollback-canonical.json" \
+    || { echo 'rollback readback canonicalization failed' >&2; return 1; }
+  chmod 600 \
+    "$WORK/trusted-before-canonical.json" \
+    "$WORK/rollback-canonical.json" \
+    || { echo 'rollback canonical permission update failed' >&2; return 1; }
+  cmp -s \
+    "$WORK/trusted-before-canonical.json" \
+    "$WORK/rollback-canonical.json" \
     || { echo 'rollback semantic comparison failed' >&2; return 1; }
   shasum -a 256 "$WORK/rollback-config.json" > "$WORK/rollback-config.sha256" \
     || { echo 'rollback hash generation failed' >&2; return 1; }
-  cmp \
-    <(cut -d ' ' -f1 "$WORK/trusted-before-config.sha256") \
-    <(cut -d ' ' -f1 "$WORK/rollback-config.sha256") \
+  cut -d ' ' -f1 "$WORK/trusted-before-config.sha256" \
+    > "$WORK/trusted-before-digest.txt" \
+    || { echo 'rollback source digest extraction failed' >&2; return 1; }
+  cut -d ' ' -f1 "$WORK/rollback-config.sha256" \
+    > "$WORK/rollback-digest.txt" \
+    || { echo 'rollback readback digest extraction failed' >&2; return 1; }
+  cmp -s \
+    "$WORK/trusted-before-digest.txt" \
+    "$WORK/rollback-digest.txt" \
     || { echo 'rollback hash comparison failed' >&2; return 1; }
+  mkdir -p "$WORK/rollback-responses" \
+    || { echo 'rollback response directory creation failed' >&2; return 1; }
+  while IFS=$'\t' read -r label type id; do
+    url="$B/stremio/$U/$EP/stream/$type/$id.json"
+    curl --fail --silent --show-error \
+      -H 'User-Agent: AIOStreams/rollout-audit' \
+      -o "$WORK/rollback-responses/$label-1.json" "$url" \
+      || { echo 'rollback response verification failed' >&2; return 1; }
+    jq -e '
+      (.streams | type == "array") and
+      ([.streams[] | select(.streamData.id != null)] | length > 0)
+    ' "$WORK/rollback-responses/$label-1.json" >/dev/null \
+      || { echo 'rollback response verification failed' >&2; return 1; }
+  done < "$WORK/endpoints.tsv"
+  test "$(find "$WORK/rollback-responses" -type f -name '*-1.json' | wc -l | tr -d ' ')" -eq 11 \
+    || { echo 'rollback response verification failed' >&2; return 1; }
+  python3 "$WORK/audit-autoplay.py" "$WORK/rollback-responses" \
+    > "$WORK/rollback-autoplay.json" \
+    || { echo 'rollback autoplay verification failed' >&2; return 1; }
   echo 'rollback restored and verified'
 }
 
@@ -909,11 +957,22 @@ jq -e '.data.userData.trusted == true' "$WORK/readback-response.json" >/dev/null
   || { abort_with_rollback 'candidate readback is not trusted'; exit $?; }
 jq '.data.userData' "$WORK/readback-response.json" > "$WORK/readback-config.json" \
   || { abort_with_rollback 'candidate readback extraction failed'; exit $?; }
-diff -u \
-  <(jq -S 'del(.trusted)' "$WORK/candidate-config.json") \
-  <(jq -S 'del(.trusted)' "$WORK/readback-config.json") \
-  > "$WORK/readback.diff" \
-  || { cat "$WORK/readback.diff"; abort_with_rollback 'candidate semantic comparison failed'; exit $?; }
+chmod 600 "$WORK/readback-config.json" \
+  || { abort_with_rollback 'candidate readback permission update failed'; exit $?; }
+jq -S 'del(.trusted)' "$WORK/candidate-config.json" \
+  > "$WORK/candidate-without-trusted.json" \
+  || { abort_with_rollback 'candidate projection failed'; exit $?; }
+jq -S 'del(.trusted)' "$WORK/readback-config.json" \
+  > "$WORK/readback-without-trusted.json" \
+  || { abort_with_rollback 'candidate readback projection failed'; exit $?; }
+chmod 600 \
+  "$WORK/candidate-without-trusted.json" \
+  "$WORK/readback-without-trusted.json" \
+  || { abort_with_rollback 'candidate projection permission update failed'; exit $?; }
+cmp -s \
+  "$WORK/candidate-without-trusted.json" \
+  "$WORK/readback-without-trusted.json" \
+  || { abort_with_rollback 'candidate semantic comparison failed; inspect private projections'; exit $?; }
 shasum -a 256 "$WORK/readback-config.json" > "$WORK/readback-config.sha256" \
   || { abort_with_rollback 'candidate readback hash failed'; exit $?; }
 echo 'candidate readback is trusted and matches semantically outside trusted'
@@ -931,20 +990,24 @@ the original only in `trusted`.
 Run:
 
 ```bash
-if ! while IFS=$'\t' read -r label type id; do
-  url="$B/stremio/$U/$EP/stream/$type/$id.json"
-  for run in 1 2 3 4 5; do
-    curl --fail --silent --show-error \
-      -H 'User-Agent: AIOStreams/rollout-audit' \
-      -o "$WORK/after/$label-$run.json" \
-      -w '%{time_total}\n' "$url" \
-      > "$WORK/after/$label-$run.seconds" || exit 1
-    jq -e '
-      (.streams | type == "array") and
-      ([.streams[] | select(.streamData.id != null)] | length > 0)
-    ' "$WORK/after/$label-$run.json" >/dev/null || exit 1
-  done
-done < "$WORK/endpoints.tsv"; then
+capture_post_change() {
+  while IFS=$'\t' read -r label type id; do
+    url="$B/stremio/$U/$EP/stream/$type/$id.json"
+    for run in 1 2 3 4 5; do
+      curl --fail --silent --show-error \
+        -H 'User-Agent: AIOStreams/rollout-audit' \
+        -o "$WORK/after/$label-$run.json" \
+        -w '%{time_total}\n' "$url" \
+        > "$WORK/after/$label-$run.seconds" || return 1
+      jq -e '
+        (.streams | type == "array") and
+        ([.streams[] | select(.streamData.id != null)] | length > 0)
+      ' "$WORK/after/$label-$run.json" >/dev/null || return 1
+    done
+  done < "$WORK/endpoints.tsv"
+}
+
+if ! capture_post_change; then
   abort_with_rollback 'post-change response capture failed'
   exit $?
 fi
@@ -1120,7 +1183,8 @@ for label in matrix breakingbad-e01 attackontitan-e01; do
   }]' "$WORK/after/$label-1.json" > "$WORK/$label-membership.json"
   jq -e '
     ([.[] | select(.category == "English")] | length > 0) and
-    ([.[] | select(.category == "English") | .id] | length == unique | length)
+    ([.[] | select(.category == "English") | .id] |
+      (. as $ids | ($ids | length) == ($ids | unique | length)))
   ' "$WORK/$label-membership.json" >/dev/null \
     || { abort_with_rollback "dynamic membership failed for $label"; exit $?; }
   cat "$WORK/$label-membership.json"
@@ -1229,8 +1293,8 @@ Record only title, episode pair, client `Stremio 1.12.1`, platform `Tizen 6`, se
 
 Expected: real playback starts automatically. On failure, run
 `abort_with_rollback 'Tizen autoplay transition failed'` immediately and exit
-with its return status unless the user explicitly accepts the observation as a
-separate client issue; without explicit acceptance, the rollout is rejected.
+with its return status. The rollout is rejected without a successful observed
+transition.
 
 - [ ] **Step 12: Record the verified runtime gate summary**
 
@@ -1242,12 +1306,19 @@ jq -n \
   --slurpfile response "$WORK/response-audit.json" \
   --slurpfile autoplay "$WORK/autoplay-comparison.json" \
   '{candidate:$candidate[0], response:$response[0], autoplay:$autoplay[0]}' \
-  > "$WORK/runtime-summary.json"
-cat "$WORK/runtime-summary.json"
-cat "$WORK/tizen-autoplay.txt"
+  > "$WORK/runtime-summary.json" \
+  || { abort_with_rollback 'runtime summary generation failed'; exit $?; }
+cat "$WORK/runtime-summary.json" \
+  || { abort_with_rollback 'runtime summary display failed'; exit $?; }
+test -s "$WORK/tizen-autoplay.txt" \
+  || { abort_with_rollback 'Tizen autoplay evidence is absent'; exit $?; }
+cat "$WORK/tizen-autoplay.txt" \
+  || { abort_with_rollback 'Tizen autoplay evidence display failed'; exit $?; }
 ```
 
-Expected: compact non-secret evidence for all automated gates plus one passing Tizen transition. Do not proceed to persistence if any gate is missing, waived without explicit user acceptance, or represented only by an expectation.
+Expected: compact non-secret evidence for all automated gates plus one passing
+Tizen transition. Do not proceed to persistence if any gate is missing or
+represented only by an expectation.
 
 ### Task 4: Persist recovery state, update operator documentation and commit intentional files
 

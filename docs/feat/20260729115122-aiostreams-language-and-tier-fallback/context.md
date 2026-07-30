@@ -30,6 +30,10 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 - docs/feat/20260729115122-aiostreams-language-and-tier-fallback/context.md
 - docs/feat/20260729115122-aiostreams-language-and-tier-fallback/spec.md
 - docs/feat/20260729115122-aiostreams-language-and-tier-fallback/plan.md
+- charts/aiostreams/values.yaml
+- charts/aiostreams/templates/deployment.yaml
+- charts/aiostreams/templates/externalsecret.yaml
+- apps/aiostreams.yaml
 
 ## PLAN
 
@@ -216,3 +220,8 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 
 - Review/correction: exact pinned v2.31.1 source proves `TRUSTED_UUIDS` maps to `userLimits.trusted.uuids`, while updates and raw reads overwrite `trusted` from that runtime setting. The chart render, least-privilege scope, UUID privacy and unchanged regex-access policy pass local validation, but the original candidate equality and rollback hash would falsely fail against their frozen `trusted: false` inputs after deployment.
 - Approved transaction: after a separately approved deployment, require ExternalSecret and Deployment readiness plus raw `trusted: true`; freeze a fresh complete rollback source that differs from the original only in `trusted`; retain exact full semantic/hash rollback against that fresh snapshot; compare candidate readback after removing only `trusted` while separately requiring it to be true; and make every rollback stage fail closed. Push/deployment and the second candidate PUT remain separately gated and have not occurred.
+
+### 2026-07-30 16:32 — Transaction failure paths hardened after final review
+
+- Review fixes: Task 3 now materializes and checks every secret-bearing projection/digest instead of using unchecked process substitutions, never prints complete-config diffs, returns from response-capture failures to the rollback wrapper, fixes the English-ID uniqueness assertion, requires an unwaived successful Tizen transition, and fail-closes runtime-summary generation.
+- Rollback verification: a restore is successful only after exact complete semantic/hash equality, one validated representative response for all 11 endpoints, and passing adjacent-episode group checks. The Reloader comment and global read-only Kubernetes exception now match the approved trust rollout. All changes remain local; no push, deployment, cluster request, 1Password edit or live PUT occurred.
