@@ -54,7 +54,7 @@
 - Consumes: 1Password fields `neumann/aiostreams/config_uuid` and `config_password`; authenticated `GET /api/v1/user?raw=true`; existing encrypted Stremio route component returned as `data.encryptedPassword`.
 - Produces: shell variables `WORK`, `B`, `U`, `P`, `AUTH`, `EP`; exact rollback config and SHA-256; representative endpoint matrix; five baseline timings per endpoint; compact language discovery and adjacent-episode reports.
 
-- [ ] **Step 1: Confirm repository location and preserve unrelated work**
+- [x] **Step 1: Confirm repository location and preserve unrelated work**
 
 Run from the `ritchie` repository:
 
@@ -66,7 +66,7 @@ git status --short
 
 Expected: both paths end in `/ritchie`. Record every pre-existing status entry and do not stage, edit or delete it. In particular, leave `docs/feat/20260726235500-feat-aiostreams-deployment/scratch.md` untouched if it exists.
 
-- [ ] **Step 2: Create a private run directory and load credentials without echoing them**
+- [x] **Step 2: Create a private run directory and load credentials without echoing them**
 
 Run in one persistent shell:
 
@@ -84,7 +84,7 @@ test -n "$U" && test -n "$P" && printf 'credentials loaded; WORK=%s\n' "$WORK"
 
 Expected: one line containing only the temporary path. If 1Password is not signed in, stop for interactive authentication; do not obtain credentials from Kubernetes.
 
-- [ ] **Step 3: Fetch, hash and assert the complete documented pre-change state**
+- [x] **Step 3: Fetch, hash and assert the complete documented pre-change state**
 
 Run:
 
@@ -136,7 +136,7 @@ cat "$WORK/before-config.sha256"
 
 Expected: the compact non-secret summary shows the documented 12-selector baseline and the hash line. Stop for review if any assertion differs; do not weaken the assertion or generate a candidate from an unknown baseline.
 
-- [ ] **Step 4: Define the representative request matrix**
+- [x] **Step 4: Define the representative request matrix**
 
 Run:
 
@@ -159,7 +159,7 @@ awk -F '\t' 'NF != 3 {exit 1} END {print NR " endpoints"}' "$WORK/endpoints.tsv"
 
 Expected: `11 endpoints`. This matrix includes dense and sparse movies, Spanish/mixed-language movies, four likely Catalan-source movies, a regular-series adjacent pair and an anime adjacent pair.
 
-- [ ] **Step 5: Capture five successful diagnostic responses and timings per endpoint**
+- [x] **Step 5: Capture five successful diagnostic responses and timings per endpoint**
 
 Run:
 
@@ -185,7 +185,7 @@ echo 'captured 55 successful baseline timings with streamData'
 
 Expected: `captured 55 successful baseline timings with streamData`. Raw responses stay under `$WORK`; never print their URLs or add them to Git.
 
-- [ ] **Step 6: Build a compact baseline discovery report and require a real Catalan positive**
+- [x] **Step 6: Build a compact baseline discovery report and require a real Catalan positive**
 
 Create `$WORK/discover-languages.py` with:
 
@@ -265,7 +265,7 @@ cat "$WORK/baseline-discovery.txt"
 
 Expected: `catalanPositiveCount` is greater than zero and at least one sample is listed. If all four likely Catalan movies return no positive, stop without claiming live Catalan verification; add read-only probes for other known Catalan titles and repeat this step before any write.
 
-- [ ] **Step 7: Capture baseline adjacent-episode overlap**
+- [x] **Step 7: Capture baseline adjacent-episode overlap**
 
 Create `$WORK/audit-autoplay.py` with:
 
@@ -318,7 +318,7 @@ cat "$WORK/baseline-autoplay.json"
 
 Expected: both titles have non-empty adjacent responses and at least one shared exact `bingeGroup`. This file is the immediate baseline for Task 3; do not substitute older measurements.
 
-- [ ] **Step 8: Record baseline latency medians per representative request**
+- [x] **Step 8: Record baseline latency medians per representative request**
 
 Run:
 
@@ -354,7 +354,7 @@ Expected: 11 entries, each with exactly five successful samples. Task 3 compares
 - Consumes: Task 1's asserted complete `$WORK/before-config.json`.
 - Produces: deterministic complete candidate; exact seven-field semantic diff; three regex patterns; 35 ranked expressions; three preferred expressions; 16 required expressions; pinned-image synthetic proof; replacement-only PUT payload.
 
-- [ ] **Step 1: Write the deterministic complete-config generator**
+- [x] **Step 1: Write the deterministic complete-config generator**
 
 Create `$WORK/generate-candidate.py` with:
 
@@ -498,7 +498,7 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Generate the complete candidate and prove the seven-field diff**
+- [x] **Step 2: Generate the complete candidate and prove the seven-field diff**
 
 Run:
 
@@ -550,7 +550,7 @@ chmod 600 "$WORK/candidate-config.json" "$WORK/candidate-put.json"
 
 Expected: generator summary reports 54 expressions, fewer than 50,000 total characters, less than 3,000 characters for the longest expression and maximum 40 results; `cmp` exits zero; only the seven declared fields differ.
 
-- [ ] **Step 3: Write the pinned-image synthetic validator**
+- [x] **Step 3: Write the pinned-image synthetic validator**
 
 Create `$WORK/validate-candidate.mjs` with:
 
@@ -716,7 +716,7 @@ console.log(JSON.stringify({
 }));
 ```
 
-- [ ] **Step 4: Run all regexes and expressions inside the exact pinned image**
+- [x] **Step 4: Run all regexes and expressions inside the exact pinned image**
 
 Run:
 
@@ -739,7 +739,7 @@ Expected:
 
 This proof must pass before any live write. It covers full-name and uppercase-token positives, lowercase/substring/subtitle negatives, disjoint precedence, 480p, TorBox-first language selection, limiter passthrough, spread, clustered, sparse, missing-size and cached-reference pools, uniqueness and exact `min(4, candidate count)` counts.
 
-- [ ] **Step 5: Inspect the generated mechanism and freeze the payload**
+- [x] **Step 5: Inspect the generated mechanism and freeze the payload**
 
 Run:
 
@@ -764,6 +764,9 @@ Expected: three exact bounded regexes, 35 ranked expressions, preferred `Catalan
 ### Task 3: Apply once, audit every gate and restore on any failure
 
 **Files:**
+- Create temporarily: `$WORK/trusted-before-response.json`
+- Create temporarily: `$WORK/trusted-before-config.json`
+- Create temporarily: `$WORK/trusted-before-config.sha256`
 - Create temporarily: `$WORK/rollback-put.json`
 - Create temporarily: `$WORK/readback-config.json`
 - Create temporarily: `$WORK/audit-responses.py`
@@ -772,9 +775,56 @@ Expected: three exact bounded regexes, 35 ranked expressions, preferred `Catalan
 
 **Interfaces:**
 - Consumes: Task 1 rollback config, route and baselines; Task 2 frozen candidate and PUT payload.
-- Produces: exactly one live candidate write; immediate semantic readback; language/order/pool/bounds audit; five post-change timings per endpoint; adjacent-episode comparison; user-observed Stremio 1.12.1/Tizen 6 transition. Any failure produces a verified complete rollback instead.
+- Produces: verified least-privilege trust rollout; fresh post-trust rollback snapshot; exactly one live candidate write under a second approval; immediate semantic readback; language/order/pool/bounds audit; five post-change timings per endpoint; adjacent-episode comparison; user-observed Stremio 1.12.1/Tizen 6 transition. Any failure after the candidate write produces a verified complete rollback instead.
 
-- [ ] **Step 1: Load the `safety` skill and define rollback before the live write**
+- [ ] **Step 1: Verify the separately approved trust rollout and freeze the active rollback source**
+
+Do not run this step until the separate push/deployment approval has been
+granted and commit `eaf9456` has reached ArgoCD. These checks are read-only and
+do not authorize the candidate PUT:
+
+```bash
+KUBECONFIG=clusters/neumann/kubeconfig \
+  kubectl -n media wait \
+  --for=condition=Ready externalsecret/aiostreams-secrets --timeout=180s \
+  || { echo 'ExternalSecret did not become ready' >&2; exit 1; }
+KUBECONFIG=clusters/neumann/kubeconfig \
+  kubectl -n media rollout status deployment/aiostreams --timeout=180s \
+  || { echo 'AIOStreams Deployment did not become ready' >&2; exit 1; }
+KUBECONFIG=clusters/neumann/kubeconfig \
+  kubectl -n media get secret aiostreams-secrets -o json \
+  | jq -e '.data.TRUSTED_UUIDS | type == "string" and length > 0' >/dev/null \
+  || { echo 'TRUSTED_UUIDS Secret key is absent or empty' >&2; exit 1; }
+
+curl --fail --silent --show-error \
+  "$B/api/v1/user?raw=true" -H "$AUTH" \
+  > "$WORK/trusted-before-response.json" \
+  || { echo 'post-trust baseline GET failed' >&2; exit 1; }
+jq -e '.data.userData.trusted == true' \
+  "$WORK/trusted-before-response.json" >/dev/null \
+  || { echo 'post-trust baseline is not trusted' >&2; exit 1; }
+jq '.data.userData' "$WORK/trusted-before-response.json" \
+  > "$WORK/trusted-before-config.json" \
+  || { echo 'post-trust baseline extraction failed' >&2; exit 1; }
+
+diff -u \
+  <(jq -S 'del(.trusted)' "$WORK/before-config.json") \
+  <(jq -S 'del(.trusted)' "$WORK/trusted-before-config.json") \
+  > "$WORK/trusted-baseline.diff" \
+  || { cat "$WORK/trusted-baseline.diff"; echo 'post-trust baseline changed outside trusted' >&2; exit 1; }
+shasum -a 256 "$WORK/trusted-before-config.json" \
+  > "$WORK/trusted-before-config.sha256" \
+  || { echo 'post-trust baseline hash failed' >&2; exit 1; }
+echo 'trust rollout ready and post-trust rollback source frozen'
+```
+
+Expected: the ExternalSecret and Deployment become ready, the Secret contains a
+non-empty `TRUSTED_UUIDS` key without printing it, raw readback has
+`trusted: true`, and the original and fresh baselines differ only in that
+server-authoritative field. Stop before the candidate approval if any command
+fails.
+
+- [ ] **Step 2: Load the `safety` skill and define fail-closed rollback before the live write**
 
 This task mutates externally visible saved configuration. Load the `safety` skill and follow its confirmation flow before continuing.
 
@@ -782,30 +832,54 @@ Then define this function in the persistent shell:
 
 ```bash
 rollback() {
-  jq -n --slurpfile config "$WORK/before-config.json" \
-    '{config:$config[0]}' > "$WORK/rollback-put.json"
+  jq -n --slurpfile config "$WORK/trusted-before-config.json" \
+    '{config:$config[0]}' > "$WORK/rollback-put.json" \
+    || { echo 'rollback payload construction failed' >&2; return 1; }
   curl --fail --silent --show-error \
     -X PUT "$B/api/v1/user" \
     -H "$AUTH" -H 'Content-Type: application/json' \
-    -d @"$WORK/rollback-put.json" > "$WORK/rollback-response.json"
-  jq -e '.success == true' "$WORK/rollback-response.json" >/dev/null
+    -d @"$WORK/rollback-put.json" > "$WORK/rollback-response.json" \
+    || { echo 'rollback PUT failed' >&2; return 1; }
+  jq -e '.success == true' "$WORK/rollback-response.json" >/dev/null \
+    || { echo 'rollback response rejected' >&2; return 1; }
   curl --fail --silent --show-error \
-    "$B/api/v1/user?raw=true" -H "$AUTH" > "$WORK/rollback-readback-response.json"
-  jq '.data.userData' "$WORK/rollback-readback-response.json" > "$WORK/rollback-config.json"
+    "$B/api/v1/user?raw=true" -H "$AUTH" > "$WORK/rollback-readback-response.json" \
+    || { echo 'rollback readback failed' >&2; return 1; }
+  jq -e '.data.userData.trusted == true' \
+    "$WORK/rollback-readback-response.json" >/dev/null \
+    || { echo 'rollback readback is not trusted' >&2; return 1; }
+  jq '.data.userData' "$WORK/rollback-readback-response.json" \
+    > "$WORK/rollback-config.json" \
+    || { echo 'rollback readback extraction failed' >&2; return 1; }
   cmp \
-    <(jq -S . "$WORK/before-config.json") \
-    <(jq -S . "$WORK/rollback-config.json")
-  shasum -a 256 "$WORK/rollback-config.json" > "$WORK/rollback-config.sha256"
+    <(jq -S . "$WORK/trusted-before-config.json") \
+    <(jq -S . "$WORK/rollback-config.json") \
+    || { echo 'rollback semantic comparison failed' >&2; return 1; }
+  shasum -a 256 "$WORK/rollback-config.json" > "$WORK/rollback-config.sha256" \
+    || { echo 'rollback hash generation failed' >&2; return 1; }
   cmp \
-    <(cut -d ' ' -f1 "$WORK/before-config.sha256") \
-    <(cut -d ' ' -f1 "$WORK/rollback-config.sha256")
+    <(cut -d ' ' -f1 "$WORK/trusted-before-config.sha256") \
+    <(cut -d ' ' -f1 "$WORK/rollback-config.sha256") \
+    || { echo 'rollback hash comparison failed' >&2; return 1; }
   echo 'rollback restored and verified'
+}
+
+abort_with_rollback() {
+  echo "$1" >&2
+  if rollback; then
+    return 1
+  fi
+  echo 'CRITICAL: rollback verification failed' >&2
+  return 2
 }
 ```
 
-Expected: function definition emits no output. Invoke it immediately after every failed step below. A successful PUT without verified readback is not a completed rollback.
+Expected: function definitions emit no output. Invoke `abort_with_rollback`
+immediately after every failed step below and exit with its return status. A
+successful PUT without exact post-trust baseline readback and hash equality is
+not a completed rollback.
 
-- [ ] **Step 2: Submit the complete candidate exactly once**
+- [ ] **Step 3: Submit the complete candidate exactly once**
 
 After the `safety` confirmation, run:
 
@@ -814,36 +888,45 @@ curl --fail --silent --show-error \
   -X PUT "$B/api/v1/user" \
   -H "$AUTH" -H 'Content-Type: application/json' \
   -d @"$WORK/candidate-put.json" > "$WORK/put-response.json" \
-  || { rollback; exit 1; }
+  || { abort_with_rollback 'candidate PUT failed'; exit $?; }
 jq -e '.success == true and .detail == "User updated successfully"' \
   "$WORK/put-response.json" >/dev/null \
-  || { rollback; exit 1; }
+  || { abort_with_rollback 'candidate response rejected'; exit $?; }
 echo 'complete candidate accepted once'
 ```
 
 Expected: one success line. Do not submit an intermediate diagnostic configuration and do not restart any pod.
 
-- [ ] **Step 3: Read back immediately and require complete semantic equality**
+- [ ] **Step 4: Read back immediately and require semantic equality except for server-authoritative trust**
 
 Run:
 
 ```bash
 curl --fail --silent --show-error \
   "$B/api/v1/user?raw=true" -H "$AUTH" > "$WORK/readback-response.json" \
-  || { rollback; exit 1; }
-jq '.data.userData' "$WORK/readback-response.json" > "$WORK/readback-config.json"
+  || { abort_with_rollback 'candidate readback failed'; exit $?; }
+jq -e '.data.userData.trusted == true' "$WORK/readback-response.json" >/dev/null \
+  || { abort_with_rollback 'candidate readback is not trusted'; exit $?; }
+jq '.data.userData' "$WORK/readback-response.json" > "$WORK/readback-config.json" \
+  || { abort_with_rollback 'candidate readback extraction failed'; exit $?; }
 diff -u \
-  <(jq -S . "$WORK/candidate-config.json") \
-  <(jq -S . "$WORK/readback-config.json") \
+  <(jq -S 'del(.trusted)' "$WORK/candidate-config.json") \
+  <(jq -S 'del(.trusted)' "$WORK/readback-config.json") \
   > "$WORK/readback.diff" \
-  || { cat "$WORK/readback.diff"; rollback; exit 1; }
-shasum -a 256 "$WORK/readback-config.json" > "$WORK/readback-config.sha256"
-echo 'candidate readback matches semantically'
+  || { cat "$WORK/readback.diff"; abort_with_rollback 'candidate semantic comparison failed'; exit $?; }
+shasum -a 256 "$WORK/readback-config.json" > "$WORK/readback-config.sha256" \
+  || { abort_with_rollback 'candidate readback hash failed'; exit $?; }
+echo 'candidate readback is trusted and matches semantically outside trusted'
 ```
 
-Expected: no diff and one success line. This comparison also proves that all unrelated fields remain unchanged because Task 2 proved the candidate's seven-field diff.
+Expected: no diff and one success line. `trusted` must be exactly `true`; it is
+the only field excluded from the candidate comparison because pinned v2.31.1
+derives it from `TRUSTED_UUIDS` on update and raw read. The remaining comparison
+proves that all unrelated fields remain unchanged because Task 2 proved the
+candidate's seven-field diff and Step 1 proved the fresh baseline differs from
+the original only in `trusted`.
 
-- [ ] **Step 4: Capture five post-change diagnostic responses and timings per endpoint**
+- [ ] **Step 5: Capture five post-change diagnostic responses and timings per endpoint**
 
 Run:
 
@@ -862,17 +945,17 @@ if ! while IFS=$'\t' read -r label type id; do
     ' "$WORK/after/$label-$run.json" >/dev/null || exit 1
   done
 done < "$WORK/endpoints.tsv"; then
-  rollback
-  exit 1
+  abort_with_rollback 'post-change response capture failed'
+  exit $?
 fi
 test "$(fd -e seconds . "$WORK/after" | wc -l | tr -d ' ')" -eq 55 \
-  || { rollback; exit 1; }
+  || { abort_with_rollback 'post-change timing count failed'; exit $?; }
 echo 'captured 55 successful post-change timings with streamData'
 ```
 
 Expected: `captured 55 successful post-change timings with streamData`.
 
-- [ ] **Step 5: Write the concrete live response audit**
+- [ ] **Step 6: Write the concrete live response audit**
 
 Create `$WORK/audit-responses.py` with:
 
@@ -1006,7 +1089,7 @@ print(json.dumps({"samples": summary, "observed480p": observed_480p, "catalanRow
 raise SystemExit(1 if failed else 0)
 ```
 
-- [ ] **Step 6: Run language, ordering, uniqueness, provider, pool and bounds checks**
+- [ ] **Step 7: Run language, ordering, uniqueness, provider, pool and bounds checks**
 
 Run:
 
@@ -1014,13 +1097,13 @@ Run:
 python3 "$WORK/audit-responses.py" \
   "$WORK/after" "$WORK/baseline-candidates.json" \
   > "$WORK/response-audit.json" \
-  || { cat "$WORK/response-audit.json"; rollback; exit 1; }
+  || { cat "$WORK/response-audit.json"; abort_with_rollback 'live response audit failed'; exit $?; }
 cat "$WORK/response-audit.json"
 ```
 
 Expected: no `FAIL`; at least one retained Catalan row; all categories disjoint and ordered; at most one Catalan/Spanish row per resolution; TorBox selected whenever a baseline-visible eligible TorBox candidate exists; each English pool has at most four unique IDs in cached-first/size-descending response order; every response is at most 40. The exact dynamic membership and sparse-pool count invariant are guaranteed by the pinned-image proof and must also be manually inspected in `streamData.rankedStreamExpressionsMatched` for at least one dense movie, one regular-series episode and one anime episode.
 
-- [ ] **Step 7: Inspect live dynamic membership for movie, series and anime**
+- [ ] **Step 8: Inspect live dynamic membership for movie, series and anime**
 
 Run:
 
@@ -1039,14 +1122,14 @@ for label in matrix breakingbad-e01 attackontitan-e01; do
     ([.[] | select(.category == "English")] | length > 0) and
     ([.[] | select(.category == "English") | .id] | length == unique | length)
   ' "$WORK/$label-membership.json" >/dev/null \
-    || { rollback; exit 1; }
+    || { abort_with_rollback "dynamic membership failed for $label"; exit $?; }
   cat "$WORK/$label-membership.json"
 done
 ```
 
 Expected: all three content classes contain explicit English rows with unique IDs; populated pools show a maximum tag and available half/quarter/eighth threshold tags, with untagged rows only as fallback. If the live samples do not expose a particular sparse condition, rely on Task 2's exact-image fixture for that condition rather than inventing live evidence.
 
-- [ ] **Step 8: Enforce the per-endpoint latency gate**
+- [ ] **Step 9: Enforce the per-endpoint latency gate**
 
 Create `$WORK/compare-latency.py` with:
 
@@ -1083,20 +1166,20 @@ Run:
 ```bash
 python3 "$WORK/compare-latency.py" "$WORK" after \
   > "$WORK/latency-after.json" \
-  || { cat "$WORK/latency-after.json"; rollback; exit 1; }
+  || { cat "$WORK/latency-after.json"; abort_with_rollback 'latency gate failed'; exit $?; }
 cat "$WORK/latency-after.json"
 ```
 
 Expected: for every endpoint, five post samples and a median no higher than `max(baseline × 1.10, baseline + 0.500s)`. This plan deliberately uses the stricter permitted behavior of rejecting the first failed paired sample rather than performing a second live config cycle merely to exercise the optional retry allowance.
 
-- [ ] **Step 9: Enforce adjacent-episode overlap against the immediate baseline**
+- [ ] **Step 10: Enforce adjacent-episode overlap against the immediate baseline**
 
 Run:
 
 ```bash
 python3 "$WORK/audit-autoplay.py" "$WORK/after" \
   > "$WORK/after-autoplay.json" \
-  || { cat "$WORK/after-autoplay.json"; rollback; exit 1; }
+  || { cat "$WORK/after-autoplay.json"; abort_with_rollback 'post-change autoplay audit failed'; exit $?; }
 
 python3 - "$WORK" <<'PY' > "$WORK/autoplay-comparison.json"
 import json
@@ -1125,12 +1208,15 @@ raise SystemExit(1 if failed else 0)
 PY
 status=$?
 cat "$WORK/autoplay-comparison.json"
-if [ "$status" -ne 0 ]; then rollback; exit 1; fi
+if [ "$status" -ne 0 ]; then
+  abort_with_rollback 'adjacent-episode overlap gate failed'
+  exit $?
+fi
 ```
 
 Expected: Breaking Bad and Attack on Titan each retain at least one exact adjacent group, and each post-change first-episode row coverage is no lower than its own Task 1 baseline.
 
-- [ ] **Step 10: Require one real Stremio 1.12.1/Tizen 6 next-episode transition**
+- [ ] **Step 11: Require one real Stremio 1.12.1/Tizen 6 next-episode transition**
 
 Using the actual Samsung/Tizen client:
 
@@ -1141,9 +1227,12 @@ Using the actual Samsung/Tizen client:
 
 Record only title, episode pair, client `Stremio 1.12.1`, platform `Tizen 6`, selected non-secret display identity and pass/fail in `$WORK/tizen-autoplay.txt`.
 
-Expected: real playback starts automatically. On failure, run `rollback` immediately unless the user explicitly accepts the observation as a separate client issue; without explicit acceptance, the rollout is rejected.
+Expected: real playback starts automatically. On failure, run
+`abort_with_rollback 'Tizen autoplay transition failed'` immediately and exit
+with its return status unless the user explicitly accepts the observation as a
+separate client issue; without explicit acceptance, the rollout is rejected.
 
-- [ ] **Step 11: Record the verified runtime gate summary**
+- [ ] **Step 12: Record the verified runtime gate summary**
 
 Run:
 
@@ -1331,7 +1420,8 @@ Update `docs/feat/20260729115122-aiostreams-language-and-tier-fallback/context.m
   - why the fixed selectors were replaced;
   - exact seven saved-config fields changed;
   - regex/ranked/preferred/required counts;
-  - exact pre-change SHA-256 from `$WORK/before-config.sha256`;
+  - original Task 1 SHA-256 from `$WORK/before-config.sha256` and active
+    post-trust rollback SHA-256 from `$WORK/trusted-before-config.sha256`;
   - compact live language, 480p, pool, result-bound, latency, adjacent-overlap and Tizen evidence from Task 3;
   - exact 1Password template readback result;
   - explicit confirmation that no image, Kubernetes, Cloudflare, provider, credential or Stremio-install state changed;

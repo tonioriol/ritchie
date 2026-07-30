@@ -15,7 +15,7 @@ created: 2026-07-29
 
 The current 12 ordered movie selectors intentionally omit sparse fixed-size tiers, which can reduce a populated resolution/provider block to one result. The approved replacement derives English representatives from each pool's maximum, half, quarter and eighth sizes, then fills missing slots from the best remaining rows. Catalan and Spanish each contribute at most one TorBox-first row for 2160p, 1080p, 720p and 480p across providers. English is explicit rather than language-neutral and retains separate TorBox and Real-Debrid blocks.
 
-**Done when:** The approved configuration is atomically applied and read back; Catalan → Spanish → English ordering, provider fallback, 480p, disjoint language membership and `min(4, candidate count)` English pools are verified across movies, regular series and anime; latency and adjacent-episode overlap do not regress; a Stremio 1.12.1/Tizen 6 autoplay transition succeeds; recovery documentation matches live state; and the exact pre-change configuration remains a verified rollback point.
+**Done when:** The approved configuration is atomically applied and read back; Catalan → Spanish → English ordering, provider fallback, 480p, disjoint language membership and `min(4, candidate count)` English pools are verified across movies, regular series and anime; latency and adjacent-episode overlap do not regress; a Stremio 1.12.1/Tizen 6 autoplay transition succeeds; recovery documentation matches live state; and the exact post-trust, pre-write configuration remains a verified rollback point that differs from the original baseline only in server-authoritative `trusted`.
 
 ## SPEC
 
@@ -34,8 +34,8 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 ## PLAN
 
 **Plan:** [plan.md](./plan.md) — four sequential gates for secure baseline capture, exact-image candidate proof, atomic rollout with automatic rollback, and post-verification persistence/documentation.
-**Cursor:** Task 1 — capture a secure rollback point and representative live baseline.
-**Status:** ready
+**Cursor:** Task 3 — deploy and verify least-privilege trust wiring, freeze a fresh rollback source, then apply once under a second approval and audit every gate.
+**Status:** local trust wiring and corrected transaction plan validated; awaiting separate push/deployment approval
 
 ## LOG
 
@@ -199,6 +199,7 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 - Offline fixtures: 18 regex cases; 8 language/precedence/480p/provider/passthrough cases; 5 dynamic-pool cases (spread, clustered, sparse, missing-size, cached-reference); all expression arrays parsed.
 - Pinned-image proof: `ghcr.io/viren070/aiostreams:v2.31.1` returned `{"regexCases":18,"languageCases":8,"poolCases":5,"expressionArraysParsed":true}` against read-only synthetic fixtures.
 - Verification: generator compilation, baseline invariance comparison, semantic assertions, exact seven-field enumeration, frozen payload construction, and local hash inspection passed. Zero live AIOStreams requests or mutations occurred; 1Password, Kubernetes, Cloudflare, Stremio, providers, images, and credentials were not read or changed.
+
 ### 2026-07-30 12:51 — Task 3 write rejected and exact rollback verified
 
 - Write/readback: The single approved candidate PUT used frozen payload SHA-256 `87348007dcdf559f2be9bc3acf70820a24c3c83aedb07eac71c4de5c78fc4dea` for candidate SHA-256 `cde1f81c0bde3c6c6d9925de07a3b44f0549998363f7cc5e863003950cce6f5e`; the server returned HTTP 400 with an empty body, so candidate readback was unavailable and the PUT was not repeated.
@@ -210,3 +211,8 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 ### 2026-07-30 14:39 — Local least-privilege trust wiring
 
 - Root cause/local fix: the rejected ranked-regex candidate is not reissued; the existing saved-user UUID is mapped from the external secret to `TRUSTED_UUIDS`, trusting only that configuration without broad regex access or committed secret material.
+
+### 2026-07-30 15:52 — Post-trust transaction contract approved
+
+- Review/correction: exact pinned v2.31.1 source proves `TRUSTED_UUIDS` maps to `userLimits.trusted.uuids`, while updates and raw reads overwrite `trusted` from that runtime setting. The chart render, least-privilege scope, UUID privacy and unchanged regex-access policy pass local validation, but the original candidate equality and rollback hash would falsely fail against their frozen `trusted: false` inputs after deployment.
+- Approved transaction: after a separately approved deployment, require ExternalSecret and Deployment readiness plus raw `trusted: true`; freeze a fresh complete rollback source that differs from the original only in `trusted`; retain exact full semantic/hash rollback against that fresh snapshot; compare candidate readback after removing only `trusted` while separately requiring it to be true; and make every rollback stage fail closed. Push/deployment and the second candidate PUT remain separately gated and have not occurred.

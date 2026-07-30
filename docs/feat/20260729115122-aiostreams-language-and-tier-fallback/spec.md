@@ -374,17 +374,39 @@ Before writing live state:
 
 ### Atomic write and readback
 
+The ranked regexes require the saved UUID to be trusted under the existing
+`REGEX_FILTER_ACCESS=trusted` policy. That prerequisite is a separate,
+least-privilege GitOps rollout: map the existing 1Password `config_uuid` field
+through External Secrets to `TRUSTED_UUIDS` and inject it into the pinned
+AIOStreams Deployment. Do not commit the UUID, broaden regex access, or combine
+deployment approval with candidate-write approval.
+
+After that separately approved rollout and before any candidate write:
+
+1. Require the ExternalSecret to be ready and the Deployment rollout to be
+   available.
+2. Read the complete raw saved configuration and require `trusted: true`.
+3. Compare it with the original Task 1 baseline after removing only `trusted`;
+   no other field may differ.
+4. Save this complete post-trust, pre-write configuration and its hash as the
+   active rollback source.
+
+Then, under a second explicit approval:
+
 1. Submit the complete candidate configuration once with the replacement-only
    user API.
-2. Read the complete saved configuration back immediately.
-3. Compare it semantically with the intended payload.
-4. Compare all unrelated fields with the baseline and require no unintended
-   differences.
-5. Stop and restore the baseline on any write, readback, validation or
-   comparison failure.
+2. Read the complete saved configuration back immediately and require
+   `trusted: true` separately.
+3. Compare the readback semantically with the intended payload after removing
+   only `trusted`, because pinned v2.31.1 derives that field from
+   `TRUSTED_UUIDS` on updates and raw reads.
+4. Compare all unrelated fields with the active rollback source and require no
+   unintended differences.
+5. Stop and restore the active rollback source on any write, readback,
+   validation or comparison failure.
 
-No Kubernetes rollout, container restart, image build, Cloudflare mutation or
-Stremio reinstall is part of this operation.
+No additional Kubernetes rollout, container restart, image build, Cloudflare
+mutation or Stremio reinstall is part of the candidate-write operation.
 
 ## Acceptance criteria
 
@@ -431,13 +453,16 @@ Stremio reinstall is part of this operation.
 - Adjacent-episode `bingeGroup` row coverage does not regress for the tested
   regular series or anime pair.
 - One real next-episode transition succeeds on Stremio 1.12.1/Tizen 6.
-- Readback matches the intended complete configuration and no unrelated field
-  changed.
+- Readback has server-authoritative `trusted: true`, matches the intended
+  complete configuration after removing only `trusted`, and has no unrelated
+  field change.
 
 ## Rollback
 
-Rollback is the exact complete pre-change configuration captured immediately
-before the write. Do not construct a partial rollback object.
+Rollback is the exact complete post-trust, pre-write configuration captured
+immediately before the candidate write. It must match the original Task 1
+baseline after removing only server-authoritative `trusted`, and it must carry
+`trusted: true`. Do not construct a partial rollback object.
 
 Trigger rollback on any of the following:
 
@@ -454,10 +479,11 @@ Trigger rollback on any of the following:
 - adjacent-episode overlap regression; or
 - failed Samsung/Tizen autoplay transition.
 
-Restore the complete baseline with the replacement-only user API, read it back,
-verify its hash/semantic equality, and repeat representative response and
-autoplay checks. A rollback is not complete merely because the restore request
-returned success.
+Restore the complete active rollback source with the replacement-only user API,
+read it back, require exact full semantic and hash equality with that post-trust
+snapshot, and repeat representative response and autoplay checks. Every
+rollback stage must fail closed; a rollback is not complete merely because the
+restore request returned success.
 
 ## Persistence and documentation
 
