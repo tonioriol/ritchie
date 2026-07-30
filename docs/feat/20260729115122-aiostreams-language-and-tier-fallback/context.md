@@ -29,12 +29,13 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 - docs/STREMIO-AIOSTREAMS.md
 - docs/feat/20260729115122-aiostreams-language-and-tier-fallback/context.md
 - docs/feat/20260729115122-aiostreams-language-and-tier-fallback/spec.md
+- docs/feat/20260729115122-aiostreams-language-and-tier-fallback/plan.md
 
 ## PLAN
 
-**Plan:** Not written yet; the approved specification is ready for implementation planning.
-**Cursor:** Implementation planning — translate the approved specification into secure baseline, offline proof, atomic rollout, verification, persistence and rollback tasks.
-**Status:** in_progress
+**Plan:** [plan.md](./plan.md) — four sequential gates for secure baseline capture, exact-image candidate proof, atomic rollout with automatic rollback, and post-verification persistence/documentation.
+**Cursor:** Task 1 — capture a secure rollback point and representative live baseline.
+**Status:** ready
 
 ## LOG
 
@@ -169,3 +170,14 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 - Evidence: The pinned parser proof selected `[30,15,7,2]` from a spread pool and backfilled `[30,29,28,27]` from a clustered pool. The designed maximum is 8 leading language rows plus 32 English rows, totaling 40 under the global limit of 60. The specification contains 478 lines and was committed as the only file in commit `72ea23e` (`docs: define AIOStreams language tiers`).
 - Verification: `git diff --check` passed; scans found no placeholders, merge markers or secret-like URL/header assignments. `git show --name-only HEAD` listed only `docs/feat/20260729115122-aiostreams-language-and-tier-fallback/spec.md`. The user explicitly approved the written specification. Live-state mutation remains zero.
 - Commit: `72ea23e` — `docs: define AIOStreams language tiers`.
+
+### 2026-07-30 12:21 — Four-task implementation plan generated and pinned mechanism proved
+
+- Why: The approved specification required an executable plan that secured an immediate rollback point, proved the complete candidate before a live write, enforced language/pool/latency/autoplay gates, and persisted recovery state only after success.
+- What changed: Planning documents only. Added `plan.md` with four sequential tasks and moved the execution cursor to Task 1. No AIOStreams, Stremio, Kubernetes, Cloudflare, 1Password, provider or image state changed.
+- How (investigation): Final plan review found that ranked stream expressions execute before the global sorter, so an earlier compact prototype that used `slice(..., 0, 1)` while assigning tier tags could not guarantee the approved highest-priority row. Reworked the mechanism so 32 pool-unique ranked tags identify the maximum and half/quarter/eighth threshold sets without choosing final membership; eight English required selectors then choose distinct representatives and backfill after the global sort. Three preceding ranked expressions provide disjoint `C`, `S` and `E` language sets.
+- How (action): Wrote concrete mode-0700 baseline, 55-request timing matrix, Catalan live-positive discovery, adjacent-episode overlap, deterministic candidate generator, pinned-image synthetic validator, complete-config write/readback, response audit, latency rejection, Samsung/Tizen gate, rollback, 1Password template, operator documentation, historical supersession and local-commit steps. Included exact scripts and expected outputs rather than placeholders.
+- Decisions: Use three ranked regexes, 35 ranked stream expressions, three preferred stream expressions and 16 required stream expressions. Require the documented 12-selector baseline before generation. Keep `autoPlay` and `resultLimits` unchanged. Reject the first paired latency failure rather than perform an optional second live config cycle. Preserve no-write status until Task 3 passes the external-mutation confirmation gate.
+- Evidence: The complete generated candidate contains 54 stream expressions totaling 32,110 characters; the longest is 1,464 characters, within pinned v2.31.1 limits of 200 expressions, 50,000 total characters and 3,000 characters per expression. Exact-image validation passed 18 regex cases, eight language/precedence/480p/provider/passthrough cases and five dynamic-pool cases, including reversed pre-sort input, cached-reference behavior, missing sizes, sparse pools and exact unique `min(4, candidate count)` output.
+- Verification: Every embedded Python block compiled; the embedded generator reproduced the expected counts and limits from the verified saved-config artifact; the embedded JavaScript validator passed inside `ghcr.io/viren070/aiostreams:v2.31.1`; placeholder/conflict and whitespace checks passed after self-review corrections. Live-state mutation remains zero.
+- Commit: pending with `plan.md` and this ledger update.
