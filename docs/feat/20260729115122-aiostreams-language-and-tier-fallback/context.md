@@ -206,3 +206,7 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 - Automated gates: Post-change capture stopped at the failed write gate (`0/55` responses and `0/55` timings). Language/order/uniqueness/provider/pool/bounds and movie/series/anime membership audits were therefore not run; no post-change language, provider, pool, 480p or bounds claim is made.
 - Latency comparison: Post medians were not measured. Baseline median → threshold seconds: `matrix 2.454915→2.954915`, `godfather 2.756854→3.256854`, `dune2 3.125734→3.625734`, `alcarras 0.622151→1.122151`, `el47 0.677976→1.177976`, `casaenflames 0.278836→0.778836`, `creatura 0.294913→0.794913`, `breakingbad-e01 1.733256→2.233256`, `breakingbad-e02 1.604964→2.104964`, `attackontitan-e01 1.067365→1.567365`, `attackontitan-e02 0.960206→1.460206`; all 11 comparisons were skipped after rollback.
 - Adjacent overlap/Tizen: Post overlap was not measured. Baseline first-row coverage/shared groups remained `breakingbad 0.727273/13` and `attackontitan 0.705882/10`; both comparisons were skipped after rollback. The Stremio `1.12.1`/Tizen `6` transition was not reached and is not pending against the restored pre-change runtime.
+
+### 2026-07-30 14:39 — Local least-privilege trust wiring
+
+- Root cause/local fix: the rejected ranked-regex candidate is not reissued; the existing saved-user UUID is mapped from the external secret to `TRUSTED_UUIDS`, trusting only that configuration without broad regex access or committed secret material.

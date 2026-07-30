@@ -35,6 +35,7 @@ externalSecret:
   # 1Password field label -> k8s Secret key
   fields:
     secret_key: SECRET_KEY
+    config_uuid: TRUSTED_UUIDS
     torbox_api_key: TORBOX_API_KEY
     realdebrid_api_key: REALDEBRID_API_KEY
 

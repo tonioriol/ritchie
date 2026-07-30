@@ -49,6 +49,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-secrets
                   key: SECRET_KEY
+            - name: TRUSTED_UUIDS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: TRUSTED_UUIDS
             # Pre-fills the debrid credentials on the configure page so a new
             # configuration starts with TorBox + Real-Debrid already populated.
             - name: DEFAULT_SERVICE_CREDENTIALS
