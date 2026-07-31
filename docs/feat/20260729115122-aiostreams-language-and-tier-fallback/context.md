@@ -1,6 +1,6 @@
 ---
 title: "Add AIOStreams language sections and dynamic size tiers"
-status: active
+status: done
 repos: [ritchie]
 tags: [deployment]
 related: [20260726235500-feat-aiostreams-deployment]
@@ -11,15 +11,15 @@ created: 2026-07-29
 
 ## TASK
 
-**Goal:** Present Catalan, Spanish and English result sections in that order, re-enable 480p, and return up to four dynamically size-spaced English rows per service and resolution for movies, regular series and anime.
+**Goal:** Present Catalan, Spanish and English result sections in that order, re-enable 480p, return up to four dynamically size-spaced English rows per service and resolution for movies, regular series and anime, and prefix the three classified sections with stable language flags.
 
 The current 12 ordered movie selectors intentionally omit sparse fixed-size tiers, which can reduce a populated resolution/provider block to one result. The approved replacement derives English representatives from each pool's maximum, half, quarter and eighth sizes, then fills missing slots from the best remaining rows. Catalan and Spanish each contribute at most one TorBox-first row for 2160p, 1080p, 720p and 480p across providers. English is explicit rather than language-neutral and retains separate TorBox and Real-Debrid blocks.
 
-**Done when:** The approved configuration is atomically applied and read back; Catalan → Spanish → English ordering, provider fallback, 480p, disjoint language membership and `min(4, candidate count)` English pools are verified across movies, regular series and anime; latency and adjacent-episode overlap do not regress; a Stremio 1.12.1/Tizen 6 autoplay transition succeeds; recovery documentation matches live state; and the exact post-trust, pre-write configuration remains a verified rollback point that differs from the original baseline only in server-authoritative `trusted`.
+**Done when:** The complete saved configuration is atomically applied and read back; Catalan → Spanish → English ordering, provider fallback, 480p, disjoint language membership and `min(4, candidate count)` English pools are verified across movies, regular series and anime; all 11 latency gates pass; both tested adjacent pairs are non-empty and share at least one exact generated `bingeGroup`; and the formatter prefixes classified Catalan, Spanish and English rows with 🇦🇩, 🇪🇸 and 🇬🇧 respectively. The previously planned physical Stremio 1.12.1/Tizen 6 transition, 1Password recovery-template update and broader operator-guide refresh were not run after the user explicitly requested the live change be finished without further process; they are recorded as skipped rather than claimed as passing.
 
 ## SPEC
 
-[spec.md](./spec.md) — approved config-only design for disjoint language sections, dynamic English size tiers, atomic rollout, measurable regression gates and complete rollback.
+[spec.md](./spec.md) — approved config-only design for disjoint language sections, dynamic English size tiers, atomic rollout, shared-group plus mandatory Tizen autoplay gates, and complete rollback.
 
 ## FILES
 
@@ -37,9 +37,9 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 
 ## PLAN
 
-**Plan:** [plan.md](./plan.md) — four sequential gates for secure baseline capture, exact-image candidate proof, atomic rollout with automatic rollback, and post-verification persistence/documentation.
-**Cursor:** Task 3 — deploy and verify least-privilege trust wiring, freeze a fresh rollback source, then apply once under a second approval and audit every gate.
-**Status:** local trust wiring and corrected transaction plan validated; awaiting separate push/deployment approval
+**Plan:** [plan.md](./plan.md) — completed baseline, candidate, trust, amended automated rollout and language-flag work; preserves the intentionally skipped physical-client and recovery-template steps as unchecked historical gates.
+**Cursor:** Complete — live selection and three-language formatter retained; durable reconstruction committed locally.
+**Status:** done; no live mutation, 1Password edit, deployment or push remains authorized or pending
 
 ## LOG
 
@@ -230,3 +230,134 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 
 - Final review fixes: every post-write evidence display now fails through the rollback wrapper; Tizen evidence is structured and must explicitly record a passing Stremio `1.12.1`/Tizen `6` transition; and the runtime summary includes all 11 latency entries and revalidates five baseline samples, five post samples and `accepted: true` for each endpoint.
 - Completion semantics: an on-device failure always triggers verified rollback and blocks completion/candidate retention. It may be classified as a separate client issue only after rollback; classification cannot waive this rollout's acceptance criteria. No external action occurred.
+
+### 2026-07-31 15:12 — Trusted candidate accepted, anime ratio gate failed, exact rollback verified, acceptance amended
+
+- Why: The user approved exactly one further complete candidate PUT, all automated audits and immediate verified rollback on failure. The saved user was already trusted through signed GitOps revision `5139f1772dffdb7de8283b4cc03a58ee78c9f46c`, and the frozen candidate, payload and trusted rollback hashes were respectively `cde1f81c0bde3c6c6d9925de07a3b44f0549998363f7cc5e863003950cce6f5e`, `87348007dcdf559f2be9bc3acf70820a24c3c83aedb07eac71c4de5c78fc4dea` and `cf553a877a4a8a35b8db7e5788ff045b5f3e664b0bef64c9320bf407585fc2f6`.
+- What changed: The one approved PUT was accepted and read back with `trusted: true` and exact equality outside server-owned `trusted`. All 11 endpoints returned five valid responses; language/order/provider/pool/bounds, movie/series/anime membership and all 11 median-latency gates passed. The old autoplay comparator then rejected Attack on Titan because coverage changed from `13/17` (`0.7647058824`) to `2/3` (`0.6666666667`) even though one exact generated group remained shared. The transaction immediately restored the complete trusted baseline. No candidate remains active.
+- How (investigation): All five candidate samples were stable: Attack on Titan episode 1 had three rows, episode 2 had two rows, two first-episode rows matched the next episode and one unique group was shared. The retained Spanish 1080p row changed from Real-Debrid `CameEsp` in episode 1 to TorBox `LuisHDZ` in episode 2 because the approved Spanish selector is TorBox-first; both TorBox and Real-Debrid English 720p rows retained `Me7alh`. Breaking Bad improved from baseline coverage `16/22` to `16/18` with ten shared groups. Every selected row retained a generated `bingeGroup`; this was a release-group continuity ratio issue, not missing metadata.
+- How (action): The live mutation was exactly one complete `PUT /api/v1/user`. On comparator failure, the pre-defined rollback submitted the complete trusted baseline, required a successful response and `trusted: true`, compared canonical complete configs and exact SHA-256, validated one response for all 11 endpoints, and reran adjacent-group checks. Rollback reported `exact config, hash, 11 responses, and adjacent groups verified`. The temporary in-cluster 1Password Connect port-forward used only to replace broken desktop CLI authentication was stopped; it did not edit 1Password. No 1Password document edit, push, image build, restart or other deployment occurred.
+- Decisions: A proposed bilingual Spanish/English overlap was approved provisionally, then rejected during plan self-review because `streamExpressionMatched` would display the additional bilingual English-pool row as Spanish, creating two Spanish 1080p rows and violating the strict one-row slot. The final approved correction keeps the original disjoint `C → S → E` sets, strict one-row Catalan/Spanish slots and TorBox-first provider behavior. Server autoplay acceptance now requires non-empty adjacent responses and at least one exact shared generated `bingeGroup` for both regular series and anime; row coverage remains mandatory reported evidence but is not independently rejecting. The real Stremio `1.12.1`/Tizen `6` playback transition remains mandatory and authoritative; failure still triggers exact rollback.
+- Evidence: Candidate automated output reached `response audit: language/order/provider/pool/bounds PASS`, movie/series/anime membership PASS and `latency: 11/11 endpoint medians PASS`. Post-candidate adjacent evidence was Breaking Bad `18/16` rows, `12/10` unique groups, ten shared groups and `0.8888888889` coverage; Attack on Titan `3/2` rows, `2/2` unique groups, one shared group and `0.6666666667` coverage. Rollback evidence was Breaking Bad `22/23` rows, 14 shared groups and `0.7272727273` coverage; Attack on Titan `18/15` rows, nine shared groups and `0.7777777778` coverage.
+- Verification: The amended `spec.md` restores disjoint selectors and changes only the server acceptance rule. `plan.md` adds Task 2A with RED/GREEN tests for lower-coverage-with-overlap acceptance, no-overlap rejection and empty-response rejection; it re-proves byte-identical candidate/payload hashes, rechecks the trusted rollback hash, and hard-stops for new approval. `git diff --check` passed. Only `spec.md`, `plan.md` and this `context.md` are intentionally modified; no implementation or further live PUT is authorized.
+- Commit: none; the user requested written specification and plan review before implementation, and no push is authorized.
+
+### 2026-07-31 15:21 — Amended autoplay gate proved offline and unchanged candidate re-frozen
+
+- Why: The user approved only Task 2A's offline proof and required a stop for separate approval before any further live PUT.
+- What changed: Created private temporary comparator tests and a minimal comparator in the existing mode-0700 work directory, replayed the retained baseline/candidate autoplay evidence, regenerated the unchanged candidate and payload, reran the exact pinned-image selector proof, and reverified the trusted rollback source. No saved configuration or external system changed.
+- How (TDD): The three tests first errored because `compare-autoplay.py` did not exist. After implementing the approved condition, all three passed: lower coverage with an exact shared group is accepted and reported; zero shared groups and an empty adjacent response each fail closed.
+- Evidence: Retained Breaking Bad evidence passed with `18/16` rows, ten shared groups and coverage improving from `16/22` to `16/18`. Retained Attack on Titan evidence passed with non-empty `3/2` rows and one shared group while preserving the non-blocking coverage report from `13/17` to `2/3`. Candidate config SHA-256 remains `cde1f81c0bde3c6c6d9925de07a3b44f0549998363f7cc5e863003950cce6f5e`; candidate payload SHA-256 remains `87348007dcdf559f2be9bc3acf70820a24c3c83aedb07eac71c4de5c78fc4dea`; trusted rollback SHA-256 remains `cf553a877a4a8a35b8db7e5788ff045b5f3e664b0bef64c9320bf407585fc2f6` with `trusted: true`.
+- Verification: Fields outside server-owned `trusted` and the seven intended policy fields remain identical to the trusted rollback source. The local pinned image resolved to digest `sha256:26d93653c3a5d0835db9189d6aca21d05614e68107c4d4a3ec7196b60c88c3bc` and passed 18 regex cases, eight disjoint-language cases, five pool cases and complete expression parsing. The first validator invocation failed before container startup because the restricted shell PATH omitted `/usr/local/bin`; using the resolved OrbStack CLI path reran the unchanged command successfully. No AIOStreams API call, cluster request, 1Password edit, deployment, commit or push occurred.
+- Decision: Task 2A is complete. All earlier PUT approvals are consumed; Task 3 remains blocked pending a new explicit approval for exactly one complete candidate PUT, amended automated gates and immediate verified rollback on any failure.
+- Commit: none.
+
+### 2026-07-31 15:31 — Final transaction reduced to the approved automated gates
+
+- Why: The user objected that a saved-configuration update had expanded into excessive process and asked for one final apply, verification and rollback only on actual failure.
+- What changed: **Implemented transaction correction.** The existing private `run-approved-transaction.sh` wrapper was narrowed to the already approved behavior: one complete candidate PUT, immediate exact readback outside server-owned `trusted`, representative response and latency audits, and the tested adjacent-episode shared-group comparator. No candidate or selector field changed.
+- How (investigation): Syntax review found the wrapper still contained the superseded inline coverage-ratio rejection even though `compare-autoplay.py` had already proved the amended rule. A separate heredoc edit first failed with `SyntaxError: EOF while scanning triple-quoted string literal` because the outer delimiter collided with an inner `PY`; a unique outer delimiter fixed the edit. `/bin/zsh -n run-approved-transaction.sh` then passed.
+- How (action): Replaced the stale ratio check with `python3 audit-autoplay.py after`, `python3 compare-autoplay.py baseline-autoplay.json after-autoplay.json`, and `jq -e 'all(.[]; .accepted == true)' autoplay-comparison.json`. The wrapper still defined rollback before the PUT and invoked it only if a post-write gate failed.
+- Decisions: Do not restart containers, reinstall the addon, modify the candidate, perform an intermediate write, or repeat a failed candidate write. The physical Tizen transition and recovery-template/operator-documentation sequence from the earlier enterprise-style plan were not conditions of this final user-approved automated transaction.
+- Evidence: `test-compare-autoplay.py` remained green with three tests: lower coverage with a shared group passes, no shared group fails, and an empty adjacent response fails.
+- Verification: Candidate, payload and trusted rollback hashes remained `cde1f81c0bde3c6c6d9925de07a3b44f0549998363f7cc5e863003950cce6f5e`, `87348007dcdf559f2be9bc3acf70820a24c3c83aedb07eac71c4de5c78fc4dea` and `cf553a877a4a8a35b8db7e5788ff045b5f3e664b0bef64c9320bf407585fc2f6`.
+- Commit: none; private transaction tooling and evidence were intentionally not tracked.
+
+### 2026-07-31 16:19 — Final language-selection candidate retained after all automated gates passed
+
+- Why: The user explicitly approved the exact final wrapper command for one complete candidate write, automated verification and rollback only on failure.
+- What changed: **Implemented live.** The complete AIOStreams saved configuration now uses the approved three disjoint language sections, four resolutions, TorBox-first provider-neutral Catalan/Spanish slots, and separate dynamic TorBox/Real-Debrid English pools for movies, regular series and anime. The candidate remained active; rollback was not invoked.
+- How (investigation): Immediately before the write, the wrapper rechecked the trusted live baseline, frozen candidate/payload hashes, complete unrelated-field invariance and the tested comparator. After the write it captured five responses for each of 11 representative endpoints, inspected preferred-expression names and ranked memberships, compared per-endpoint medians and audited both adjacent episode pairs.
+- How (action): Submitted exactly one complete `PUT /api/v1/user`; the API returned `{"success":true,"detail":"User updated successfully"}`. `GET /api/v1/user?raw=true` returned `trusted: true` and matched the candidate exactly after removing only server-authoritative `trusted`.
+- Decisions: Retain the candidate because every automated gate passed. Do not perform the earlier physical Tizen transition, 1Password document replacement or operator-guide expansion: the user had explicitly asked to finish the simple config update and stop adding process. Preserve those unchecked steps in `plan.md` so they are not misreported as completed.
+- Evidence: Readback SHA-256 was `46f6ba8e7c4f3faf8dccf79e8800d20aa1f21590b9f802a9f410b804cae48eed`; the difference from the candidate hash is the server-owned `trusted: true` field. Readback had four preferred resolutions, three ranked regexes, 35 ranked stream expressions, three preferred stream expressions, 16 required stream expressions and `autoPlay: null`. Eleven first-response audits contained 3 Catalan rows, live English 480p rows and at most 19 total rows in any response. All section/order/provider/pool/bounds checks passed, and representative movie, regular-series and anime membership files contained unique explicit-English IDs.
+- Verification: All 55 post-change requests returned valid `streamData`. All 11 median gates passed: post medians ranged from `8.340669s` to `9.499075s` and remained below their per-endpoint thresholds. Breaking Bad retained `18/16` adjacent rows, ten shared groups and coverage `0.8888888889` versus baseline `0.7272727273`. Attack on Titan retained `3/2` rows, one shared group and coverage `0.6666666667` versus baseline `0.7647058824`; the lower ratio was correctly reported but non-rejecting. No 1Password edit, image build, deployment, restart, Cloudflare change, provider mutation or Stremio reinstall occurred.
+- Commit: none; this was replacement-only saved-user state, not a tracked runtime file.
+
+### 2026-07-31 16:32 — Server-side scope and live Catalan behavior clarified
+
+- Why: The user asked whether the result change was made in Stremio or Nuvio and whether Catalan results had actually been tested.
+- What changed: **Investigatory clarification.** Established that the mutation is in AIOStreams' server-side saved configuration, so both Stremio and Nuvio receive the same behavior whenever they use the same encrypted addon URL. No client installation or app source changed.
+- How (investigation): Compared the final saved-config readback with representative AIOStreams stream responses. The response audit used `streamData.streamExpressionMatched.name`, not display text, to classify retained rows.
+- How (action): No mutation. Reported the architecture and the retained live Catalan evidence.
+- Decisions: Treat AIOStreams as the source of selection and display metadata. Client-specific behavior is relevant only to how the returned plain-text `name` and `description` are rendered.
+- Evidence: The representative set retained three Catalan-classified rows across `alcarras` and `creatura`; `alcarras` alone returned two Catalan rows plus two Spanish rows in the correct section order.
+- Verification: The live response audit's `catalanRows` count was `3`, and the final candidate remained active with exact saved-config readback outside `trusted`.
+- Commit: none.
+
+### 2026-07-31 17:08 — Stremio and Nuvio styling limits established
+
+- Why: The user wanted a visible language marker and asked whether colored text, pipe characters, HTML, Markdown, CSS or client badge rules could represent Catalan, Spanish and English.
+- What changed: **Investigatory design conclusion.** Both target clients treat addon stream labels as plain text; ordinary Unicode emoji are the only portable inline visual marker available without modifying a client.
+- How (investigation): Read the Stremio Addon SDK stream-response contract and inspected Nuvio's public Kotlin/Compose renderer. `StreamCard.kt` renders the addon-provided stream label with Compose `Text`; `StreamModels.kt` maps the AIOStreams `name` directly to `streamLabel`. `StreamBadgeRules.kt` can match local text and `StreamBadgeChip.kt` supports locally configured colors, but the current stream-card badge path is client-owned/image-oriented and cannot be driven by HTML/CSS embedded in an addon string. AIOStreams formatter source confirmed `name` and `description` are strings and its custom formatter exposes the preferred-expression name as `{stream.seMatched}`.
+- How (action): No live mutation. Rejected HTML, Markdown, ANSI escape sequences, CSS and colored-pipe proposals because neither Stremio nor Nuvio interprets those constructs in addon stream fields.
+- Decisions: Use plain Unicode flag emoji prepended by the AIOStreams formatter. Key the conditions to AIOStreams' selected preferred-expression name rather than re-parsing filenames in the formatter or client.
+- Evidence: Nuvio uses plain Compose text styles for the label, and Stremio exposes no structured per-stream language badge/flag field. Local Nuvio badge rules are not a portable server-provided styling channel.
+- Verification: Read-only source inspection only; no AIOStreams API call, client build, deployment or repository edit occurred.
+- Commit: none.
+
+### 2026-07-31 17:20 — Catalonia flag fallback diagnosed and formatter syntax proved
+
+- Why: A Catalonia subdivision flag rendered as a black flag. The user asked what Catalan speakers commonly use when the Catalan-specific glyph is unavailable and ultimately selected the Andorra flag.
+- What changed: **Approved display design.** Catalan rows use 🇦🇩 because Catalan is Andorra's sole official language and the standard regional-indicator emoji has broad client support. Spanish and English were later required to receive 🇪🇸 and 🇬🇧 as well.
+- How (investigation): The Catalonia subdivision sequence starts with `U+1F3F4 BLACK FLAG`, followed by Unicode tag characters and a cancel tag. Clients without subdivision-sequence support render only the black base. Web research and community usage showed no universally portable Catalonia emoji; text labels, the Spain flag and the Andorra flag are common fallbacks. Search-provider failures were non-functional detours: one Parallel request reported insufficient credit, Exa returned HTTP 404 and later Parallel/Tavily searches supplied enough corroboration. A broad `rg` query for `CAT` also produced roughly 1.1 MB of irrelevant shell/git/translation matches; narrowing to exact black-flag code points, `es-ct`/`es_ct` and structured fields found no literal Catalonia sequence in captured AIOStreams data or Nuvio source.
+- How (action): Proved the exact AIOStreams custom-formatter condition through the non-persistent `POST /api/v1/format` preview endpoint: `{stream.seMatched::=Catalan["🇦🇩 "||""]}`. Several environment/tooling failures were corrected without live mutation: noninteractive PATH lacked `docker`, so the installed absolute CLI was used; the image lacked ordinary `node` on PATH, so its `/nodejs/bin/node` entrypoint was used; direct compiled-module import raised `ReferenceError: Cannot access 'root' before initialization`, so the supported preview endpoint replaced it; a serialized addon string caused `FORMAT_INVALID_STREAM`, so the request used the expected addon object; and zsh-only `${lang:l}` failed under `/bin/sh`, so explicit language/slug pairs replaced it.
+- Decisions: Do not use the unsupported Catalonia sequence. Keep the existing formatter body unchanged and prepend only exact classification conditions.
+- Evidence: Preview output showed 🇦🇩 only for a Catalan-classified row and no black-flag glyph. Spanish and English fixture previews remained unprefixed in the initial Catalan-only candidate, which later exposed the scope misunderstanding.
+- Verification: The preview endpoint parsed and rendered the condition in deployed AIOStreams v2.31.1 without persisting configuration.
+- Commit: none.
+
+### 2026-07-31 17:34 — First Catalan-only PUT correctly rolled back after a false verifier failure
+
+- Why: The user approved one formatter-only PUT to replace the unsupported Catalonia glyph with 🇦🇩 on Catalan rows.
+- What changed: **Attempted then rolled back.** The candidate changed only `formatter.definitions.custom.name`, was accepted and read back exactly, and produced correct Catalan output. The wrapper nevertheless classified the live check as failed and restored the exact previous configuration.
+- How (investigation): The first verifier inferred Catalan membership from filename text. In the live Alcarràs response, two rows classified by AIOStreams as Catalan correctly began with 🇦🇩. A third filename contained `Catalan+Subs` but AIOStreams had correctly assigned `streamExpressionMatched.name: "Spanish"`; it correctly had no Catalan flag. The filename heuristic treated that Spanish row as Catalan and caused the false failure.
+- How (action): The guarded wrapper performed one complete PUT, exact readback, live Alcarràs fetch, then automatic complete rollback when the focused verifier returned false. Rollback readback matched the pre-write configuration exactly; no broken formatter remained active.
+- Decisions: A verifier must judge the feature using the same semantic source as the formatter. Filename text is unsuitable because filenames can mention subtitle languages that do not define the selected section.
+- Evidence: Transaction output was `preflight passed`, `one candidate PUT accepted`, `exact readback verified`, `FAIL: Catalan flag verification failed`, `verification failed; restoring prior config`, `rollback verified`. The captured Spanish-classified filename was `Alcarras [BluRay 1080p][AC3 5.1 Castellano AC3 5.1-Catalan+Subs][ES-EN]`.
+- Verification: Post-rollback complete readback matched the prior saved configuration. No unrelated field, deployment, client, 1Password item or tracked file changed.
+- Commit: none.
+
+### 2026-07-31 17:47 — Catalan verifier corrected test-first to use AIOStreams classification
+
+- Why: The false rollback proved the live output was correct but the acceptance oracle was wrong; retrying without fixing the oracle would repeat the same failure.
+- What changed: **Implemented private verifier fix.** Added `test-catalan-verifier.sh` and `verify-catalan-response.jq` in the private run directory, then changed the transaction wrapper to select rows by `streamData.streamExpressionMatched.name == "Catalan"`.
+- How (investigation): The regression fixture contains a Catalan-classified flagged row, a Spanish-classified filename mentioning `Catalan+Subs`, and non-Catalan rows. The initial test failed with `FAIL: Catalan verifier implementation is missing`, establishing RED before the jq verifier existed.
+- How (action): Implemented three assertions: at least one classified Catalan row exists; every classified Catalan row starts with 🇦🇩 and contains no black flag; every non-Catalan row does not start with 🇦🇩. Updated only the verifier call in `apply-andorra-flag.sh` and syntax-checked the wrapper.
+- Decisions: Always use `streamExpressionMatched.name` for display-section verification. Filename and subtitle metadata remain evidence but never override AIOStreams' actual preferred-expression result.
+- Evidence: The corrected test printed `PASS: classified Catalan rows are flagged and non-Catalan rows are not`.
+- Verification: Test fixture passed, captured failed-transaction response passed under the corrected verifier, and no live PUT occurred during the fix.
+- Commit: none; private test and wrapper artifacts were not tracked.
+
+### 2026-07-31 17:58 — Corrected Catalan-only formatter retained
+
+- Why: After the test-first verifier fix, the user separately approved the exact retry command.
+- What changed: **Implemented live.** The same formatter-only Catalan candidate was submitted once, read back exactly and retained after the corrected classified-row verifier passed.
+- How (investigation): Preflight re-read the complete live configuration and required it to equal the known rollback source before submitting the unchanged candidate.
+- How (action): One complete `PUT /api/v1/user` succeeded. The wrapper fetched Alcarràs, ran `verify-catalan-response.jq` and kept the candidate because all checks passed. Rollback remained defined but was not invoked.
+- Decisions: Retain the Catalan-only formatter temporarily; no selector, provider, resolution, expression, autoplay or trust field changed.
+- Evidence: The resulting complete config SHA-256 was `e63db20d2137464ad0c610f22d4295602105ceeed49c1c2a1419822bd16a0a2c`.
+- Verification: Exact readback and focused live verification passed; classified Catalan rows used 🇦🇩 and non-Catalan rows did not.
+- Commit: none.
+
+### 2026-07-31 18:04 — Three-language flag correction applied and freshly reverified
+
+- Why: The user correctly objected that adding only a Catalan flag left Spanish and English unmarked. The intended complete display mapping became Catalan → 🇦🇩, Spanish → 🇪🇸, English → 🇬🇧.
+- What changed: **Implemented live.** Added exact Spanish and English preferred-expression conditions before the unchanged formatter body. The final formatter-only configuration is active.
+- How (investigation): Built the candidate from the exact Catalan-only live config. A structural scalar-path comparison showed the sole changed path was `formatter.definitions.custom.name`. The first preview batch silently produced no requests because `rg '"name": "Catalan"'` expected pretty-printed spacing in compact JSON; parsing every captured response structurally in Python by `streamExpressionMatched.name` fixed fixture discovery. `test-language-flags.sh` first failed with `FAIL: language flag verifier is missing`, then passed after `verify-language-flags.jq` implemented exact classification-based checks for all three languages.
+- How (action): Under separate approval, `apply-language-flags.sh` required current hash `e63db20d2137464ad0c610f22d4295602105ceeed49c1c2a1419822bd16a0a2c`, candidate hash `2e819f680881573e7f137c14434bd1817b4c39e3d1a8647d76a875b401c18a89`, exact live preflight equality and a defined rollback. It submitted one complete PUT; the API returned `{"success":true,"detail":"User updated successfully"}`. It then required exact saved-config readback outside `trusted`, fetched Alcarràs for Catalan/Spanish and Attack on Titan for English, combined the responses and ran the three-language verifier. No gate failed, so rollback was not invoked.
+- Decisions: Use exact formatter comparisons against `Catalan`, `Spanish` and `English`; do not infer from filenames, parsed-language arrays or client behavior. Keep all existing selection, size, provider and description formatting unchanged.
+- Evidence: Candidate and final readback SHA-256 are both `2e819f680881573e7f137c14434bd1817b4c39e3d1a8647d76a875b401c18a89`. Fresh examples were `Catalan: 🇦🇩 TB ⚡ 1080p · 2.36 GB`, `Spanish: 🇪🇸 RD ⚡ 1080p · 2.01 GB`, and `English: 🇬🇧 TB ⚡ 720p · 649.28 MB`.
+- Verification: `test-language-flags.sh` printed `PASS: all classified language rows use the expected flag`; final saved config matched the expected candidate exactly outside server-owned `trusted`; fresh representative responses passed the same verifier. No 1Password, Kubernetes, Cloudflare, image, provider, client-install or tracked runtime mutation accompanied the PUT.
+- Commit: none; this was saved-user state only.
+
+### 2026-07-31 18:31 — Complete durable reconstruction prepared for local commit
+
+- Why: The user requested a total reconstruction sufficient to start a new task with no conversation history and explicitly requested a commit.
+- What changed: **Implemented documentation.** Reconciled the canonical ledger, approved design and executable plan with the actual final runtime state. Preserved all earlier uncommitted autoplay-amendment edits, added the successful selection rollout, rendering research, Unicode decision, failed Catalan verifier/rollback, test-first correction, Catalan retry and final three-language correction. Marked the task done while explicitly leaving the unperformed physical Tizen, 1Password template and broad operator-guide steps unchecked.
+- How (investigation): Read the complete task `context.md`, `spec.md` and relevant `plan.md` sections; inspected repository status, recent task commits and the exact pre-existing diff; verified private artifact hashes and compact gate outputs; reran both private flag-verifier test scripts; compared final candidate/readback projections and enumerated the sole final scalar diff path. Complete configs, encrypted routes, credentials and raw authenticated URLs remained outside Git and were not printed.
+- How (action): Updated only this task's three Markdown records. No live AIOStreams request or external mutation was needed for reconstruction.
+- Decisions: Commit only `context.md`, `spec.md` and `plan.md`. Do not retroactively mark skipped plan gates as successful, edit the user-owned prior-task `scratch.md`, update 1Password, deploy, restart, or push.
+- Evidence: Repository preflight showed branch `main`, HEAD/origin at `5139f17`, exactly three modified task files and no staged changes. Final artifact rechecks reproduced selection readback hash `46f6ba8e7c4f3faf8dccf79e8800d20aa1f21590b9f802a9f410b804cae48eed`, final flag config hash `2e819f680881573e7f137c14434bd1817b4c39e3d1a8647d76a875b401c18a89`, 11/11 accepted latency medians and passing Catalan/all-language verifier output.
+- Verification: Documentation schema, frontmatter, relative links, placeholder/conflict markers, checkbox syntax, whitespace, absolute home paths and credential-shaped added lines all passed. The final unstaged and staged path lists contained only this task's `context.md`, `spec.md` and `plan.md`.
+- Commit: this reconstruction is committed by the local documentation commit containing this entry; its hash is reported after commit verification. No push was requested or performed.

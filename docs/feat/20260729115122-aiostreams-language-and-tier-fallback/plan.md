@@ -4,7 +4,7 @@
 
 **Goal:** Atomically replace the current movie-only fixed-size selectors with verified Catalan, Spanish and English sections, 480p admission, and four pool-relative English representatives for movies, regular series and anime.
 
-**Architecture:** Keep the pinned AIOStreams v2.31.1 image and change only the existing user's complete saved configuration. Three bounded ranked regexes and three disjoint ranked stream-expression tags classify language; preferred expressions plus a leading descending `streamExpressionMatched` sort key establish Catalan → Spanish → English order. Thirty-two compact ranked tags calculate each English pool's cached-first maximum and half/quarter/eighth threshold sets before sorting; sixteen required selectors run after global sorting, retain one Catalan/Spanish row per resolution with limiter passthrough, and choose distinct maximum/half/quarter/eighth English rows before backfilling each pool to four.
+**Architecture:** Keep the pinned AIOStreams v2.31.1 image and change only the existing user's complete saved configuration. Three bounded ranked regexes and three disjoint ranked stream-expression tags classify language; preferred expressions plus a leading descending `streamExpressionMatched` sort key establish Catalan → Spanish → English order. Thirty-two compact ranked tags calculate each English pool's cached-first maximum and half/quarter/eighth threshold sets before sorting; sixteen required selectors run after global sorting, retain one Catalan/Spanish row per resolution with limiter passthrough, and choose distinct maximum/half/quarter/eighth English rows before backfilling each pool to four. Adjacent-episode server evidence requires retained rows and at least one exact shared generated `bingeGroup` for both a regular series and anime; row coverage remains reported evidence, while a real Stremio 1.12.1/Tizen 6 playback transition is the authoritative autoplay gate.
 
 **Tech Stack:** AIOStreams v2.31.1 User API and stream-expression language, pinned `ghcr.io/viren070/aiostreams:v2.31.1` image, Python 3, Node.js in the pinned image, `curl`, `jq`, Docker, 1Password CLI, Markdown.
 
@@ -18,6 +18,8 @@
 - Preserve stream IDs, never duplicate an ID to fill a tier, and require each English pool to contain exactly `min(4, eligible candidate count)` retained IDs.
 - Catalan is a bounded filename/folder heuristic, not a canonical parsed language; subtitle-only markers, lowercase `cat` and embedded substrings must not match.
 - English requires explicit parsed `English`; unknown, unlabelled, `Multi`-only and `Dual Audio`-only rows are not English.
+- For both regular-series and anime adjacent pairs, require non-empty retained responses and at least one exact shared generated `bingeGroup`; calculate and report row coverage against baseline but do not reject solely because the ratio is lower.
+- Require one real Stremio 1.12.1/Tizen 6 next-episode transition to start playback; opening only the next episode page or stream list is failure and requires exact verified rollback.
 - Store credentials, route components, complete live configs and raw authenticated responses only under a mode-`0700` timestamped `/tmp` directory; never add them to Git or print them.
 - Use 1Password account `PRBEZ6ELGNCMDIK6YVMRW5TTXQ` for every `op` command.
 - On any parser, expression, write, readback, unrelated-field, language, ordering, fallback, pool-count, overflow, repeated-latency, adjacent-episode or Samsung/Tizen gate failure, restore the exact complete active rollback source and verify its configuration, representative responses and adjacent-episode behavior before stopping.
@@ -33,6 +35,8 @@
 - Create temporarily: `/tmp/aiostreams-language-tiers-<UTC timestamp>/validate-candidate.mjs` — exact-image synthetic regex, precedence, dynamic-pool and parser proof.
 - Create temporarily: `/tmp/aiostreams-language-tiers-<UTC timestamp>/audit-responses.py` — compact live language/order/pool/result-bound audit.
 - Create temporarily: `/tmp/aiostreams-language-tiers-<UTC timestamp>/audit-autoplay.py` — adjacent-episode group overlap and row-coverage comparison.
+- Create temporarily: `/tmp/aiostreams-language-tiers-<UTC timestamp>/compare-autoplay.py` — amended acceptance comparator: non-empty rows plus at least one shared group, with non-blocking baseline/post coverage evidence.
+- Create temporarily: `/tmp/aiostreams-language-tiers-<UTC timestamp>/test-compare-autoplay.py` — regression tests for the amended comparator and true no-overlap failures.
 - Create temporarily: `/tmp/aiostreams-language-tiers-<UTC timestamp>/{before,candidate,readback,rollback}-config.json` — secret-bearing complete configurations; mode `0600`, never committed.
 - Create temporarily: `/tmp/aiostreams-language-tiers-<UTC timestamp>/{baseline,after,retry}/` — raw authenticated response and timing evidence; never committed.
 - Modify after all runtime gates pass: `docs/STREMIO-AIOSTREAMS.md` — replace the old current-behavior description with verified language precedence, Catalan heuristic, 480p, dynamic English tiers, bounds and autoplay gate.
@@ -761,7 +765,281 @@ cat "$WORK/candidate-config.sha256"
 
 Expected: three exact bounded regexes, 35 ranked expressions, preferred `Catalan/Spanish/English`, 16 required expressions, four resolutions, descending leading category sort, unchanged limits and `autoPlay: null`. Do not edit the generated JSON by hand after hashing it.
 
-### Task 3: Apply once, audit every gate and restore on any failure
+### Task 2A: Prove the amended autoplay gate offline and re-freeze the unchanged candidate
+
+**Files:**
+- Create temporarily: `$WORK/test-compare-autoplay.py`
+- Create temporarily: `$WORK/compare-autoplay.py`
+- Recreate temporarily from the approved generator: `$WORK/candidate-config.json`
+- Recreate temporarily: `$WORK/candidate-put.json`
+- Recreate temporarily: `$WORK/candidate-config.sha256`
+- Recreate temporarily: `$WORK/candidate-put.sha256`
+- Create temporarily: `$WORK/amended-autoplay-comparison.json`
+
+**Interfaces:**
+- Consumes: the exact restored trusted baseline, Task 2 generator and pinned-image validator, `baseline-autoplay.json`, and the failed trusted candidate's retained `after-autoplay.json` evidence.
+- Produces: a tested comparator that accepts only non-empty adjacent responses with at least one shared exact `bingeGroup`; explicit non-blocking coverage evidence; byte-for-byte candidate and payload hash proof; a hard stop requiring new live-write approval.
+
+- [x] **Step 1: Write failing tests for the amended comparator**
+
+Create `$WORK/test-compare-autoplay.py` with:
+
+```python
+from __future__ import annotations
+
+import json
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+
+class CompareAutoplayTest(unittest.TestCase):
+    def run_case(self, before: dict, after: dict) -> tuple[int, dict]:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            before_path = root / "before.json"
+            after_path = root / "after.json"
+            before_path.write_text(json.dumps(before))
+            after_path.write_text(json.dumps(after))
+            result = subprocess.run(
+                ["python3", str(Path(__file__).with_name("compare-autoplay.py")),
+                 str(before_path), str(after_path)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            return result.returncode, json.loads(result.stdout)
+
+    def test_accepts_shared_group_even_when_coverage_is_lower(self) -> None:
+        before = {
+            "breakingbad": {"firstRows": 22, "secondRows": 23,
+                            "sharedGroups": 14, "firstRowCoverage": 16 / 22},
+            "attackontitan": {"firstRows": 17, "secondRows": 15,
+                              "sharedGroups": 9, "firstRowCoverage": 13 / 17},
+        }
+        after = {
+            "breakingbad": {"firstRows": 18, "secondRows": 16,
+                            "sharedGroups": 10, "firstRowCoverage": 16 / 18},
+            "attackontitan": {"firstRows": 3, "secondRows": 2,
+                              "sharedGroups": 1, "firstRowCoverage": 2 / 3},
+        }
+        status, output = self.run_case(before, after)
+        self.assertEqual(status, 0)
+        self.assertTrue(output["attackontitan"]["accepted"])
+        self.assertTrue(output["attackontitan"]["coverageRegressed"])
+        self.assertEqual(output["attackontitan"]["postSharedGroups"], 1)
+
+    def test_rejects_no_shared_group(self) -> None:
+        before = {
+            title: {"firstRows": 2, "secondRows": 2,
+                    "sharedGroups": 1, "firstRowCoverage": 0.5}
+            for title in ("breakingbad", "attackontitan")
+        }
+        after = json.loads(json.dumps(before))
+        after["attackontitan"]["sharedGroups"] = 0
+        status, output = self.run_case(before, after)
+        self.assertEqual(status, 1)
+        self.assertFalse(output["attackontitan"]["accepted"])
+
+    def test_rejects_empty_adjacent_response(self) -> None:
+        before = {
+            title: {"firstRows": 2, "secondRows": 2,
+                    "sharedGroups": 1, "firstRowCoverage": 0.5}
+            for title in ("breakingbad", "attackontitan")
+        }
+        after = json.loads(json.dumps(before))
+        after["breakingbad"]["secondRows"] = 0
+        status, output = self.run_case(before, after)
+        self.assertEqual(status, 1)
+        self.assertFalse(output["breakingbad"]["accepted"])
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+- [x] **Step 2: Run the comparator tests and verify RED**
+
+Run:
+
+```bash
+python3 "$WORK/test-compare-autoplay.py"
+```
+
+Expected: all three tests error or fail because `$WORK/compare-autoplay.py` does not exist. Do not create or edit the comparator before observing this failure.
+
+- [x] **Step 3: Implement the minimal amended comparator**
+
+Create `$WORK/compare-autoplay.py` with:
+
+```python
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+before = json.loads(Path(sys.argv[1]).read_text())
+after = json.loads(Path(sys.argv[2]).read_text())
+comparison = {}
+failed = False
+
+for title in ("breakingbad", "attackontitan"):
+    baseline = before[title]
+    post = after[title]
+    accepted = (
+        post["firstRows"] > 0
+        and post["secondRows"] > 0
+        and post["sharedGroups"] >= 1
+    )
+    comparison[title] = {
+        "accepted": accepted,
+        "baselineCoverage": baseline["firstRowCoverage"],
+        "postCoverage": post["firstRowCoverage"],
+        "coverageRegressed": (
+            post["firstRowCoverage"] < baseline["firstRowCoverage"]
+        ),
+        "postFirstRows": post["firstRows"],
+        "postSecondRows": post["secondRows"],
+        "postSharedGroups": post["sharedGroups"],
+    }
+    failed |= not accepted
+
+print(json.dumps(comparison, indent=2, sort_keys=True))
+raise SystemExit(1 if failed else 0)
+```
+
+- [x] **Step 4: Run the comparator tests and verify GREEN**
+
+Run:
+
+```bash
+python3 "$WORK/test-compare-autoplay.py"
+```
+
+Expected: `Ran 3 tests` and `OK`. The lower-coverage fixture passes with `coverageRegressed: true`; missing overlap and empty adjacent responses fail closed.
+
+- [x] **Step 5: Replay the captured trusted-candidate evidence**
+
+Run:
+
+```bash
+python3 "$WORK/compare-autoplay.py" \
+  "$WORK/baseline-autoplay.json" \
+  "$WORK/after-autoplay.json" \
+  > "$WORK/amended-autoplay-comparison.json"
+
+jq -e '
+  .breakingbad.accepted == true and
+  .attackontitan.accepted == true and
+  .attackontitan.postFirstRows == 3 and
+  .attackontitan.postSecondRows == 2 and
+  .attackontitan.postSharedGroups == 1 and
+  .attackontitan.coverageRegressed == true and
+  ((.attackontitan.postCoverage - (2/3)) | fabs) < 0.000000001 and
+  ((.attackontitan.baselineCoverage - (13/17)) | fabs) < 0.000000001
+' "$WORK/amended-autoplay-comparison.json" >/dev/null
+```
+
+Expected: both titles are accepted; Breaking Bad has shared groups; Attack on Titan records one exact shared group, non-empty `3`/`2` responses and the non-blocking `13/17` to `2/3` coverage change.
+
+- [x] **Step 6: Regenerate and re-prove the candidate without changing selector semantics**
+
+Run:
+
+```bash
+python3 -m py_compile "$WORK/generate-candidate.py"
+python3 "$WORK/generate-candidate.py" \
+  "$WORK/before-config.json" \
+  "$WORK/candidate-config.json" \
+  > "$WORK/candidate-summary.json"
+
+jq -n --slurpfile config "$WORK/candidate-config.json" \
+  '{config:$config[0]}' > "$WORK/candidate-put.json"
+chmod 600 "$WORK/candidate-config.json" "$WORK/candidate-put.json"
+
+shasum -a 256 "$WORK/candidate-config.json" \
+  > "$WORK/candidate-config.sha256"
+shasum -a 256 "$WORK/candidate-put.json" \
+  > "$WORK/candidate-put.sha256"
+
+test "$(cut -d ' ' -f1 "$WORK/candidate-config.sha256")" = \
+  'cde1f81c0bde3c6c6d9925de07a3b44f0549998363f7cc5e863003950cce6f5e'
+test "$(cut -d ' ' -f1 "$WORK/candidate-put.sha256")" = \
+  '87348007dcdf559f2be9bc3acf70820a24c3c83aedb07eac71c4de5c78fc4dea'
+
+jq -S 'del(
+  .trusted,
+  .preferredResolutions,
+  .excludedResolutions,
+  .sortCriteria,
+  .rankedRegexPatterns,
+  .rankedStreamExpressions,
+  .preferredStreamExpressions,
+  .requiredStreamExpressions
+)' "$WORK/candidate-config.json" > "$WORK/candidate-unrelated.json"
+jq -S 'del(
+  .trusted,
+  .preferredResolutions,
+  .excludedResolutions,
+  .sortCriteria,
+  .rankedRegexPatterns,
+  .rankedStreamExpressions,
+  .preferredStreamExpressions,
+  .requiredStreamExpressions
+)' "$WORK/trusted-before-config.json" > "$WORK/trusted-before-unrelated.json"
+cmp -s "$WORK/candidate-unrelated.json" "$WORK/trusted-before-unrelated.json"
+```
+
+Expected: both hashes remain byte-for-byte identical to the already pinned
+candidate and payload, and the candidate differs from the trusted rollback
+source only in server-owned `trusted` plus the seven intended policy fields.
+Any hash or unrelated-field change means selector semantics changed
+unexpectedly; stop and inspect before continuing.
+
+- [x] **Step 7: Re-run the exact pinned-image selector proof**
+
+Run the Task 2 Step 4 pinned-image command against the regenerated candidate.
+
+Expected: the same `18` regex cases, `8` disjoint-language cases, `5` pool cases and complete expression parsing pass. The amended autoplay acceptance rule is outside the saved configuration and must not change these results.
+
+- [x] **Step 8: Verify the active trusted rollback source again**
+
+Run:
+
+```bash
+test "$(shasum -a 256 "$WORK/trusted-before-config.json" | cut -d ' ' -f1)" = \
+  'cf553a877a4a8a35b8db7e5788ff045b5f3e664b0bef64c9320bf407585fc2f6'
+jq -e '.trusted == true' "$WORK/trusted-before-config.json" >/dev/null
+```
+
+Expected: exact trusted rollback hash and `trusted: true`. This local proof does not replace Task 3's immediate authenticated pre-write readback.
+
+- [x] **Step 9: Stop for a new explicit candidate-write approval**
+
+Present only non-secret evidence:
+
+```text
+candidate config SHA-256: cde1f81c0bde3c6c6d9925de07a3b44f0549998363f7cc5e863003950cce6f5e
+candidate payload SHA-256: 87348007dcdf559f2be9bc3acf70820a24c3c83aedb07eac71c4de5c78fc4dea
+trusted rollback SHA-256: cf553a877a4a8a35b8db7e5788ff045b5f3e664b0bef64c9320bf407585fc2f6
+regular-series shared-group gate: PASS
+anime shared-group gate: PASS (1 shared group; coverage evidence 13/17 -> 2/3)
+```
+
+Do not execute Task 3 until the user explicitly approves exactly one further complete candidate PUT, all automated gates under the amended comparator, and immediate verified rollback on any failure. Prior PUT approvals were consumed and do not carry forward.
+
+### Task 3: Apply once under new approval, audit every gate and restore on any failure
+
+**Execution outcome:** Steps 1–10 passed under the user's final explicit
+approval. The candidate remained active because exact readback, 55 response
+captures, language/order/provider/pool/bounds checks, movie/series/anime
+membership, all 11 latency medians and both shared-group checks passed. Steps
+11–12 were intentionally skipped when the user asked to finish the saved-config
+change without further process; no physical Tizen result or aggregate runtime
+summary is claimed.
 
 **Files:**
 - Create temporarily: `$WORK/trusted-before-response.json`
@@ -774,14 +1052,15 @@ Expected: three exact bounded regexes, 35 ranked expressions, preferred `Catalan
 - Modify: `docs/feat/20260729115122-aiostreams-language-and-tier-fallback/plan.md` only to record passed gates and non-secret summaries.
 
 **Interfaces:**
-- Consumes: Task 1 rollback config, route and baselines; Task 2 frozen candidate and PUT payload.
-- Produces: verified least-privilege trust rollout; fresh post-trust rollback snapshot; exactly one live candidate write under a second approval; immediate semantic readback; language/order/pool/bounds audit; five post-change timings per endpoint; adjacent-episode comparison; user-observed Stremio 1.12.1/Tizen 6 transition. Any failure after the candidate write produces a verified complete rollback instead.
+- Consumes: Task 1 baselines; Task 2 byte-identical frozen candidate and PUT payload; Task 2A tested amended autoplay comparator and new explicit approval.
+- Produces: immediate trusted rollback readback; exactly one further live candidate write under the new approval; immediate semantic readback; language/order/pool/bounds audit; five post-change timings per endpoint; non-empty/shared-group adjacent-episode comparison with coverage evidence; user-observed Stremio 1.12.1/Tizen 6 transition. Any failure after the candidate write produces a verified complete rollback instead.
 
-- [ ] **Step 1: Verify the separately approved trust rollout and freeze the active rollback source**
+- [x] **Step 1: Verify the separately approved trust rollout and freeze the active rollback source**
 
-Do not run this step until the separate push/deployment approval has been
-granted and commit `eaf9456` has reached ArgoCD. These checks are read-only and
-do not authorize the candidate PUT:
+The trust rollout is already deployed at signed revision
+`5139f1772dffdb7de8283b4cc03a58ee78c9f46c`. Re-run these checks read-only
+immediately before any newly approved candidate PUT; they do not authorize the
+candidate PUT:
 
 ```bash
 KUBECONFIG=clusters/neumann/kubeconfig \
@@ -835,7 +1114,7 @@ non-empty `TRUSTED_UUIDS` key without printing it, raw readback has
 server-authoritative field. Stop before the candidate approval if any command
 fails.
 
-- [ ] **Step 2: Load the `safety` skill and define fail-closed rollback before the live write**
+- [x] **Step 2: Load the `safety` skill and define fail-closed rollback before the live write**
 
 This task mutates externally visible saved configuration. Load the `safety` skill and follow its confirmation flow before continuing.
 
@@ -927,7 +1206,7 @@ immediately after every failed step below and exit with its return status. A
 successful PUT without exact post-trust baseline readback and hash equality is
 not a completed rollback.
 
-- [ ] **Step 3: Submit the complete candidate exactly once**
+- [x] **Step 3: Submit the complete candidate exactly once**
 
 After the `safety` confirmation, run:
 
@@ -945,7 +1224,7 @@ echo 'complete candidate accepted once'
 
 Expected: one success line. Do not submit an intermediate diagnostic configuration and do not restart any pod.
 
-- [ ] **Step 4: Read back immediately and require semantic equality except for server-authoritative trust**
+- [x] **Step 4: Read back immediately and require semantic equality except for server-authoritative trust**
 
 Run:
 
@@ -985,7 +1264,7 @@ proves that all unrelated fields remain unchanged because Task 2 proved the
 candidate's seven-field diff and Step 1 proved the fresh baseline differs from
 the original only in `trusted`.
 
-- [ ] **Step 5: Capture five post-change diagnostic responses and timings per endpoint**
+- [x] **Step 5: Capture five post-change diagnostic responses and timings per endpoint**
 
 Run:
 
@@ -1018,7 +1297,7 @@ echo 'captured 55 successful post-change timings with streamData'
 
 Expected: `captured 55 successful post-change timings with streamData`.
 
-- [ ] **Step 6: Write the concrete live response audit**
+- [x] **Step 6: Write the concrete live response audit**
 
 Create `$WORK/audit-responses.py` with:
 
@@ -1152,7 +1431,7 @@ print(json.dumps({"samples": summary, "observed480p": observed_480p, "catalanRow
 raise SystemExit(1 if failed else 0)
 ```
 
-- [ ] **Step 7: Run language, ordering, uniqueness, provider, pool and bounds checks**
+- [x] **Step 7: Run language, ordering, uniqueness, provider, pool and bounds checks**
 
 Run:
 
@@ -1167,7 +1446,7 @@ cat "$WORK/response-audit.json" \
 
 Expected: no `FAIL`; at least one retained Catalan row; all categories disjoint and ordered; at most one Catalan/Spanish row per resolution; TorBox selected whenever a baseline-visible eligible TorBox candidate exists; each English pool has at most four unique IDs in cached-first/size-descending response order; every response is at most 40. The exact dynamic membership and sparse-pool count invariant are guaranteed by the pinned-image proof and must also be manually inspected in `streamData.rankedStreamExpressionsMatched` for at least one dense movie, one regular-series episode and one anime episode.
 
-- [ ] **Step 8: Inspect live dynamic membership for movie, series and anime**
+- [x] **Step 8: Inspect live dynamic membership for movie, series and anime**
 
 Run:
 
@@ -1195,7 +1474,7 @@ done
 
 Expected: all three content classes contain explicit English rows with unique IDs; populated pools show a maximum tag and available half/quarter/eighth threshold tags, with untagged rows only as fallback. If the live samples do not expose a particular sparse condition, rely on Task 2's exact-image fixture for that condition rather than inventing live evidence.
 
-- [ ] **Step 9: Enforce the per-endpoint latency gate**
+- [x] **Step 9: Enforce the per-endpoint latency gate**
 
 Create `$WORK/compare-latency.py` with:
 
@@ -1239,7 +1518,7 @@ cat "$WORK/latency-after.json" \
 
 Expected: for every endpoint, five post samples and a median no higher than `max(baseline × 1.10, baseline + 0.500s)`. This plan deliberately uses the stricter permitted behavior of rejecting the first failed paired sample rather than performing a second live config cycle merely to exercise the optional retry allowance.
 
-- [ ] **Step 10: Enforce adjacent-episode overlap against the immediate baseline**
+- [x] **Step 10: Enforce adjacent-episode overlap against the immediate baseline**
 
 Run:
 
@@ -1248,31 +1527,10 @@ python3 "$WORK/audit-autoplay.py" "$WORK/after" \
   > "$WORK/after-autoplay.json" \
   || { cat "$WORK/after-autoplay.json"; abort_with_rollback 'post-change autoplay audit failed'; exit $?; }
 
-python3 - "$WORK" <<'PY' > "$WORK/autoplay-comparison.json"
-import json
-import sys
-from pathlib import Path
-
-root = Path(sys.argv[1])
-before = json.loads((root / "baseline-autoplay.json").read_text())
-after = json.loads((root / "after-autoplay.json").read_text())
-failed = False
-comparison = {}
-for title in ("breakingbad", "attackontitan"):
-    accepted = (
-        after[title]["sharedGroups"] >= 1 and
-        after[title]["firstRowCoverage"] >= before[title]["firstRowCoverage"]
-    )
-    comparison[title] = {
-        "baselineCoverage": before[title]["firstRowCoverage"],
-        "postCoverage": after[title]["firstRowCoverage"],
-        "postSharedGroups": after[title]["sharedGroups"],
-        "accepted": accepted,
-    }
-    failed |= not accepted
-print(json.dumps(comparison, indent=2, sort_keys=True))
-raise SystemExit(1 if failed else 0)
-PY
+python3 "$WORK/compare-autoplay.py" \
+  "$WORK/baseline-autoplay.json" \
+  "$WORK/after-autoplay.json" \
+  > "$WORK/autoplay-comparison.json"
 status=$?
 cat "$WORK/autoplay-comparison.json" \
   || { abort_with_rollback 'autoplay comparison display failed'; exit $?; }
@@ -1280,9 +1538,24 @@ if [ "$status" -ne 0 ]; then
   abort_with_rollback 'adjacent-episode overlap gate failed'
   exit $?
 fi
+jq -e '
+  .breakingbad.accepted == true and
+  .attackontitan.accepted == true and
+  all(.[];
+    .postFirstRows > 0 and
+    .postSecondRows > 0 and
+    .postSharedGroups >= 1 and
+    (.coverageRegressed | type) == "boolean"
+  )
+' "$WORK/autoplay-comparison.json" >/dev/null \
+  || { abort_with_rollback 'autoplay comparison evidence incomplete'; exit $?; }
 ```
 
-Expected: Breaking Bad and Attack on Titan each retain at least one exact adjacent group, and each post-change first-episode row coverage is no lower than its own Task 1 baseline.
+Expected: Breaking Bad and Attack on Titan each have non-empty adjacent
+responses and retain at least one exact generated `bingeGroup`. Baseline and
+post-change row coverage plus `coverageRegressed` are always recorded; a lower
+ratio alone is not failure. The known trusted-candidate anime evidence is
+`13/17 -> 2/3` with one exact shared group.
 
 - [ ] **Step 11: Require one real Stremio 1.12.1/Tizen 6 next-episode transition**
 
@@ -1358,6 +1631,13 @@ Tizen transition. Do not proceed to persistence if any gate is missing or
 represented only by an expectation.
 
 ### Task 4: Persist recovery state, update operator documentation and commit intentional files
+
+**Execution outcome:** The 1Password recovery-template edit, broad operator-guide
+update and historical supersession note were not performed. The user requested a
+complete durable reconstruction and local commit instead. Steps 7–11 therefore
+cover the reconstruction, validation, secret scan, three-file local commit and
+deliberate no-push boundary; Steps 1–6 remain unchecked to preserve the truth
+that no 1Password or unrelated documentation mutation occurred.
 
 **Files:**
 - Modify: `docs/STREMIO-AIOSTREAMS.md`
@@ -1495,9 +1775,11 @@ series and anime all use this policy, yielding exactly
 `min(4, eligible candidate count)` rows per English pool.
 
 The intended maximum is 4 Catalan + 4 Spanish + 32 English = 40 rows, under the
-unchanged global limit of 60. `autoPlay` remains unchanged; rollout verification
-requires non-regressing adjacent-episode `bingeGroup` coverage and one real
-Stremio 1.12.1/Tizen 6 automatic playback transition.
+unchanged global limit of 60. `autoPlay` remains unchanged; server verification
+requires non-empty adjacent responses and at least one exact shared generated
+`bingeGroup` for regular series and anime. Row coverage remains reported evidence
+but is not independently rejecting. Completion also requires one real Stremio
+1.12.1/Tizen 6 automatic playback transition.
 ```
 
 Also update the current-config summary to state: four preferred resolutions; three ranked regexes; 35 ranked stream expressions; three preferred stream expressions; 16 required stream expressions; unchanged conjunctive `60/4/4` limits; unchanged `autoPlay: null`. Add only observed, non-secret Task 3 latency and autoplay summaries.
@@ -1517,7 +1799,7 @@ Immediately after the title in `docs/feat/20260726235500-feat-aiostreams-deploym
 
 Expected: no historical measurements, commands or evidence are rewritten.
 
-- [ ] **Step 7: Complete the task record with observed evidence**
+- [x] **Step 7: Complete the task record with observed evidence**
 
 Update `docs/feat/20260729115122-aiostreams-language-and-tier-fallback/context.md`:
 
@@ -1537,7 +1819,7 @@ Update `docs/feat/20260729115122-aiostreams-language-and-tier-fallback/context.m
 
 Do not paste raw authenticated URLs, route components, API responses, filenames containing credentials or live service keys.
 
-- [ ] **Step 8: Mark this plan's checkboxes from actual execution and run documentation self-review**
+- [x] **Step 8: Mark this plan's checkboxes from actual execution and run documentation self-review**
 
 Mark a checkbox complete only when its command and expected gate actually passed. Then run:
 
@@ -1564,7 +1846,7 @@ git diff --check
 
 Expected: no unresolved placeholder/conflict and clean whitespace.
 
-- [ ] **Step 9: Secret-scan the exact pending documentation diff**
+- [x] **Step 9: Secret-scan the exact pending documentation diff**
 
 Run:
 
@@ -1586,24 +1868,93 @@ git diff -- \
 
 Expected: no credential-bearing match. The literal example patterns in this plan may match only if they are followed by real values; inspect every match rather than dismissing it automatically.
 
-- [ ] **Step 10: Commit only the four intentional Markdown files**
+- [x] **Step 10: Commit only the three reconstructed task records**
 
 Run:
 
 ```bash
 git add \
-  docs/STREMIO-AIOSTREAMS.md \
-  docs/feat/20260726235500-feat-aiostreams-deployment/spec.md \
   docs/feat/20260729115122-aiostreams-language-and-tier-fallback/context.md \
+  docs/feat/20260729115122-aiostreams-language-and-tier-fallback/spec.md \
   docs/feat/20260729115122-aiostreams-language-and-tier-fallback/plan.md
 git diff --cached --name-only
 git diff --cached --check
-git commit -m 'feat(aiostreams): add language sections and dynamic tiers'
+git commit -m 'docs(aiostreams): record language rollout'
 git status --short
 ```
 
-Expected: the staged path list contains exactly those four files; the commit succeeds; every pre-existing unrelated status entry remains unchanged.
+Expected: the staged path list contains exactly those three task records; the
+commit succeeds; no unrelated status entry is staged or changed.
 
-- [ ] **Step 11: Defer push until explicit approval**
+- [x] **Step 11: Defer push until explicit approval**
 
 Do not run `git push`. Report the local commit hash, exact automated gate summaries, user-observed Tizen result, 1Password readback result and whether rollback was invoked. Pushing is externally visible and requires separate explicit approval.
+
+### Task 5: Add stable plain-text language flags through the custom formatter
+
+**Files:**
+- Create temporarily outside Git: formatter preview requests/responses, guarded
+  PUT wrappers, rollback sources and classification-based jq verifiers.
+- Modify live: only the saved configuration's
+  `formatter.definitions.custom.name`.
+- Modify for durable reconstruction: this task's `context.md`, `spec.md` and
+  `plan.md`.
+
+**Interfaces:**
+- Consumes: live AIOStreams preferred-expression classification exposed as
+  `{stream.seMatched}` and representative Alcarràs/Attack on Titan responses.
+- Produces: 🇦🇩 Catalan, 🇪🇸 Spanish and 🇬🇧 English prefixes with no selection,
+  provider, limit, autoplay or description change.
+
+- [x] **Step 1: Establish client rendering constraints and choose portable markers**
+
+Read Stremio's stream contract, Nuvio's Compose stream-card renderer and
+AIOStreams v2.31.1 formatter source. Confirm addon stream labels are plain text,
+reject HTML/Markdown/CSS/ANSI color, diagnose the unsupported Catalonia Unicode
+tag sequence as a black-flag fallback, and select 🇦🇩 for Catalan.
+
+- [x] **Step 2: Prove exact formatter conditions without persistence**
+
+Use `POST /api/v1/format` with normalized stream fixtures and exact
+`{stream.seMatched}` comparisons. Require a Catalan fixture to gain 🇦🇩 while
+Spanish and English fixtures remain unchanged in the initial candidate.
+
+- [x] **Step 3: Attempt the guarded Catalan-only PUT and verify rollback on the false failure**
+
+Require exact current-state preflight, one complete PUT and exact readback. The
+first live check incorrectly inferred language from filename text, rejected a
+Spanish-classified `Catalan+Subs` row and invoked exact rollback. Confirm the
+previous complete configuration was restored.
+
+- [x] **Step 4: Correct the verifier test-first**
+
+Observe RED while the jq verifier is absent, then implement assertions based on
+`streamData.streamExpressionMatched.name`. Require classified Catalan rows to
+start with 🇦🇩, prohibit the black flag and prohibit 🇦🇩 on non-Catalan rows.
+
+- [x] **Step 5: Retry once and retain the Catalan formatter**
+
+Under new explicit approval, submit the unchanged candidate once. Require exact
+readback and a passing classified-row live check; do not invoke rollback.
+
+- [x] **Step 6: Expand the formatter to all three language sections**
+
+After user correction, build a candidate that adds exact Spanish and English
+conditions. Prove the only scalar path changed from the Catalan-only live config
+is `formatter.definitions.custom.name`. Add a three-language verifier test,
+observe RED while missing, then require GREEN for all classifications.
+
+- [x] **Step 7: Apply once and freshly verify the final mapping**
+
+Under separate explicit approval, submit the complete candidate once. Require
+exact saved-config readback outside `trusted`, then fetch Alcarràs and Attack on
+Titan and verify at least one classified row for every language with its exact
+prefix. Final examples are `🇦🇩 TB ⚡ 1080p · 2.36 GB`,
+`🇪🇸 RD ⚡ 1080p · 2.01 GB` and `🇬🇧 TB ⚡ 720p · 649.28 MB`.
+
+- [x] **Step 8: Preserve rollback and mutation boundaries**
+
+Record that the first Catalan attempt rolled back only because its verifier was
+wrong; the corrected Catalan retry and final three-language correction were
+retained without rollback. Confirm no 1Password, Kubernetes, Cloudflare, image,
+provider, Stremio/Nuvio installation or tracked runtime state changed.

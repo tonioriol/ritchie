@@ -2,9 +2,14 @@
 
 ## Status
 
-Approved design. This document specifies a saved-configuration change for the
-existing AIOStreams v2.31.1 deployment. It does not authorize a live change by
-itself; implementation begins only from a separately reviewed plan.
+Implemented design. The first trusted candidate retained an exact anime
+`bingeGroup` overlap but failed the original row-coverage comparison and was
+restored exactly. The comparator was amended and proved offline, then the
+unchanged selection candidate passed every automated gate and remained active.
+A later formatter-only follow-up prefixes Catalan, Spanish and English rows with
+🇦🇩, 🇪🇸 and 🇬🇧. The physical Tizen transition and recovery-template/operator-
+guide steps in the original plan were intentionally skipped when the user asked
+to finish the live saved-configuration change without further process.
 
 ## Goal
 
@@ -20,7 +25,9 @@ policy that:
 - backfills missing size tiers so a pool with at least four eligible candidates
   still returns four distinct rows;
 - applies the English policy to movies, regular series and anime; and
-- does not regress adjacent-episode autoplay behavior.
+- retains at least one exact generated `bingeGroup` across both tested adjacent-
+  episode pairs; and
+- labels the three classified sections with stable plain-text Unicode flags.
 
 ## Current behavior being replaced
 
@@ -51,6 +58,8 @@ anime bypass those selectors entirely.
   adjacent-episode comparison, Samsung/Tizen verification and rollback.
 - The recoverable configuration template and operator documentation after the
   live result has passed every gate.
+- Formatter-only language prefixes driven by the selected preferred-expression
+  name exposed as `{stream.seMatched}`.
 
 ### Out of scope
 
@@ -63,6 +72,8 @@ anime bypass those selectors entirely.
 - Changing Kubernetes, Cloudflare, 1Password credentials or the Stremio addon
   installation.
 - Guaranteeing that every title has Catalan or Spanish candidates.
+- Adding HTML, Markdown, CSS, ANSI color or client-specific rich-text styling;
+  Stremio and Nuvio render addon stream labels as plain text.
 
 ## Design constraints
 
@@ -295,6 +306,27 @@ The combined maximum is 40, below the unchanged global limit of 60. The global
 limit remains enabled and language-row passthrough does not exempt rows from
 that global safety check.
 
+## Display labels
+
+The custom formatter prefixes each retained row according to AIOStreams' actual
+preferred-expression classification:
+
+- `Catalan` → 🇦🇩
+- `Spanish` → 🇪🇸
+- `English` → 🇬🇧
+
+The conditions use exact `{stream.seMatched}` string comparisons and precede the
+existing formatter body. They do not parse filenames or change descriptions,
+selection, ordering, limits, services, cache handling, resolution, size tiers,
+autoplay or trust state. Filename text is not an acceptance oracle because a
+Spanish-classified release may legitimately mention `Catalan+Subs`.
+
+The Andorra flag is deliberate. The Unicode Catalonia subdivision sequence
+starts with the black-flag base and renders as a bare black flag in clients that
+do not support its tag sequence. 🇦🇩 is a broadly supported regional-indicator
+emoji and a defensible Catalan-language stand-in because Catalan is Andorra's
+sole official language.
+
 ## Autoplay behavior
 
 This change does not modify `autoPlay`, the `matchingFile` method or the default
@@ -317,9 +349,15 @@ responses before and after the change. For each pair calculate:
 The candidate configuration passes the server-side gate only when, for both
 content classes:
 
-- at least one exact group remains shared between adjacent episodes; and
-- post-change row coverage is not lower than that title's immediately captured
-  baseline.
+- both adjacent responses contain retained rows; and
+- at least one exact group remains shared between adjacent episodes.
+
+Row coverage remains mandatory evidence and must be compared with the
+immediately captured baseline, but a lower ratio does not independently reject
+the candidate. The ratio is unstable for small selected result sets: the first
+trusted candidate retained one exact anime group while changing the sample from
+13 matching rows out of 17 to 2 matching rows out of 3. The real on-device
+transition below remains the authoritative playback regression gate.
 
 After server-side verification, play a retained stream on Stremio 1.12.1/Tizen
 6 and observe one real automatic next-episode transition. Completion requires
@@ -371,7 +409,15 @@ Before writing live state:
 3. Prove every synthetic pool returns `min(4, candidate count)` unique IDs.
 4. Test Catalan full-name, uppercase short-tag, lowercase `cat`, substring,
    subtitle-only and punctuation-boundary cases.
-5. Apply the complete candidate configuration to captured response data where
+5. Prove Catalan-plus-English rows remain Catalan, Spanish-plus-English rows
+   remain Spanish, English-only rows remain English and no stream belongs to
+   more than one language set.
+6. Replay the captured Attack on Titan adjacent episodes through the pinned
+   selector and require both responses to contain rows and at least one exact
+   shared `bingeGroup` before any further live write. Record the expected `2/3`
+   candidate coverage beside the `13/17` baseline without treating that ratio
+   alone as failure.
+7. Apply the complete candidate configuration to captured response data where
    the pinned tooling permits it and inspect the proposed membership/order.
 
 ### Atomic write and readback
@@ -393,7 +439,7 @@ After that separately approved rollout and before any candidate write:
 4. Save this complete post-trust, pre-write configuration and its hash as the
    active rollback source.
 
-Then, under a second explicit approval:
+Then, under a new explicit approval for the amended candidate:
 
 1. Submit the complete candidate configuration once with the replacement-only
    user API.
@@ -452,9 +498,12 @@ mutation or Stremio reinstall is part of the candidate-write operation.
   exceed the baseline median by more than the greater of 10% or 500 ms. A
   failure may be retried once with a fresh paired sample; a repeated failure
   rejects the rollout.
-- Adjacent-episode `bingeGroup` row coverage does not regress for the tested
-  regular series or anime pair.
-- One real next-episode transition succeeds on Stremio 1.12.1/Tizen 6.
+- Both tested adjacent-episode pairs have non-empty responses and at least one
+  exact shared generated `bingeGroup`; row coverage is reported but is not
+  independently rejecting.
+- Classified Catalan, Spanish and English rows begin with 🇦🇩, 🇪🇸 and 🇬🇧
+  respectively, and verification uses `streamExpressionMatched.name` rather
+  than filename text.
 - Readback has server-authoritative `trusted: true`, matches the intended
   complete configuration after removing only `trusted`, and has no unrelated
   field change.
@@ -478,8 +527,8 @@ Trigger rollback on any of the following:
 - incorrect proportional or fallback membership;
 - result overflow;
 - repeated latency-gate failure;
-- adjacent-episode overlap regression; or
-- failed Samsung/Tizen autoplay transition.
+- an empty tested adjacent response or no exact shared generated group; or
+- incorrect formatter prefix for any classified language row.
 
 Restore the complete active rollback source with the replacement-only user API,
 read it back, require exact full semantic and hash equality with that post-trust
@@ -489,18 +538,16 @@ restore request returned success.
 
 ## Persistence and documentation
 
-Only after every acceptance criterion passes:
+The final retained selection configuration and formatter were verified by exact
+readback and focused live response audits. Durable persistence records:
 
-1. Replace the recoverable AIOStreams configuration template with the exact
-   verified readback, preserving secret-handling rules.
-2. Update `docs/STREMIO-AIOSTREAMS.md` with the language precedence, Catalan
-   heuristic, 480p admission, dynamic English tiers, result bounds and autoplay
-   gate.
-3. Update the prior deployment reference to distinguish its historical fixed,
-   movie-only selectors from the new deployed behavior without rewriting its
-   original evidence.
-4. Update this task's `context.md` with the verified configuration behavior,
-   evidence, rollback point and final status.
+1. This task's `context.md` contains the complete chronology, exact non-secret
+   hashes, failures, rollbacks, corrections and final verification evidence.
+2. `plan.md` preserves the commands and marks only gates that actually ran.
+3. The physical Stremio 1.12.1/Tizen 6 transition, credential-free 1Password
+   template replacement, broad operator-guide update and historical-
+   supersession note remain explicitly unchecked/skipped. They are not required
+   follow-up work unless separately requested.
 
 The existing `scratch.md` in the prior task directory is user-owned and must
 remain untouched.
