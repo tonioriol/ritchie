@@ -6,8 +6,11 @@ metadata:
     {{- include "code.labels" . | nindent 4 }}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: code.tonioriol.com
+    external-dns.kubernetes.io/hostname: code.tonioriol.com
     external-dns.alpha.kubernetes.io/target: 85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com
+    external-dns.kubernetes.io/target: 85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    external-dns.kubernetes.io/cloudflare-proxied: "true"
 spec:
   type: ClusterIP
   ports:
