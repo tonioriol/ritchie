@@ -1,0 +1,26 @@
+# Scoped Cloudflare API token for external-dns, pulled from 1Password.
+# Replaces the Global API key that previously authenticated as the account
+# owner (every DNS change showed up in the Cloudflare audit log as a human).
+# The token is limited to Zone:Read + DNS:Write on tonioriol.com.
+#
+# Lives here rather than in the external-dns Application because that one
+# renders the upstream chart, which has no hook for our own manifests.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-dns-cloudflare-token
+  namespace: external-dns
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: onepassword
+  target:
+    name: external-dns-cloudflare-token
+    creationPolicy: Owner
+    deletionPolicy: Retain
+  data:
+    - secretKey: CF_API_TOKEN
+      remoteRef:
+        key: cloudflare-external-dns
+        property: api_token
