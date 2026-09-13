@@ -8,7 +8,11 @@ spec:
   source:
     repoURL: https://kubernetes-sigs.github.io/external-dns/
     chart: external-dns
-    targetRevision: "1.*"
+    # Pinned exactly: chart 1.22.0 (app v0.22.0) shipped a breaking change in a
+    # MINOR bump — the default annotation prefix lost its fallback, which made
+    # external-dns see zero hostnames and delete every record it owned.
+    # A floating "1.*" range let that land unattended. Bump deliberately.
+    targetRevision: "1.22.0"
     helm:
       values: |
         provider:
@@ -28,6 +32,9 @@ spec:
           - tonioriol.com
         policy: sync
         txtOwnerId: neumann
+        # v0.22.0 defaults to "external-dns.kubernetes.io/" with NO fallback.
+        # Every Service here still uses the legacy alpha prefix, so keep reading it.
+        annotationPrefix: external-dns.alpha.kubernetes.io/
         sources:
           - service
           - ingress
