@@ -32,9 +32,9 @@ spec:
           - tonioriol.com
         policy: sync
         txtOwnerId: neumann
-        # v0.22.0 defaults to "external-dns.kubernetes.io/" with NO fallback.
-        # Every Service here still uses the legacy alpha prefix, so keep reading it.
-        annotationPrefix: external-dns.alpha.kubernetes.io/
+        # Uses the v0.22.0 default prefix (external-dns.kubernetes.io/).
+        # Services carry both prefixes during the migration, so this reads the
+        # new one while the legacy annotations stay in place as a fallback.
         sources:
           - service
           - ingress
