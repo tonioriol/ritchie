@@ -17,17 +17,18 @@ spec:
       values: |
         provider:
           name: cloudflare
+        # Scoped token (Zone:Read + DNS:Write on tonioriol.com) instead of the
+        # account Global API key, so DNS changes are attributed to external-dns
+        # rather than the account owner. Synced from 1Password by the
+        # ExternalSecret in charts/external-secrets-config.
+        deploymentAnnotations:
+          secret.reloader.stakater.com/reload: external-dns-cloudflare-token
         env:
-          - name: CF_API_KEY
+          - name: CF_API_TOKEN
             valueFrom:
               secretKeyRef:
-                name: external-dns-cloudflare
-                key: CF_API_KEY
-          - name: CF_API_EMAIL
-            valueFrom:
-              secretKeyRef:
-                name: external-dns-cloudflare
-                key: CF_API_EMAIL
+                name: external-dns-cloudflare-token
+                key: CF_API_TOKEN
         domainFilters:
           - tonioriol.com
         policy: sync
