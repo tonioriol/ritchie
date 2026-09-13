@@ -60,14 +60,25 @@ The tunnel runs in **credentials-file mode**: the local ConfigMap IS the routing
 
 | Var | Description |
 |-----|-------------|
-| `CF_EMAIL` | Cloudflare account e-mail (used by external-dns) |
-| `CF_API_KEY` | Global API key (used by external-dns) |
+| `CF_EMAIL` | Cloudflare account e-mail |
+| `CF_API_KEY` | Global API key (account-wide; only for manual admin calls) |
 | `CF_ACCOUNT_ID` | `6e73d8e42d0b50e37efc1b20401e35a0` |
 | `CF_TUNNEL_ID` | `85e6bc75-0025-4fc3-9341-d4e517fea614` |
 
 Secrets created out-of-band (never committed):
 - `cloudflared/cloudflared-credentials` — tunnel credentials JSON
-- `external-dns/external-dns-cloudflare` — `CF_API_KEY` + `CF_API_EMAIL`
+
+external-dns authenticates with a **scoped API token**, not the Global API key.
+Token `external-dns-neumann` (ID `d7860720590ddbe6229d9176625ceed4`) grants only
+`Zone:Read` + `DNS:Write` on the `tonioriol.com` zone. It lives in 1Password
+(`neumann` vault, item `cloudflare-external-dns`, field `api_token`) and reaches
+the cluster as `external-dns/external-dns-cloudflare-token` → `CF_API_TOKEN` via
+the ExternalSecret in [`charts/external-secrets-config`](charts/external-secrets-config/templates/external-dns-cloudflare.yaml:1).
+Rotate by editing the 1Password field; Reloader rolls the Deployment.
+
+> The Global API key acts as the account owner, so every DNS change external-dns
+> made was logged in the Cloudflare audit log as a human action. The scoped token
+> is attributed to itself, and cannot touch anything outside this one zone.
 
 ### Adding / changing a public hostname (pure GitOps)
 
