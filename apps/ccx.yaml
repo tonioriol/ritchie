@@ -17,6 +17,7 @@ spec:
     path: charts/ccx
     helm:
       values: |
+        replicaCount: 0
         auth:
           externalSecret:
             enabled: true
