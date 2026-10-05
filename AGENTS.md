@@ -4,14 +4,14 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Stack & repo layout (non-obvious)
 
-- Tooling is provided via Devbox + direnv: [`.envrc`](.envrc:1) loads `devbox` and `dotenv_if_exists`, then exports `KUBECONFIG=${PWD}/clusters/neumann/kubeconfig`. **Note:** direnv is not active for agents; always use the explicit kubeconfig path shown in the [kubectl context](#kubectl-context-important-for-agents) section below.
+- Tooling is provided via Homebrew (`kubernetes-cli`, `helm@3`, `argocd`) + direnv: [`.envrc`](.envrc:1) adds `helm@3` to PATH, loads `dotenv_if_exists`, then exports `KUBECONFIG=${PWD}/clusters/neumann/kubeconfig`. **Note:** direnv is not active for agents; always use the explicit kubeconfig path shown in the [kubectl context](#kubectl-context-important-for-agents) section below.
 - Secrets live in [`.env`](.env:1) (gitignored by [`.gitignore`](.gitignore:1)); generated kubeconfigs are also ignored (`clusters/*/kubeconfig` and top-level `kubeconfig`).
 - GitOps “app-of-apps”: [`apps/root.yaml`](apps/root.yaml:1) points ArgoCD at this repo (`path: apps`) and auto-syncs (`prune` + `selfHeal`). Each file in `apps/` is an ArgoCD `Application`.
 - Helm charts live in `charts/` and are referenced by ArgoCD `Application.spec.source.path` (e.g. [`apps/acestream.yaml`](apps/acestream.yaml:1) -> `charts/acestream`).
 
 ## Commands / validation (there is no unit-test suite)
 
-- Enter the toolchain (installs `kubectl`, `helm`, `argocd`): `devbox shell` (or `direnv allow` if using direnv).
+- Install the toolchain: `brew install kubernetes-cli helm@3 argocd`, then `direnv allow` if using direnv.
 - Validate Helm charts locally:
   - `helm lint charts/acestream`
   - `helm lint charts/argocd-ingress`
