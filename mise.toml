@@ -1,0 +1,7 @@
+[env]
+# helm 3 (keg-only; charts are validated against helm 3)
+_.path = ["/opt/homebrew/opt/helm@3/bin"]
+# Secrets from .env, when present
+_.file = [".env"]
+# neumann cluster kubeconfig
+KUBECONFIG = "{{config_root}}/clusters/neumann/kubeconfig"
