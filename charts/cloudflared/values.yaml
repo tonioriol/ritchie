@@ -51,6 +51,10 @@ hosts:
     service: http://adamnfinecupof-coffee.default.svc.cluster.local:80
   - hostname: detour.tonioriol.com
     service: http://detour-radio-web.default.svc.cluster.local:80
+  - hostname: bertomeuiglesias.com
+    service: http://bertomeuiglesias-com.default.svc.cluster.local:80
+  - hostname: www.bertomeuiglesias.com
+    service: http://bertomeuiglesias-com.default.svc.cluster.local:80
 
 resources:
   requests:
