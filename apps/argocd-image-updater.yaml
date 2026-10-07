@@ -113,6 +113,51 @@ spec:
                         helm:
                           name: image.repository
                           tag: image.tag
+                # Static sites (public GHCR images)
+                - namePattern: adamnfinecupof.coffee
+                  images:
+                    - alias: app
+                      imageName: ghcr.io/tonioriol/adamnfinecupof.coffee
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
+                - namePattern: bertomeuiglesias.com
+                  images:
+                    - alias: app
+                      imageName: ghcr.io/tonioriol/bertomeuiglesias.com
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
+                - namePattern: boira.band
+                  images:
+                    - alias: app
+                      imageName: ghcr.io/tonioriol/boira.band
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
+                - namePattern: lodrago.net
+                  images:
+                    - alias: app
+                      imageName: ghcr.io/tonioriol/lodrago.net
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
