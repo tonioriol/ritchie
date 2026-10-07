@@ -39,9 +39,10 @@ SSH (port 22) to both DO and Hetzner was blocked from the home ISP even with WAR
 - boira.band and lodrago.net now ship `sitemap.xml` + `Sitemap:` in robots.txt (v1.0.1).
 - Image Updater only acts on apps listed in the `ImageUpdater` CR (`apps/argocd-image-updater.yaml`), not on Application annotations: static sites were never auto-updating (adamnfinecupof.coffee stuck at 1.0.0 vs 1.2.0). Added all four static sites; verified updates roll.
 
+- Search Console UI (shared browser, account index `/u/1/` = tonioriol@gmail.com): every property (sc-domain bertomeuiglesias.com, boira.band, lodrago.net, and http://lodrago.net/) has a single owner, tonioriol@gmail.com, with no ownership history events and no leftover tokens. Security issues and manual actions: none on all three. Temporary removal (prefix) requests submitted for `https://lodrago.net/details/`, `/saiga.php`, `/ammika.php`; the 410s make the removal permanent.
+
 ## Manual follow-ups for the user
 - Change the `oriol` password anywhere it is reused; check Bitbucket SSH keys for the forge key.
-- Search Console UI: remove any unknown owners under Users and permissions; optional Removals request for prefix `https://lodrago.net/details/`.
 - Confirm the 4 DO droplet backups disappear (Images → Backups in the DO UI otherwise).
 
 ## Commits
