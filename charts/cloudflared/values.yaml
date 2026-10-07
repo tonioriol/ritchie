@@ -59,6 +59,10 @@ hosts:
     service: http://boira-band.default.svc.cluster.local:80
   - hostname: www.boira.band
     service: http://boira-band.default.svc.cluster.local:80
+  - hostname: lodrago.net
+    service: http://lodrago-net.default.svc.cluster.local:80
+  - hostname: www.lodrago.net
+    service: http://lodrago-net.default.svc.cluster.local:80
 
 resources:
   requests:
