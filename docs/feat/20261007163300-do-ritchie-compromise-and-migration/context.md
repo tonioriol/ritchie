@@ -31,11 +31,18 @@ bertomeuiglesias.com (and siblings) on the legacy DigitalOcean droplet `ritchie`
 ## Access notes (for future reference)
 SSH (port 22) to both DO and Hetzner was blocked from the home ISP even with WARP; the cluster API worked. Workaround used: socat relay pod + `kubectl port-forward` (drops on large transfers; use rsync `--partial` in a retry loop). Relay pod deleted.
 
+## Follow-up round (same day)
+- DO: deleted snapshot `acestream-proxy-backup-20251102` too. Account now holds only 4 automatic weekly backups of the destroyed droplet (API refuses to delete backups; DO normally purges them after droplet deletion). October bill ≈ $2.15 + residual; $0 from November (was $9.81/mo).
+- Google Maps key "Lodragonet" (GCP project `lodrago-net`) had `*` in allowed referrers → now only `https://lodrago.net/*`, `https://www.lodrago.net/*`.
+- Search Console: OAuth credential `~/.config/gws/searchconsole-credentials.json` (scopes webmasters + siteverification, script `authorize-searchconsole.py`). Domain properties `sc-domain:` verified via DNS TXT for bertomeuiglesias.com and boira.band (lodrago.net already was). Sitemaps submitted for all three; spam sitemaps deleted from lodrago (`saiga.php?…`, `ammika.php?…`, `sitemap_880.xml`) and the old http bertomeu one. lodrago had 124 pages with impressions since July, nearly all `/details/<id>` spam → all return 410.
+- Planted Google HTML verification files existed in boira (`google46d7b9f76827f940.html`, `google45b08388e2019454.html`) and lodrago (`google06ab4cc68fe53f56.html`): attackers may have verified ownership. The API can't list other owners; they lose ownership when Google re-checks the now-missing files. Owner should check Settings → Users and permissions.
+- boira.band and lodrago.net now ship `sitemap.xml` + `Sitemap:` in robots.txt (v1.0.1).
+- Image Updater only acts on apps listed in the `ImageUpdater` CR (`apps/argocd-image-updater.yaml`), not on Application annotations: static sites were never auto-updating (adamnfinecupof.coffee stuck at 1.0.0 vs 1.2.0). Added all four static sites; verified updates roll.
+
 ## Manual follow-ups for the user
-- Search Console: submit sitemaps / remove lingering spam URLs for the three domains (410s will also drop them over a few weeks).
 - Change the `oriol` password anywhere it is reused; check Bitbucket SSH keys for the forge key.
-- Restrict the Google Maps API key embedded in lodrago.net to that domain.
-- Decide on DO snapshot `acestream-proxy-backup-20251102` and whether to close the DO account.
+- Search Console UI: remove any unknown owners under Users and permissions; optional Removals request for prefix `https://lodrago.net/details/`.
+- Confirm the 4 DO droplet backups disappear (Images → Backups in the DO UI otherwise).
 
 ## Commits
 - ritchie: `a388c98` (findings), `efeff8a` (bertomeuiglesias.com), `6074519` (boira.band), `b92f252` (lodrago.net)
