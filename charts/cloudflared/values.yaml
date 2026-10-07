@@ -55,6 +55,10 @@ hosts:
     service: http://bertomeuiglesias-com.default.svc.cluster.local:80
   - hostname: www.bertomeuiglesias.com
     service: http://bertomeuiglesias-com.default.svc.cluster.local:80
+  - hostname: boira.band
+    service: http://boira-band.default.svc.cluster.local:80
+  - hostname: www.boira.band
+    service: http://boira-band.default.svc.cluster.local:80
 
 resources:
   requests:
