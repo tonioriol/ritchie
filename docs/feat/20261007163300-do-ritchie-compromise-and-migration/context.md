@@ -41,8 +41,10 @@ SSH (port 22) to both DO and Hetzner was blocked from the home ISP even with WAR
 
 - Search Console UI (shared browser, account index `/u/1/` = tonioriol@gmail.com): every property (sc-domain bertomeuiglesias.com, boira.band, lodrago.net, and http://lodrago.net/) has a single owner, tonioriol@gmail.com, with no ownership history events and no leftover tokens. Security issues and manual actions: none on all three. Temporary removal (prefix) requests submitted for `https://lodrago.net/details/`, `/saiga.php`, `/ammika.php`; the 410s make the removal permanent.
 
+- Bitbucket (2026-10-08, logged in via Google as tonioriol@gmail.com): personal workspace `tonioriol` had been deactivated for inactivity (scheduled for deletion); reactivated it. Its 11 private repos (2013-2017) were mirrored (`git clone --mirror` / `push --mirror`, all branches and tags; head/tag SHAs verified identical) to private, archived GitHub repos: `dotfiles-bitbucket`, `laravelicious-bitbucket` (renamed: the existing GitHub repos of those names diverge), `test-sessions-jaff` (source empty; README-only placeholder), `treballadors`, `setapp`, `manilicious`, `web-bertomeu-iglesias`, `lodragonet`, `boira`, `tonioriol.com`, `party-hard-faces`. Local mirrors kept in `~/Backups/bitbucket-20261008/` (425 MB). All 12 account SSH keys (including `Laravel Forge (ritchie)` `SHA256:DeYgEqCF…`, every one "Last used: Never") were deleted via API; the temporary scoped API token was revoked. Still a member of David Castellà's `dcastella` workspace (one repo, `euromod-app`); left untouched.
+
 ## Manual follow-ups for the user
-- Change the `oriol` password anywhere it is reused; check Bitbucket SSH keys for the forge key.
+- Change the `oriol` password anywhere it is reused.
 - Confirm the 4 DO droplet backups disappear (Images → Backups in the DO UI otherwise).
 
 ## Commits
