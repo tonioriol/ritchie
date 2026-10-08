@@ -52,6 +52,14 @@ SSH (port 22) to both DO and Hetzner was blocked from the home ISP even with WAR
   - The user asked for everything to be private. boira.band, bertomeuiglesias.com, lodrago.net and laravelicious were made private. dotfiles is a public fork and can't be made private without detaching it.
   - GitHub Actions does not start any job ("recent account payments have failed or your spending limit needs to be increased"). The merge pushes are `chore:` commits, so no release would have been cut; the sites still serve 200. Billing fix is on the user.
   - `tonioriol.com` and `party-hard-faces` are byte-identical: a Laravel boilerplate (babicka), not the face project. The real party-hard-faces code is the public GitHub repo `faces` (2015-11, clmtrackr "Scrambler Faces", `package.json` name `party-hard-faces`). Its images are in `~/Documents/DJ/Classic/Scrambler/scrambler/faces/`.
+  - 2026-10-08: the 7 redundant GitHub copies were deleted after confirming coverage, and each now returns 404.
+    - `boira` and `boira-web`: both equal to `boira.band` `legacy/master`; filtered and merged.
+    - `web-bertomeu-iglesias` (head `767579e`): contained in `bertomeuiglesias.com`.
+    - `lodragonet` (head `4865109`): contained in `lodrago.net`.
+    - `laravelicious-bitbucket` (head `4650b1c`): contained in `laravelicious`.
+    - `dotfiles-bitbucket` (head `5f50adc`): contained in `dotfiles`.
+    - `party-hard-faces`: identical refs to the private, archived `tonioriol.com`.
+    - Unfiltered mirrors of all 11 Bitbucket repos remain in `~/Backups/bitbucket-20261008/`.
 
 ## Manual follow-ups for the user
 - Change the `oriol` password anywhere it is reused.
