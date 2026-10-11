@@ -23,6 +23,8 @@ credentialsSecret:
 #
 # Keep tunnel hostnames to one level under the zone.
 hosts:
+  - hostname: workspace-cli.tonioriol.com
+    service: http://workspace-cli.default.svc.cluster.local:80
   - hostname: acestreamio.tonioriol.com
     service: http://acestreamio.media.svc.cluster.local:80
   # AIOStreams — Stremio addon aggregator holding the debrid credentials.
