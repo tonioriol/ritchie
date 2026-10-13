@@ -64,8 +64,9 @@ SSH (port 22) to both DO and Hetzner was blocked from the home ISP even with WAR
 ## 2026-10-13 — GitHub visibility follow-up (implemented)
 - User approved making the real `tonioriol/faces` repo private and renaming it `party-hard-faces`; no other visibility changes approved.
 - Ran `gh repo edit tonioriol/faces --visibility private --accept-visibility-change-consequences`, then `gh repo rename party-hard-faces -R tonioriol/faces --yes`. Verified via GitHub API: `name=party-hard-faces`, `private=true`, `fork=false`, URL `https://github.com/tonioriol/party-hard-faces`. This is the original face project, not the unrelated duplicate deleted on October 8.
-- Public inventory from `gh repo list tonioriol --visibility public --limit 1000`: 57 repositories, comprising 33 non-forks and 24 forks. All remain public. User wants to review the non-forks before deciding; forks are excluded from future bulk visibility changes.
-- Continuation: await user's selection of non-forks to make private. Review distribution/update-feed and private Actions implications before changing active public projects. No remote or history changes were made to the local browser rebuild.
+- Public inventory from `gh repo list tonioriol --visibility public --limit 1000`: 57 repositories, comprising 33 non-forks and 24 forks. All remain public. The initial request to review them was resolved by the decision below.
+- **Decision (2026-10-13 11:40 UTC):** user said "leave them all public as they are". Leave all 57 listed public repos unchanged, including forks. The already-renamed `party-hard-faces` stays private; do not revert that approved change. This supersedes the earlier blanket "everything private" request for the remaining public repos.
+- **Status: done.** No further repository visibility changes pending. No remote or history changes were made to the local browser rebuild. Previous verification and inventory recorded in commit `eef19da`.
 
 ## Manual follow-ups for the user
 - Change the `oriol` password anywhere it is reused.
