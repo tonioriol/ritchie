@@ -267,31 +267,50 @@ preset timeouts are 15–20 s, which let StremThru Torz (7.5 s alone, vs ~1.8 s 
 the others) dominate every request. Torz is **disabled** — it contributed 1–2
 streams per title. Responses went 7–12 s → ~2 s.
 
+MediaFusion later timed out at 8 s on every uncached request while contributing
+0 rows, so it is **disabled** too, and all preset timeouts are 5000 ms. Uncached
+first requests went ~8.4 s → 0.9–1.9 s (2026-10-18).
+
 Harmless noise on every request: `Trakt aliases 403`, and TVDB warnings (no TVDB
 key set).
 
 ---
 
-## Current configuration (live)
+## Current configuration (live, 2026-10-18)
 
 ```jsonc
-services:   [torbox, realdebrid]          // order = dedup priority + service sort
-presets:    Comet, MediaFusion, Torrentio(wrapped)   // all timeout 8000; Torz disabled
-resultLimits: { mode: "conjunctive", global: 60, resolution: 4, service: 4 }
-requiredStreamExpressions: 12 movie-only representative-size selectors
-sortCriteria.global: [service, cached, resolution, size, quality]
+services:   [torbox, realdebrid(disabled — premium expired)]
+presets:    Comet, Torrentio(wrapped)       // timeout 5000; MediaFusion + Torz disabled
+excludedStreamExpressions: service(streams,'realdebrid')  // wrapped Torrentio carries its own RD key
+resultLimits: { global: 40 }                // the required selectors bound each tier
+sortCriteria.global: [streamExpressionMatched, service, cached, resolution, size, quality]
 deduplicator: { enabled: true, keys: [infoHash, filename, smartDetect],
                 cached: "per_service", uncached: "single_result", p2p: "single_result" }
 titleMatching: { enabled: true, mode: "exact" }
-preferredResolutions: [2160p, 1080p, 720p]
-excludedResolutions:  [1440p, 576p, 480p, 360p, 240p, 144p, Unknown]
-size: movies 0.5–30 GB, series 0.1–10 GB (plus per-resolution caps)
-formatter: custom · hideErrors: true
+preferredResolutions: [2160p, 1440p, 1080p, 720p, 576p, 480p, Unknown, 360p, 240p, 144p]
+excludedResolutions:  []                    // Unknown/low-res reach only the fallback
+size: movies + series ≥ 50 MB, no upper cap, no per-resolution caps
+formatter: custom (🇦🇩/🇪🇸/🇬🇧 flags) · hideErrors: true
 ```
 
-`cached: "per_service"` is deliberate: the same file survives once per debrid
-service, so there is a TorBox row *and* a Real-Debrid row as a fallback if one
-link fails.
+Selection (ranked stream expressions tag streams; required ones pick rows):
+
+| Tag | Meaning |
+|---|---|
+| `C`, `S`, `E` | Catalan, Spanish, English (disjoint, in that priority) |
+| `M` | C∪S∪E at 2160p/1080p/720p — the "proper" rows |
+| `F` / `FB` | everything else (other resolutions, Unknown, untagged language); `FB` = cached-first |
+| `E2160p`/`E1080p`/`E720p` | English per tier, cached-first |
+
+Rows shown: Catalan and Spanish one per main tier; English per tier the
+largest, smallest and first at/below the median (max 3). **Only when `M` is
+empty** a fallback of up to 3 rows (largest/smallest/median) comes from `FB`.
+Reality releases are often untagged or Unknown-resolution, so those episodes
+rely on the fallback; they render without a flag and Unknown shows as `N/A`.
+
+Rollback source: `.agent-runs/debrid-compare/backup-20261018T013331.json` at
+the workspace root (holds secrets, never commit). Full change record:
+[`docs/feat/20261018014500-aiostreams-reality-tiers-and-fallback/context.md`](feat/20261018014500-aiostreams-reality-tiers-and-fallback/context.md).
 
 Renders as:
 
@@ -304,9 +323,8 @@ Comet
 
 `⚡` cached (instant) · `⏳` uncached · `TB`/`RD` the debrid service.
 
-Result: ~12–21 rows per title in ~1–3 s, 4 per resolution per provider.
-Movie blocks now expose up to four representative sizes per resolution/provider
-instead of four near-identical largest rows.
+Result on the 17-episode reality test set: every episode returns rows (10 were
+empty before), 1–6 rows each, 0.3–1.9 s.
 
 ---
 

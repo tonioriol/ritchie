@@ -1,6 +1,6 @@
 ---
 title: "AIOStreams max/mid/min tiers with untagged fallback after Real-Debrid expiry"
-status: active
+status: done
 repos: [ritchie]
 tags: [deployment]
 related: [20260729115122-aiostreams-language-and-tier-fallback]
@@ -29,4 +29,12 @@ created: 2026-10-18
   - Required selectors: fallback (3 rows from `FB` only when `M` is empty), Catalan and Spanish one row per main tier, English per tier = largest + smallest + first at/below median, backfilled, max 3.
 - Rollback source: `.agent-runs/debrid-compare/backup-20261018T013331.json` at the workspace root (contains secrets; never commit).
 - Early result (before rate limiting interrupted the run): RHOBH S15E1, S14E5, S10E5, S3E5, Love Island S8E36, S3E5 and Drag Race S17E1 went from 0 to 2–3 cached TorBox rows each; responses 0.5–1.9 s. Remaining episodes hit the AIOStreams per-IP `stremio-stream` rate limit from the test burst, not a config error. A Real-Debrid row can still appear via the wrapped Torrentio instance, which carries its own debrid keys.
-- Commit: this entry.
+- Commit: e5e892e.
+
+### 2026-10-18 01:50 — Full test set passes, dead RD rows excluded, cold latency verified
+
+- Spaced re-run (7 s apart, avoiding the per-IP rate limit) of the remaining 7 episodes: Drag Race S10E5 0→3, All Stars S9E2 0→3 (2160p/1080p/1080p), Drag Race España S5E11 1→1, Ultimate Girls Trip S5E2 1→1 and S2E1 2→1 TB, Selling Sunset S8E11 1→1 and S3E1 3→3. All 17 episodes now return rows; none got worse (Girls Trip S2E1 lost only a dead RD row).
+- Real-Debrid rows came from wrapped Torrentio's own debrid keys. Added `excludedStreamExpressions: [service(streams,'realdebrid')]` in a second complete PUT; readback identical. RHOBH S15E21, Love Island S7E10 and Girls Trip S2E1 now show only TorBox rows.
+- Cold first requests on never-requested episodes: 0.86–1.65 s (repeat 0.38–0.54 s), down from ~8.4 s.
+- Autoplay: adjacent RHOBH S15E20/E21 share bingeGroup `…|1080p|MeGusta`, so binge continuation works on a matching release group.
+- Operator doc `docs/STREMIO-AIOSTREAMS.md` "Current configuration" rewritten for this setup. Rollback not needed.
