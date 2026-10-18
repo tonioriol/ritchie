@@ -84,3 +84,10 @@ created: 2026-10-18
 - Corrections: the "Pa Negre" id was wrong (it returned *Van Diemen's Land*), and Merlí's single result was a "Unable to get metadata" error row, not a stream.
 - User decision: keep the live original → Catalan → Spanish config unchanged.
 - The throwaway diagnostic AIOStreams user was deleted (`DELETE /api/v1/user` with basic auth; a follow-up read returns "Invalid UUID or password").
+
+### 2026-10-18 10:44 — Diagnosis: Gènesi (tt38483587) shows one uncached link
+
+- Live AIOStreams returns one row per episode: an uncached Russian dub, `Genesi.s01e0N.WEBRip.XviD.Rus.RuDub.tv.avi`, about 550–600 MB.
+- Raw Torrentio (no debrid, no filters) returns the same single torrent for 1x1, 1x2 and 1x5. Comet adds nothing. A Knaben search found no Catalan or Spanish release.
+- Cause: supply, not filtering. It is a 3Cat original (premiered 2026-09-21 on TV3/3Cat; Netflix holds later distribution) and nobody rips 3Cat. It shows up only through the "show anything" fallback, and it is uncached because nobody has added it to TorBox.
+- Takeaway: TV3/3Cat originals (also Merlí) will mostly be absent until a Netflix WEB-DL appears; no config change helps.
