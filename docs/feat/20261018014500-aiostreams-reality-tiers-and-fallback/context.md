@@ -129,3 +129,32 @@ created: 2026-10-18
   - push the addon to GitHub + beamup;
   - add it to AIOStreams;
   - decide whether the row-1 pin may fall back to 3Cat links, which `cached()` excludes.
+
+### 2026-10-18 12:33 — 3alacarta 0.0.6 live on beamup; manual IMDb map gone (b01999e)
+
+- Hosting decision (user): stays on beamup for now, `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club`.
+  - Cloudflare caches responses for 4h, so add `?x=` to bust the cache when checking.
+  - Moving to the cluster is viable. From Hetzner (DE), 3Cat media.jsp returns the same `-es` URLs as from Spain; geo is enforced at playback.
+- 4 of the 6 manual entries already resolved by title: Crims, Està passant, Joc de cartes, Tor.
+- Dubbed titles: the addon now falls back to Wikidata's Catalan label/aliases:
+  1. search `haswbstatement:P345=<tt>`;
+  2. `wbgetentities` with `languages=ca`.
+  - Dragon Ball → "Bola de Drac", DBZ → "Bola de Drac Z". `mappings.js` is deleted.
+- Season splits: 3Cat splits seasons differently from IMDb.
+  - Bola de Drac: 3Cat 4 seasons (18/65/49/21 = 153) vs IMDb tt0280249 5 seasons (28/25/48/21/31 = 153, plus S0 specials).
+  - DBZ: 3Cat 6 seasons = 291 vs IMDb 9 seasons = 291.
+  - Absolute numbering and airing order agree on both sides. Spot-checked episode titles at season boundaries: abs 29 "The Roaming Lake" = "El llac màgic", abs 117 "Krillin's Proposal" = "Una afirmació d'en Krilin".
+  - Rule: when the Cinemeta regular-episode count (season > 0) equals 3Cat's, pick the 3Cat video by position in airing order. Otherwise use direct season/episode.
+  - Verified: DB 1x1/2x1/5x31 and DBZ 4x10/9x38 hit the correct abs episodes.
+- Live beamup 0.0.6 results:
+
+  | Request | Streams |
+  |---|---|
+  | DB 2x1 | 3 |
+  | DBZ 9x38 | 3 |
+  | Crims 1x1 | 3 |
+  | Gènesi 1x1 | 2 |
+  | Merlí 2x3 | 3 |
+  | Alcarràs | 3 |
+  | Breaking Bad | 0 |
+- Next: add the addon to AIOStreams as a custom preset. In row 1, fall back to the best C-tier stream from `addon(streams,'3alacarta')` when nothing is cached.
