@@ -182,3 +182,23 @@ created: 2026-10-18
 
   - 3Cat rows render as `🎬 P2P ⏳`: there is no debrid service, so the formatter treats them as uncached P2P. They tag as Original because the file has no language tag, and Original = Unknown.
 - **Open issue:** Merlí 2x3 used to show cached Comet rows at 1080p (978 MB) and 720p. Now 3Cat takes those resolution slots, because `perGroup(resolution, 1)` keeps one row per resolution and the sort put 3Cat first. Row 1 also lost its instant pin ("0 pinned"). Under investigation.
+
+### 2026-10-18 13:05 — Fixed: 3Cat no longer displaces instant torrents; DB/DBZ now get 3Cat rows
+
+- **Cause of the Merlí regression.** It wasn't the pin. 3Cat streams have no debrid `service`, and the sorter key `cached` is `service?.cached !== false`, so they rank as cached. They therefore took each `perGroup(resolution, 1)` slot from the real ⚡ Comet rows. The row-1 pin itself still works.
+- **Fix in AIOStreams.** Wrapped the original/catalan/spanish required rows in `negate(addon(streams,'3alacarta'), …)` and added a sixth required row, `/* 3cat */ slice(addon(streams,'3alacarta'), 0, 1)`. The row-1 fallback is unchanged: the best 3Cat stream when nothing is cached. Built by `3cat-aio/build.jq`; the PUT readback matched.
+- **DB/DBZ had no 3Cat rows** because AIOStreams' exact title matching dropped `Bola de Drac S02E01 …` on a "Dragon Ball" request. Addon 0.0.9 (3396429) names files after the Cinemeta/IMDb title, keeping the Catalan title only as a fallback. The preset now uses `?v=0.0.9`.
+- **beamup gotcha.** The first `git push beamup` failed with "failed to push some refs" and a second push deployed. During the gap, stale 0.0.8 or empty results appear.
+- **E2E (live AIOStreams, after both fixes):**
+
+  | Title | Result |
+  |---|---|
+  | Gènesi 1x1 | 3Cat 1080p alone (nothing cached, so the fallback pins it) |
+  | Merlí 2x3 | ⚡1080p 978 MB · 3Cat 1080p · ⚡720p · ⚡N/A |
+  | Alcarràs | ⚡1080p 17 GB · 3Cat 1080p · Catalan/Spanish rows |
+  | DB 2x1 | ⚡1080p · 3Cat "Dragon Ball S02E01" · … |
+  | DBZ 9x38 | ⚡1080p · 3Cat · ⚡N/A |
+  | Crims 1x1 | 3Cat 1080p first, then uncached torrents |
+  | Breaking Bad | unchanged (no 3Cat) |
+
+- **Docs.** A "3alacarta (3Cat)" section was added to `docs/STREMIO-AIOSTREAMS.md` covering location, deploy, the `?v=` bump, matching rules, schema requirements and geo. The workspace `AGENTS.md` Key URLs table has a row for it.

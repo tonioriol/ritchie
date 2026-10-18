@@ -14,6 +14,7 @@ Deployment specifics (Helm chart, ArgoCD, tunnel, secrets) live in
 Stremio client
   └── ONE addon: AIOStreams  (https://aiostreams.tonioriol.com)
         ├── scrapers:  Comet · MediaFusion · Torrentio (wrapped)
+        ├── direct:    3alacarta (3Cat / TV3 in Catalan, our own addon on beamup)
         └── debrid:    TorBox (1st) · Real-Debrid (2nd)
 ```
 
@@ -281,6 +282,7 @@ key set).
 ```jsonc
 services:   [torbox, realdebrid(disabled — premium expired)]
 presets:    Comet, Torrentio(wrapped)       // timeout 5000; MediaFusion + Torz disabled
+            custom "3alacarta"              // timeout 8000; see "3alacarta (3Cat)" below
 excludedStreamExpressions: service(streams,'realdebrid')  // wrapped Torrentio carries its own RD key
 resultLimits: { global: 40 }                // the required selectors bound each tier
 sortCriteria.global: [resolution, streamExpressionMatched, cached, quality, size]
@@ -315,12 +317,21 @@ per resolution from everything. Unknown resolution shows as `N/A`.
 
 **Row 1 is pinned for autoplay.** The first required expression pins to the
 top the first *cached* stream (in sort order) of: original → Catalan →
-Spanish → anything. `pin(..., false)` only reorders, so the pinned row is not
-duplicated. Nuvio TV and mobile use "Auto-play first source", so this row
-plays without the picker. Regex autoplay on `⚡` did not trigger on the devices.
+Spanish → anything, and if nothing is cached, the best 3Cat stream.
+`pin(..., false)` only reorders, so the pinned row is not duplicated. Nuvio TV
+and mobile use "Auto-play first source", so this row plays without the picker.
+Regex autoplay on `⚡` did not trigger on the devices.
 
-Rollback source: `.agent-runs/debrid-compare/backup-20261018T013331.json` at
-the workspace root (holds secrets, never commit). Full change record:
+3Cat streams are excluded from the O/C/S rows (`negate(addon(streams,
+'3alacarta'), …)`) and get one row of their own (`slice(addon(streams,
+'3alacarta'), 0, 1)`, the adaptive HLS stream). Why: they have no debrid
+service, the sorter's `cached` key is `service?.cached !== false`, so they
+rank as cached and would take the one-per-resolution slot from a real ⚡
+torrent.
+
+Rollback source: `.agent-runs/debrid-compare/3cat-aio/backup-20261018T123235.json`
+at the workspace root (pre-3alacarta; holds secrets, never commit). The current
+config is that file run through `3cat-aio/build.jq`. Full change record:
 [`docs/feat/20261018014500-aiostreams-reality-tiers-and-fallback/context.md`](feat/20261018014500-aiostreams-reality-tiers-and-fallback/context.md).
 
 Renders as:
@@ -336,6 +347,50 @@ Comet
 
 Result on the 17-episode reality test set: every episode returns rows, 1–7
 rows each, row 1 instant (⚡) on all 17.
+
+---
+
+## 3alacarta (3Cat) — our own addon, hosted on beamup
+
+Free, legal 3Cat (TV3) streams in Catalan, used for Catalan originals that
+torrents lack (Gènesi, Crims) and as an extra Catalan row elsewhere.
+
+| What | Where |
+|---|---|
+| Live addon | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/manifest.json` |
+| Source | `github.com/tonioriol/3alacarta-stremio-addon`, local `~/Code/3alacarta-stremio-addon` |
+| Hosting | beamup (free Stremio community hosting), **not** this cluster |
+| In AIOStreams | custom preset `3alacarta`, `manifestUrl …/manifest.json?v=<version>` |
+
+**Deploy:** `git push origin main && git push beamup main:master`. The push
+can fail once with `failed to push some refs`; push again. The container
+restarts for about a minute (empty / HTTP 000 replies).
+
+**After every deploy:** bump `?v=<version>` in the AIOStreams preset
+`manifestUrl` and PUT the config. Beamup sits behind Cloudflare, which caches
+`manifest.json` for 4 h, and AIOStreams also caches manifests by URL, so a new
+query string is the only way to pick up changes. AIOStreams forwards the query
+string to stream URLs too.
+
+**How an IMDb id becomes a 3Cat programme (automatic, no per-title mapping):**
+1. Title: the Cinemeta name, then the Catalan labels from Wikidata
+   (`Dragon Ball` → `Bola de Drac`), normalised and matched against 3Cat's
+   programme / film lists.
+2. Episode: when Cinemeta and 3Cat list the same number of episodes, the
+   episode is matched **by position** in airing order. This absorbs TV3's
+   different season splits and renumbering (Bola de Drac: 4 seasons on 3Cat vs
+   5 on IMDb). Otherwise it uses direct season/episode.
+3. File name `<IMDb title> <SxxEyy|year> <res> WEB-DL Catalan.mp4`. The IMDb
+   title is required: AIOStreams' exact title matching drops `Bola de Drac …`
+   on a `Dragon Ball` request.
+
+**Strict-schema requirements** (AIOStreams drops the whole addon otherwise):
+every manifest catalog needs a `name`; every subtitle needs `id`, `url` and
+`lang`.
+
+**Playback:** 3Cat geo-blocks to Spain; the stream URL is played by the
+client, so it works at home and fails abroad. Rows show as `🎬 P2P ⏳` (no
+debrid service) and are tagged Original (no language tag = Unknown = O).
 
 ---
 
