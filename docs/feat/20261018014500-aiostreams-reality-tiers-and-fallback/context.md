@@ -107,3 +107,9 @@ created: 2026-10-18
 - Correct ids: Merlí = tt4580372, Alcarràs = tt11930126.
 - Deploy shape (commit 49f0fb9, not pushed): `charts/alacarta-bridge` + `apps/alacarta-bridge.yaml`. Code is in `files/server.mjs` via a ConfigMap on stock `node:24-alpine` (no repo/CI). Internal ClusterIP `alacarta-bridge.media.svc` (no DNS/tunnel). TMDB key via ESO from the 1P `aiostreams` item, field `tmdb_api_key`. helm lint and the server dry-run are clean.
 - Known limit: the row-1 pin uses `cached()`, which requires `service.cached===true`, so 3Cat http streams never reach row 1. Gènesi would have no row 1 and no autoplay unless that expression is changed (pending user decision).
+
+### 2026-10-18 11:16 — Decision: fix the 3alacarta addon itself, not a separate bridge
+
+- The 3alacarta addon is the user's own: `~/Code/3alacarta-stremio-addon` (GitHub `tonioriol/3alacarta-stremio-addon`, deployed to beamup `60b9a578d49f`). Its tt handling was a hard-coded 6-entry `imdb3alcMap`, which is why Gènesi/Merlí/films returned nothing.
+- Plan: put the automatic mapping into the addon (new `src/lib/imdb.js`). Cinemeta name → 3Cat programme list (series) or the 3Cat PUF_PEL film list, 317 films (movies); manual map still wins. tt streams get a release-style `behaviorHints.filename` (… WEB-DL Catalan) and audio-description variants dropped. Then add the addon to AIOStreams directly.
+- The ritchie bridge commit 49f0fb9 (not pushed) will be dropped.
