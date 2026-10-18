@@ -158,3 +158,27 @@ created: 2026-10-18
   | Alcarràs | 3 |
   | Breaking Bad | 0 |
 - Next: add the addon to AIOStreams as a custom preset. In row 1, fall back to the best C-tier stream from `addon(streams,'3alacarta')` when nothing is cached.
+
+### 2026-10-18 12:49 — 3alacarta wired into AIOStreams; two addon spec fixes needed
+
+- AIOStreams validates addons strictly, and two gaps in 3alacarta blocked it:
+  - **Manifest catalogs had no `name`.** The PUT failed with `USER_INVALID_CONFIG … catalogs.0.name`. Fixed in 0.0.7 (ad97ff6).
+  - **Subtitles had no `id`.** Every stream was dropped with "invalid item in response" and the addon showed as "No valid streams found". Fixed in 0.0.8 (146699c), using `id = url`.
+- AIOStreams caches manifests by URL, and beamup's Cloudflare edge caches `manifest.json` for 4h (it served a stale 0.0.3). The preset therefore uses `manifest.json?v=<version>`; AIOStreams forwards the query string to stream URLs. **Bump `?v=` after every addon deploy.**
+- Live config changes (PUT plus an identical readback):
+  - custom preset `3alacarta` (instanceId `3alacarta`, timeout 8000, movie and series);
+  - row-1 last fallback is now `count(cached(streams)) > 0 ? slice(cached(streams),0,1) : slice(addon(streams,'3alacarta'),0,1)`.
+  - Build script: `.agent-runs/debrid-compare/3cat-aio/build.jq`. Rollback: `3cat-aio/backup-20261018T123235.json`.
+- End-to-end results through AIOStreams:
+
+  | Title | Result |
+  |---|---|
+  | Gènesi 1x1 | 3Cat 1080p and 720p shown |
+  | Merlí 2x3 | 3Cat 1080p/720p/480p shown |
+  | Crims 1x1 | 3Cat 1080p/720p/480p shown |
+  | Alcarràs | 3Cat 720p/480p shown |
+  | DB / DBZ | no 3Cat rows; enough cached torrents |
+  | Breaking Bad | unchanged |
+
+  - 3Cat rows render as `🎬 P2P ⏳`: there is no debrid service, so the formatter treats them as uncached P2P. They tag as Original because the file has no language tag, and Original = Unknown.
+- **Open issue:** Merlí 2x3 used to show cached Comet rows at 1080p (978 MB) and 720p. Now 3Cat takes those resolution slots, because `perGroup(resolution, 1)` keeps one row per resolution and the sort put 3Cat first. Row 1 also lost its instant pin ("0 pinned"). Under investigation.
