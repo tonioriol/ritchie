@@ -91,3 +91,10 @@ created: 2026-10-18
 - Raw Torrentio (no debrid, no filters) returns the same single torrent for 1x1, 1x2 and 1x5. Comet adds nothing. A Knaben search found no Catalan or Spanish release.
 - Cause: supply, not filtering. It is a 3Cat original (premiered 2026-09-21 on TV3/3Cat; Netflix holds later distribution) and nobody rips 3Cat. It shows up only through the "show anything" fallback, and it is uncached because nobody has added it to TorBox.
 - Takeaway: TV3/3Cat originals (also Merlí) will mostly be absent until a Netflix WEB-DL appears; no config change helps.
+
+### 2026-10-18 10:54 — Diagnosis: why the 3alacarta addon shows nothing on Gènesi
+
+- The 3alacarta Stremio addon (`community.3alacarta` v0.0.3, beamup) has Gènesi under its own id `3alc:76716`, with all 6 episodes. Each episode has 3 direct 3Cat streams: HLS "Auto (up to 1080p)", a 720p MP4, and a 720p audio-description MP4. The HLS returns 200.
+- Its manifest declares `idPrefixes: ["3alc:", "tt"]`, but every IMDb id returns `{"streams":[]}`: Gènesi tt38483587, Merlí, Les de l'hoquei, and movies. None of its catalog items carry an `imdb_id`. In practice it serves only `3alc:` ids.
+- So a title opened from Cinemeta/TMDB (tt id) never matches. It only plays when opened from 3alacarta's own catalog or search. Adding it to AIOStreams as-is would also return nothing, because AIOStreams queries with the tt id.
+- Fix options: open it from the 3alacarta catalog in Nuvio, or build a small tt→3alc bridge (Cinemeta name/year → 3alacarta search → meta → season/episode map) that AIOStreams can use as a custom addon.
