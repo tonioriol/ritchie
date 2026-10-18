@@ -222,3 +222,14 @@ created: 2026-10-18
 - Pending: the AIOStreams config change. The live PUT was blocked twice by a 1Password approval timeout. `build.jq` is ready and does two things:
   - bumps the preset to `manifest.json?v=0.0.10`;
   - replaces the formatter name so 3alacarta streams show `🇦🇩 3Cat ▶ <res>`, with the O/C/S flags and ⚡/⏳ shown only for streams that have a service (⏳ only on `service.cached` false).
+
+### 2026-10-18 16:36 — AIOStreams on 3alacarta 0.0.10: 3Cat label and subtitles verified live
+
+- The config was PUT from `build.jq` and the readback diff is empty. Exactly two fields changed:
+  - the preset `manifest.json?v=0.0.10`;
+  - the formatter name (3alacarta → `🇦🇩 3Cat ▶`; flags and ⚡/⏳ only when a service exists; ⏳ only on `service.cached` false).
+- Live e2e:
+  - Merlí 2×3, Alcarràs and Dragon Ball 2×1 each show `🇦🇩 3Cat ▶ 1080p` as row 2 under the cached TorBox row 1.
+  - AIOStreams `/subtitles/…` returns the 3Cat `lang: cat` VTT for all three.
+  - Breaking Bad 1×1 returns only TB rows and no subtitles (no 3Cat match, as expected).
+- STREMIO-AIOSTREAMS.md (3alacarta section) now documents the label, the direct-not-P2P typing, single Catalan audio and the subtitles resource.

@@ -343,7 +343,9 @@ Land.of.Bad.2024.UHD.BluRay.2160p...
 Comet
 ```
 
-`⚡` cached (instant) · `⏳` uncached · `TB`/`RD` the debrid service.
+`⚡` cached (instant) · `⏳` uncached · `TB`/`RD` the debrid service. The
+language flag and `⚡`/`⏳` are printed only for streams with a debrid service;
+3Cat rows read `🇦🇩 3Cat ▶ 1080p` (see below).
 
 Result on the 17-episode reality test set: every episode returns rows, 1–7
 rows each, row 1 instant (⚡) on all 17.
@@ -389,8 +391,21 @@ every manifest catalog needs a `name`; every subtitle needs `id`, `url` and
 `lang`.
 
 **Playback:** 3Cat geo-blocks to Spain; the stream URL is played by the
-client, so it works at home and fails abroad. Rows show as `🎬 P2P ⏳` (no
-debrid service) and are tagged Original (no language tag = Unknown = O).
+client, so it works at home and fails abroad. Streams are direct, not P2P:
+AIOStreams types the adaptive HLS as `live` and the MP4s as `http`. The
+formatter labels them `🇦🇩 3Cat ▶ <res>` via `{addon.name::=3alacarta[…]}`;
+without that, a service-less stream would print the default `P2P ⏳`.
+
+**What 3Cat offers per title:** adaptive HLS up to 1080p plus 720p and 480p
+MP4. Audio is always a single Catalan track (every HLS master sampled has one
+`AUDIO LANGUAGE="ca"` rendition). The only alternative version is
+Audiodescripció, which the addon filters out.
+
+**Subtitles:** most titles have an external Catalan `.vtt`. AIOStreams'
+stream parser drops `stream.subtitles`, so the addon (since 0.0.10) also
+serves them through the `subtitles` resource (`idPrefixes: ['tt']`,
+`lang: 'cat'`). AIOStreams aggregates that resource and passes it to the player:
+`<aiostreams base>/subtitles/series/tt4580372:2:3.json` returns the Merlí VTT.
 
 ---
 
