@@ -77,3 +77,10 @@ created: 2026-10-18
 - `Unknown` counted as original: on non-English shows some untagged files are English-titled releases (e.g. "Money Heist …"), so an untagged row can be a dub. Known limit of the filename tags.
 - Thin catalogue (Merlí S1E1): one uncached link only, so there is no ⚡ row and autoplay will not start.
 - No config change made.
+
+### 2026-10-18 10:25 — Decision: no English tier; test user deleted
+
+- Simulated two variants offline on the edge-case titles: English counted as original (it moved La Casa de Papel's row 1 to a 1.2 GB English/Hindi 2160p dub, so it was rejected) and English as a second choice after original (row 1 unchanged on all 10 titles, but it added 2–5 dub rows per foreign title and put English dubs ahead of Catalan/Spanish).
+- Corrections: the "Pa Negre" id was wrong (it returned *Van Diemen's Land*), and Merlí's single result was a "Unable to get metadata" error row, not a stream.
+- User decision: keep the live original → Catalan → Spanish config unchanged.
+- The throwaway diagnostic AIOStreams user was deleted (`DELETE /api/v1/user` with basic auth; a follow-up read returns "Invalid UUID or password").
