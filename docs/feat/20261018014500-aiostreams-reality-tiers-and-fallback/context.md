@@ -202,3 +202,10 @@ created: 2026-10-18
   | Breaking Bad | unchanged (no 3Cat) |
 
 - **Docs.** A "3alacarta (3Cat)" section was added to `docs/STREMIO-AIOSTREAMS.md` covering location, deploy, the `?v=` bump, matching rules, schema requirements and geo. The workspace `AGENTS.md` Key URLs table has a row for it.
+
+### 2026-10-18 14:27 — Diagnosis: 3Cat rows show "P2P ⏳", lose subtitles, and carry only Catalan audio
+
+- **"P2P ⏳" is a formatter label, not the stream type.** In our custom formatter, `{service.shortName::exists[...||"P2P"]}` prints P2P whenever a stream has no debrid service, and `service.cached::istrue[" ⚡"||" ⏳"]` prints ⏳ for the same reason. AIOStreams parses 3Cat as `type: 'live'` (its URL ends in `.m3u8`) and the MP4s as `http`. Both are direct and instant. The fix belongs in the formatter, e.g. `stream.type` / `addon.name` → "3Cat ▶".
+- **Subtitles are dropped.** The addon sends `subtitles: [{id,url,lang:'ca'}]`, but AIOStreams' `StreamParser.parse` never copies `stream.subtitles`, so the Stremio output has `subtitles: null`. The way through is the addon `subtitles` resource: AIOStreams aggregates that (`getSubtitles`) and passes it to the player.
+- **Audio.** Sampling 20 films plus Merlí, DB and Gènesi: every HLS master has exactly one audio rendition (`LANGUAGE="ca"`) and no in-manifest subtitle renditions. Subtitles are external `.vtt` files (Catalan only). The only other "audio" is the Audiodescripció variant, which the addon already filters out. So 3Cat is always Catalan audio, one track.
+- **Language tag.** The filename says "Catalan", and the `catalan-name` regex matches it, but the stream was still tagged O (Unknown). The O/C/S tagging is irrelevant here anyway, because 3Cat is negated out of those rows and has its own row.
