@@ -233,3 +233,19 @@ created: 2026-10-18
   - AIOStreams `/subtitles/…` returns the 3Cat `lang: cat` VTT for all three.
   - Breaking Bad 1×1 returns only TB rows and no subtitles (no 3Cat match, as expected).
 - STREMIO-AIOSTREAMS.md (3alacarta section) now documents the label, the direct-not-P2P typing, single Catalan audio and the subtitles resource.
+
+### 2026-10-18 16:45 — Catalan originals: row 1 is a cached ≥1080p O/C torrent, else 3Cat; 3Cat label ⚡
+
+- Decision (user): for Catalan-original titles 3Cat is the best original-version source unless a cached 4K/1080p Catalan release exists. 3Cat is instant, so it carries ⚡.
+- Row-1 rule, prepended to the existing chain:
+  - if `originalLanguage == 'Catalan'` (the TMDB `original_language` constant in the expression engine), pin the first cached 2160p/1080p stream from merge(O, C);
+  - else pin 3Cat;
+  - otherwise the unchanged O → C → S → any → 3Cat chain.
+- Formatter: `🇦🇩 3Cat ▶` → `🇦🇩 3Cat ⚡`.
+- PUT and readback OK. Live check on 16 TMDB `original_language=ca` titles plus 2 controls:
+  - Merlí, Alcarràs and two other titles with cached 1080p: TB stays row 1 with 3Cat row 2.
+  - Two Catalan originals with no cached ≥1080p torrent: 3Cat is row 1 at 1080p.
+  - tt8517780: the cached 1080p 🇦🇩 TB beats 3Cat (merge O/C works).
+  - tt4379450: 3Cat 576p is row 1 over an uncached 720p.
+  - Dragon Ball (ja original): unchanged. Breaking Bad: unchanged.
+- Measured trade-off: Merlí's row 1 is a 978 MB 1080p torrent over 3Cat 1080p, as the user's rule asks.

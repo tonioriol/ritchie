@@ -318,6 +318,11 @@ per resolution from everything. Unknown resolution shows as `N/A`.
 **Row 1 is pinned for autoplay.** The first required expression pins to the
 top the first *cached* stream (in sort order) of: original → Catalan →
 Spanish → anything, and if nothing is cached, the best 3Cat stream.
+**Catalan originals** (`originalLanguage == 'Catalan'`, from TMDB
+`original_language: ca`) go first through two extra steps: a cached 2160p/1080p
+O or C torrent, else 3Cat (it is the original audio, instant, and carries the
+Catalan subtitles). A cached torrent below 1080p loses to 3Cat even at 576p.
+Dubbed titles (Dragon Ball) keep 3Cat in its own row.
 `pin(..., false)` only reorders, so the pinned row is not duplicated. Nuvio TV
 and mobile use "Auto-play first source", so this row plays without the picker.
 Regex autoplay on `⚡` did not trigger on the devices.
@@ -345,7 +350,8 @@ Comet
 
 `⚡` cached (instant) · `⏳` uncached · `TB`/`RD` the debrid service. The
 language flag and `⚡`/`⏳` are printed only for streams with a debrid service;
-3Cat rows read `🇦🇩 3Cat ▶ 1080p` (see below).
+3Cat rows read `🇦🇩 3Cat ⚡ 1080p`: ⚡ there means instant direct
+stream, not debrid cache (see below).
 
 Result on the 17-episode reality test set: every episode returns rows, 1–7
 rows each, row 1 instant (⚡) on all 17.
@@ -393,7 +399,7 @@ every manifest catalog needs a `name`; every subtitle needs `id`, `url` and
 **Playback:** 3Cat geo-blocks to Spain; the stream URL is played by the
 client, so it works at home and fails abroad. Streams are direct, not P2P:
 AIOStreams types the adaptive HLS as `live` and the MP4s as `http`. The
-formatter labels them `🇦🇩 3Cat ▶ <res>` via `{addon.name::=3alacarta[…]}`;
+formatter labels them `🇦🇩 3Cat ⚡ <res>` via `{addon.name::=3alacarta[…]}`;
 without that, a service-less stream would print the default `P2P ⏳`.
 
 **What 3Cat offers per title:** adaptive HLS up to 1080p plus 720p and 480p
