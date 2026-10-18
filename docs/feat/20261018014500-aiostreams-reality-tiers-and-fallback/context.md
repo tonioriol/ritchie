@@ -98,3 +98,12 @@ created: 2026-10-18
 - Its manifest declares `idPrefixes: ["3alc:", "tt"]`, but every IMDb id returns `{"streams":[]}`: Gènesi tt38483587, Merlí, Les de l'hoquei, and movies. None of its catalog items carry an `imdb_id`. In practice it serves only `3alc:` ids.
 - So a title opened from Cinemeta/TMDB (tt id) never matches. It only plays when opened from 3alacarta's own catalog or search. Adding it to AIOStreams as-is would also return nothing, because AIOStreams queries with the tt id.
 - Fix options: open it from the 3alacarta catalog in Nuvio, or build a small tt→3alc bridge (Cinemeta name/year → 3alacarta search → meta → season/episode map) that AIOStreams can use as a custom addon.
+
+### 2026-10-18 11:05 — Built: alacarta-bridge (tt → 3alc), verified locally, not deployed
+
+- Mapping: TMDB `find` (ca-ES) gives the titles. Series match the normalised title against the 3Cat programme list (`api.3cat.cat/programestv?_format=json&items_pagina=5000`, about 1319 programmes), whose `id` equals the 3alc series id (Gènesi 76716, Merlí 54076, Les de l'hoquei 59216), then pick the season/episode from the 3alacarta meta. Films aren't in that list, so they use the 3alacarta movie search with an exact normalised title match. 3alacarta's own search can't find Merlí, so it isn't used for series.
+- Output: audio-description variants dropped. `behaviorHints.filename` = `<Title> S01E01 1080p WEB-DL Catalan.mp4` (films use the year), so AIOStreams title/S-E matching passes and the `catalan-name` regex puts it in the C tier.
+- Local results: Gènesi 1x1 → 1080p HLS + 720p; Merlí 2x3 → 1080p/720p/480p; Alcarràs tt11930126 → 1080p/720p/480p; Breaking Bad → 0.
+- Correct ids: Merlí = tt4580372, Alcarràs = tt11930126.
+- Deploy shape (commit 49f0fb9, not pushed): `charts/alacarta-bridge` + `apps/alacarta-bridge.yaml`. Code is in `files/server.mjs` via a ConfigMap on stock `node:24-alpine` (no repo/CI). Internal ClusterIP `alacarta-bridge.media.svc` (no DNS/tunnel). TMDB key via ESO from the 1P `aiostreams` item, field `tmdb_api_key`. helm lint and the server dry-run are clean.
+- Known limit: the row-1 pin uses `cached()`, which requires `service.cached===true`, so 3Cat http streams never reach row 1. Gènesi would have no row 1 and no autoplay unless that expression is changed (pending user decision).
