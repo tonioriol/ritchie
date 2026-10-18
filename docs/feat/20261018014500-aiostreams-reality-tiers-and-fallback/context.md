@@ -113,3 +113,19 @@ created: 2026-10-18
 - The 3alacarta addon is the user's own: `~/Code/3alacarta-stremio-addon` (GitHub `tonioriol/3alacarta-stremio-addon`, deployed to beamup `60b9a578d49f`). Its tt handling was a hard-coded 6-entry `imdb3alcMap`, which is why Gènesi/Merlí/films returned nothing.
 - Plan: put the automatic mapping into the addon (new `src/lib/imdb.js`). Cinemeta name → 3Cat programme list (series) or the 3Cat PUF_PEL film list, 317 films (movies); manual map still wins. tt streams get a release-style `behaviorHints.filename` (… WEB-DL Catalan) and audio-description variants dropped. Then add the addon to AIOStreams directly.
 - The ritchie bridge commit 49f0fb9 (not pushed) will be dropped.
+
+### 2026-10-18 11:19 — 3alacarta addon fixed locally (2c02e13 in 3alacarta-stremio-addon, v0.0.5, not pushed)
+
+- Verified locally on port 49905:
+  - Gènesi 1x1/1x2 → 1080p + 720p.
+  - Merlí 1x1 and 2x3 → 3 streams each.
+  - Alcarràs → 1080p/720p/480p, named `Alcarràs 2022 …`. The year comes from Cinemeta because 3Cat's own date is the 2023 broadcast.
+  - Crims (manual map) still works.
+  - Breaking Bad → [].
+  - `3alc:` ids unchanged.
+- Gotcha: the 3Cat PUF_PEL film list only returns the full 317 films with the `origen=llistat&fills=…&perfils_extra=…` params; without them it returns 2 items.
+- The bridge commit was dropped from ritchie history (it was never pushed). The rebase rewrote the two context commits to 810eb1f/a282fff.
+- Pending, needs the user's go-ahead:
+  - push the addon to GitHub + beamup;
+  - add it to AIOStreams;
+  - decide whether the row-1 pin may fall back to 3Cat links, which `cached()` excludes.
