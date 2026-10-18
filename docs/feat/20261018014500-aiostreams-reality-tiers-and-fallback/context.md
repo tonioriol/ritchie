@@ -66,3 +66,14 @@ created: 2026-10-18
   - Formatter: 🎬 for original; 🇬🇧 removed (English is original for English shows).
 - English for a non-English show is no longer shown; that follows the stated rule.
 - Re-test, 17 episodes: row 1 is ⚡ on all 17; 1–7 rows each. Examples: Drag Race S17E1 → 🎬 2160p 7.66 GB / 1080p 4.98 GB / 720p 3.12 GB / N/A; Drag Race España → 🇪🇸 1080p 3.09 GB; Selling Sunset S3E1 → 🎬 ⚡ 1080p pinned, then 🎬 ⏳ 2160p 2.89 GB, then 720p original before 🇪🇸 720p.
+
+### 2026-10-18 10:01 — Edge-case check: does dropping English hurt?
+
+- Method: a throwaway AIOStreams user with the live rules, minus the required selectors and the Catalan/Spanish regexes (the API refuses regex for new users), limit 400, labels exposed. Its config and URL are in `.agent-runs/debrid-compare/edge/`. Rows were rebuilt offline with the same original → Catalan → Spanish per-resolution logic.
+- English-original titles (Dune 2, Oppenheimer, The Bear): English is `Original`, so nothing is lost; row 1 is 2160p (REMUX for the films).
+- Non-English originals (Parasite, Squid Game, Dark, Spirited Away, Amélie, La Casa de Papel): the original-language rows were the same or better resolution than the hidden English ones, with two exceptions:
+  - La Casa de Papel S1E1: a cached 2160p English/Hindi dual-audio WEB-DL is hidden; row 1 is the 1080p REMUX.
+  - Amélie: a cached 2160p "AI_UPSCALE" BluRay is hidden (fake 4K; hiding it is fine).
+- `Unknown` counted as original: on non-English shows some untagged files are English-titled releases (e.g. "Money Heist …"), so an untagged row can be a dub. Known limit of the filename tags.
+- Thin catalogue (Merlí S1E1): one uncached link only, so there is no ⚡ row and autoplay will not start.
+- No config change made.
