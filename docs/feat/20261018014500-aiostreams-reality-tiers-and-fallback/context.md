@@ -236,7 +236,7 @@ created: 2026-10-18
 
 ### 2026-10-18 16:45 — Catalan originals: row 1 is a cached ≥1080p O/C torrent, else 3Cat; 3Cat label ⚡
 
-- Decision (user): for Catalan-original titles 3Cat is the best original-version source unless a cached 4K/1080p Catalan release exists. 3Cat is instant, so it carries ⚡.
+- Superseded 2026-10-18 17:19: the following special-case interpretation was rejected by the user; see the next entry. Originally interpreted as: for Catalan-original titles 3Cat wins unless a cached 4K/1080p Catalan release exists. 3Cat is instant, so it carries ⚡.
 - Row-1 rule, prepended to the existing chain:
   - if `originalLanguage == 'Catalan'` (the TMDB `original_language` constant in the expression engine), pin the first cached 2160p/1080p stream from merge(O, C);
   - else pin 3Cat;
@@ -249,3 +249,10 @@ created: 2026-10-18
   - tt4379450: 3Cat 576p is row 1 over an uncached 720p.
   - Dragon Ball (ja original): unchanged. Breaking Bad: unchanged.
 - Measured trade-off: Merlí's row 1 is a 978 MB 1080p torrent over 3Cat 1080p, as the user's rule asks.
+
+### 2026-10-18 17:19 — 3Cat competes normally; stream size reporting verified
+
+- **Decision / implemented:** user clarified no special treatment for 3Cat. Removed the Catalan-original row-1 override, O/C/S exclusions and separate 3Cat row. Normal one-per-resolution/language selectors now include every provider. Row 1 keeps O → C → S → anything priority among instant streams, defined by excluding explicit uncached streams and P2P. The ⚡ label remains correct for direct playback.
+- **Implemented:** addon 0.0.13 reports `behaviorHints.videoSize`: exact MP4 bytes from successful video HEAD; estimated HLS bytes from highest variant average bandwidth × duration / 8 (peak bandwidth fallback). Changes shipped in addon commits 2fbfaee, f691e52 and d13758b. Geo-blocked Spanish responses return 403 with a misleading 72-byte text body; those are rejected, and measurement retries the same path on `-int` hosts. Some lower-resolution files return 404 internationally, so size remains unknown. Playback URLs are unchanged.
+- **Verification:** local Merlí 2×3 reports 1.53/1.54/0.99 GB for HLS/720p/480p; tt4379450 reports 0.39/0.38 GB. Live beamup AIOStreams preset now uses `?v=0.0.13`; PUT succeeded and readback diff is empty. Live Merlí row 1 = 3Cat 1080p 1.53 GB; Alcarràs row 1 = TB 1080p 17.17 GB; Dragon Ball row 1 = TB 1080p 2.42 GB with 3Cat 720p below; tt4379450 = 3Cat 576p 387.25 MB pinned above uncached 720p. Breaking Bad unchanged.
+- **Limits / complete:** some live lower-resolution 3Cat rows lack size because beamup cannot measure them, correctly left blank. HLS totals are estimates, not exact file lengths or proof of perceptual quality. Normal slot limiting may hide a 3Cat rendition when a torrent wins. No device-level visual playback test performed. Operator documentation reconciled; no further ranking change pending.

@@ -315,24 +315,18 @@ English counts as original for English shows; for a non-English show, English
 tracks are not shown. **Only when no stream is O/C/S** a fallback shows one row
 per resolution from everything. Unknown resolution shows as `N/A`.
 
-**Row 1 is pinned for autoplay.** The first required expression pins to the
-top the first *cached* stream (in sort order) of: original → Catalan →
-Spanish → anything, and if nothing is cached, the best 3Cat stream.
-**Catalan originals** (`originalLanguage == 'Catalan'`, from TMDB
-`original_language: ca`) go first through two extra steps: a cached 2160p/1080p
-O or C torrent, else 3Cat (it is the original audio, instant, and carries the
-Catalan subtitles). A cached torrent below 1080p loses to 3Cat even at 576p.
-Dubbed titles (Dragon Ball) keep 3Cat in its own row.
-`pin(..., false)` only reorders, so the pinned row is not duplicated. Nuvio TV
-and mobile use "Auto-play first source", so this row plays without the picker.
-Regex autoplay on `⚡` did not trigger on the devices.
+**Row 1 is pinned for autoplay.** The first required expression pins the first
+instant stream in sort order of original → Catalan → Spanish → anything.
+Instant means not explicitly uncached and not P2P, so direct HTTP/HLS streams
+compete alongside cached debrid streams. `pin(..., false)` only reorders.
+Nuvio TV and mobile use "Auto-play first source"; regex autoplay on `⚡`
+did not trigger on the devices.
 
-3Cat streams are excluded from the O/C/S rows (`negate(addon(streams,
-'3alacarta'), …)`) and get one row of their own (`slice(addon(streams,
-'3alacarta'), 0, 1)`, the adaptive HLS stream). Why: they have no debrid
-service, the sorter's `cached` key is `service?.cached !== false`, so they
-rank as cached and would take the one-per-resolution slot from a real ⚡
-torrent.
+**3Cat gets no special ranking or separate row.** Its streams compete in the
+same O/C/S one-per-resolution selectors, using the same resolution → language
+→ cached/instant → quality → size sort. The earlier Catalan-original override
+and 3Cat exclusions were removed. If 3Cat wins a slot, the corresponding torrent
+is omitted, just as when any other provider wins that slot.
 
 Rollback source: `.agent-runs/debrid-compare/3cat-aio/backup-20261018T123235.json`
 at the workspace root (pre-3alacarta; holds secrets, never commit). The current
@@ -406,6 +400,17 @@ without that, a service-less stream would print the default `P2P ⏳`.
 MP4. Audio is always a single Catalan track (every HLS master sampled has one
 `AUDIO LANGUAGE="ca"` rendition). The only alternative version is
 Audiodescripció, which the addon filters out.
+
+**Sizes (addon 0.0.13):** MP4 sizes come from a successful video HEAD response's
+`Content-Length`; HLS size is an **estimate** of the highest variant's average
+bandwidth × duration ÷ 8 (peak bandwidth is the fallback). The HLS playlist's
+own Content-Length is not the video size. Values are exposed as
+`behaviorHints.videoSize`, which AIOStreams uses for ranking and display.
+When the Spanish media host is geo-blocked from beamup, measurement retries the
+same path on the international host, without changing the playback URL. Not all
+files exist there: an unavailable size stays blank. Merlí 2×3 measures ~1.53 GB
+for HLS and 1.54 GB for the 720p MP4. Size/bitrate is a ranking proxy, not proof
+of visual quality across different codecs or sources.
 
 **Subtitles:** most titles have an external Catalan `.vtt`. AIOStreams'
 stream parser drops `stream.subtitles`, so the addon (since 0.0.10) also
