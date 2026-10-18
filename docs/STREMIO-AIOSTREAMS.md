@@ -308,6 +308,13 @@ empty** a fallback of up to 3 rows (largest/smallest/median) comes from `FB`.
 Reality releases are often untagged or Unknown-resolution, so those episodes
 rely on the fallback; they render without a flag and Unknown shows as `N/A`.
 
+**Row 1 is pinned for autoplay.** The first required expression pins one row
+to the top: the best-resolution (2160p → 1080p → 720p → any) *cached* stream
+whose language is `Original` (file language = TMDB original language) or
+`Unknown` (untagged, normally original audio). Nuvio TV and mobile use
+"Auto-play first source", so this row plays without the picker. Regex autoplay
+on `⚡` did not trigger on the devices.
+
 Rollback source: `.agent-runs/debrid-compare/backup-20261018T013331.json` at
 the workspace root (holds secrets, never commit). Full change record:
 [`docs/feat/20261018014500-aiostreams-reality-tiers-and-fallback/context.md`](feat/20261018014500-aiostreams-reality-tiers-and-fallback/context.md).
