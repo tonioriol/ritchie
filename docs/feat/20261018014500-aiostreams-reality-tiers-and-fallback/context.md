@@ -38,3 +38,11 @@ created: 2026-10-18
 - Cold first requests on never-requested episodes: 0.86–1.65 s (repeat 0.38–0.54 s), down from ~8.4 s.
 - Autoplay: adjacent RHOBH S15E20/E21 share bingeGroup `…|1080p|MeGusta`, so binge continuation works on a matching release group.
 - Operator doc `docs/STREMIO-AIOSTREAMS.md` "Current configuration" rewritten for this setup. Rollback not needed.
+
+### 2026-10-18 02:21 — Nuvio TV set to auto-play the first instant AIOStreams link
+
+- Why: the user wants playback to start without choosing a link; with "first source", an uncached (⏳) Catalan/Spanish row could win over an instant one.
+- Nuvio TV syncs per-profile settings as a blob via `rpc/sync_pull_profile_settings_blob` / `sync_push_profile_settings_blob` (`p_profile_id`, `p_platform: "tv"`, `p_settings_json`). Mobile and desktop blobs are separate and carry no autoplay keys.
+- `StreamAutoPlaySelector` (NuvioTV dev) in `REGEX_MATCH` mode matches case-insensitively against addon name + stream name + title + description + URL and plays the first match in list order, so `⚡` (in our formatter's name) picks the first cached row and keeps the C → S → E order. A matching bingeGroup from the previous episode still takes priority.
+- Pushed to both profiles (Toni 1, Laura 2), readback identical: `stream_auto_play_mode=REGEX_MATCH`, `stream_auto_play_regex=⚡`, `stream_auto_play_source=INSTALLED_ADDONS_ONLY`, `stream_auto_play_selected_addons=[AIOStreams]`. Timeout unchanged (Toni 3 s, Laura default). Pre-change blobs backed up in `.agent-runs/debrid-compare/nuvio-settings-{1,2}.backup-*.json` (secrets, never commit).
+- If no row is ⚡, the selector returns nothing and Nuvio shows the picker. Devices apply the cloud blob on their next foreground pull (≥60 s interval) or app restart. On-TV playback not yet observed.
