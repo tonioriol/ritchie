@@ -283,37 +283,41 @@ services:   [torbox, realdebrid(disabled — premium expired)]
 presets:    Comet, Torrentio(wrapped)       // timeout 5000; MediaFusion + Torz disabled
 excludedStreamExpressions: service(streams,'realdebrid')  // wrapped Torrentio carries its own RD key
 resultLimits: { global: 40 }                // the required selectors bound each tier
-sortCriteria.global: [streamExpressionMatched, service, cached, resolution, size, quality]
+sortCriteria.global: [resolution, streamExpressionMatched, cached, quality, size]
 deduplicator: { enabled: true, keys: [infoHash, filename, smartDetect],
                 cached: "per_service", uncached: "single_result", p2p: "single_result" }
 titleMatching: { enabled: true, mode: "exact" }
 preferredResolutions: [2160p, 1440p, 1080p, 720p, 576p, 480p, Unknown, 360p, 240p, 144p]
-excludedResolutions:  []                    // Unknown/low-res reach only the fallback
+preferredQualities:   [BluRay REMUX, BluRay, WEB-DL, WEBRip, HDRip, HC HD-Rip, DVD REMUX, DVDRip, HDTV, Unknown, SCR, TC, TS, CAM]
+excludedResolutions:  []
 size: movies + series ≥ 50 MB, no upper cap, no per-resolution caps
-formatter: custom (🇦🇩/🇪🇸/🇬🇧 flags) · hideErrors: true
+formatter: custom (🎬 original / 🇦🇩 / 🇪🇸) · hideErrors: true
 ```
 
-Selection (ranked stream expressions tag streams; required ones pick rows):
+Selection (ranked stream expressions tag streams; preferred ones label them;
+required ones pick rows):
 
 | Tag | Meaning |
 |---|---|
-| `C`, `S`, `E` | Catalan, Spanish, English (disjoint, in that priority) |
-| `M` | C∪S∪E at 2160p/1080p/720p — the "proper" rows |
-| `F` / `FB` | everything else (other resolutions, Unknown, untagged language); `FB` = cached-first |
-| `E2160p`/`E1080p`/`E720p` | English per tier, cached-first |
+| `C` | Catalan (name/`cat` regex) |
+| `S` | Spanish, minus `C` |
+| `O` | `Original` (file language = TMDB original language) ∪ `Unknown` (untagged) |
 
-Rows shown: Catalan and Spanish one per main tier; English per tier the
-largest, smallest and first at/below the median (max 3). **Only when `M` is
-empty** a fallback of up to 3 rows (largest/smallest/median) comes from `FB`.
-Reality releases are often untagged or Unknown-resolution, so those episodes
-rely on the fallback; they render without a flag and Unknown shows as `N/A`.
+Preferred labels, disjoint in this order: Original (`O`), Catalan (`C` − `O`),
+Spanish (`S` − `O` − `C`). Sorting is resolution first, then that label, then
+cached, quality, size. So within each resolution the rows run original →
+Catalan → Spanish, each the best-quality, largest file of its kind.
 
-**Row 1 is pinned for autoplay.** The first required expression pins one row
-to the top: the best-resolution (2160p → 1080p → 720p → any) *cached* stream
-whose language is `Original` (file language = TMDB original language) or
-`Unknown` (untagged, normally original audio). Nuvio TV and mobile use
-"Auto-play first source", so this row plays without the picker. Regex autoplay
-on `⚡` did not trigger on the devices.
+Rows shown: per language, one row per resolution (`perGroup(…, 'resolution', 1)`).
+English counts as original for English shows; for a non-English show, English
+tracks are not shown. **Only when no stream is O/C/S** a fallback shows one row
+per resolution from everything. Unknown resolution shows as `N/A`.
+
+**Row 1 is pinned for autoplay.** The first required expression pins to the
+top the first *cached* stream (in sort order) of: original → Catalan →
+Spanish → anything. `pin(..., false)` only reorders, so the pinned row is not
+duplicated. Nuvio TV and mobile use "Auto-play first source", so this row
+plays without the picker. Regex autoplay on `⚡` did not trigger on the devices.
 
 Rollback source: `.agent-runs/debrid-compare/backup-20261018T013331.json` at
 the workspace root (holds secrets, never commit). Full change record:
@@ -322,7 +326,7 @@ the workspace root (holds secrets, never commit). Full change record:
 Renders as:
 
 ```
-TB ⚡ 2160p · 27.41 GB
+🎬 TB ⚡ 2160p · 27.41 GB
 BluRay · HDR10+ DV · TrueHD
 Land.of.Bad.2024.UHD.BluRay.2160p...
 Comet
@@ -330,8 +334,8 @@ Comet
 
 `⚡` cached (instant) · `⏳` uncached · `TB`/`RD` the debrid service.
 
-Result on the 17-episode reality test set: every episode returns rows (10 were
-empty before), 1–6 rows each, 0.3–1.9 s.
+Result on the 17-episode reality test set: every episode returns rows, 1–7
+rows each, row 1 instant (⚡) on all 17.
 
 ---
 

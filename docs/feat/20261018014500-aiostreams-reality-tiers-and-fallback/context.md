@@ -53,3 +53,16 @@ created: 2026-10-18
 - AIOStreams side: added a required SEL at the top that pins one stream: cached streams whose language is `Original` (AIOStreams adds it when the file's language equals the TMDB original language) or `Unknown` (untagged reality releases are original audio), taking the best resolution first (2160p → 1080p → 720p → any), then sort order (largest size). `pin(..., 'top', true)` runs after sorting, so it overrides the C → S → E order only for row 1. Applied with one full PUT; readback matched (`candidate3.json`; rollback = `live-before-pin.json`).
 - Re-test on the 17 episodes: row 1 is instant (⚡) in all 17 and is the highest available resolution, e.g. Drag Race S17E1 → 2160p 7.66 GB, All Stars S9E2 → 2160p 7.08 GB, Drag Race España → Spanish 1080p.
 - Nuvio TV (profiles 1 and 2): `stream_auto_play_mode=FIRST_STREAM`, source `ALL_SOURCES`, no addon restriction, matching the phone's working setup. Readback matched.
+
+### 2026-10-18 09:52 — Rows reordered: original → Catalan → Spanish, per resolution
+
+- New user rule: for each resolution (highest first), show original language, then Catalan, then Spanish, each the highest-quality and largest file; fall back to anything when none of those exist.
+- Config (`build-slots.py` on top of the live config, then a row-1 pin fix; result `candidate5.json`, rollback `live-before-slots.json`):
+  - Ranked tags: `C`, `S` (unchanged) and new `O` = `Original` ∪ `Unknown`. The `E`, `M`, `F`, `FB` and `E<res>` tags were removed.
+  - Preferred labels, disjoint: Original (`O`), Catalan (`C` − `O`), Spanish (`S` − `O` − `C`).
+  - Sort: resolution, preferred label, cached, quality, size. `preferredQualities` now lists every quality (remux → … → HDTV → Unknown → cam-likes) so quality actually ranks.
+  - Required: one row per resolution per language (`perGroup(..., 'resolution', 1)`); fallback `perGroup(streams, 'resolution', 1)` only when no O/C/S stream exists.
+  - Row-1 pin: the first cached stream in sort order of original → Catalan → Spanish → anything, with `pin(..., false)` so it only reorders. The first attempt used `true`, which added the pinned stream on top of its per-resolution row and produced duplicate-looking 1080p rows.
+  - Formatter: 🎬 for original; 🇬🇧 removed (English is original for English shows).
+- English for a non-English show is no longer shown; that follows the stated rule.
+- Re-test, 17 episodes: row 1 is ⚡ on all 17; 1–7 rows each. Examples: Drag Race S17E1 → 🎬 2160p 7.66 GB / 1080p 4.98 GB / 720p 3.12 GB / N/A; Drag Race España → 🇪🇸 1080p 3.09 GB; Selling Sunset S3E1 → 🎬 ⚡ 1080p pinned, then 🎬 ⏳ 2160p 2.89 GB, then 720p original before 🇪🇸 720p.
