@@ -397,9 +397,10 @@ formatter labels them `🇦🇩 3Cat ⚡ <res>` via `{addon.name::=3alacarta[…
 without that, a service-less stream would print the default `P2P ⏳`.
 
 **What 3Cat offers per title:** adaptive HLS up to 1080p plus 720p and 480p
-MP4. Audio is always a single Catalan track (every HLS master sampled has one
-`AUDIO LANGUAGE="ca"` rendition). The only alternative version is
-Audiodescripció, which the addon filters out.
+MP4. Audio is Catalan. Some HLS masters also carry an Audiodescripció audio
+rendition (confirmed on Gènesi); other sampled masters have a single track.
+The addon filters standalone Audiodescripció stream variants, not tracks
+inside an HLS master.
 
 **Sizes (addon 0.0.13):** MP4 sizes come from a successful video HEAD response's
 `Content-Length`; HLS size is an **estimate** of the highest variant's average
@@ -408,7 +409,9 @@ own Content-Length is not the video size. Values are exposed as
 `behaviorHints.videoSize`, which AIOStreams uses for ranking and display.
 When the Spanish media host is geo-blocked from beamup, measurement retries the
 same path on the international host, without changing the playback URL. Not all
-files exist there: an unavailable size stays blank. Merlí 2×3 measures ~1.53 GB
+files exist there: an unavailable size stays blank. Gènesi 1×1 is a confirmed
+example: the international HLS path returns 404 and the MP4 path 403, despite
+both Spanish URLs working from Spain. Merlí 2×3 measures ~1.53 GB
 for HLS and 1.54 GB for the 720p MP4. Size/bitrate is a ranking proxy, not proof
 of visual quality across different codecs or sources.
 
