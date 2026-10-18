@@ -1,6 +1,6 @@
 ---
 title: "AIOStreams max/mid/min tiers with untagged fallback after Real-Debrid expiry"
-status: active
+status: paused
 repos: [ritchie]
 tags: [deployment]
 related: [20260729115122-aiostreams-language-and-tier-fallback]
@@ -270,3 +270,10 @@ created: 2026-10-18
 - **Decision pending:** Neumann's existing inbound Cloudflare tunnel terminates on a German host and cannot provide Spanish media egress. A metadata-only helper on an always-on Spanish device could be exposed by a tunnel, but no device/deployment selected or infrastructure changed.
 - **Prepared locally:** manifest/catalogue and stream display name changed to 3Cat, stable `community.3alacarta` ID retained. Syntax checks and manifest import passed. No version bump/deploy yet. Missing-title investigation delegated; changes not yet integrated.
 - **Caution:** saved standalone addon entry includes two catalogues, not only streams; uninstalling it loses those catalogues. Do not remove it without confirming the desired browsing behavior. Preexisting staged addon `src/lib/fetchCache.js` belongs to user and must remain untouched.
+
+### 2026-10-18 17:33 — Sapere Aude has no public playable 3Cat programme; rename awaits deployment approval
+
+- **Diagnosed:** IMDb tt9415632 (Merlí. Sapere Aude) has no match among 1,320 public 3Cat programmes. Only original Merlí (54076) and Merlinari (56636) match related titles. Wikidata Q72664024's Catalan title normalizes identically, so aliases do not fix it. Original Merlí exposes only its 40 full T1–T3 episodes.
+- **Evidence:** `https://www.3cat.cat/3cat/merli/fitxa/merli-sapere-aude/129540/` is an informational PTVC_SECCIO about a Movistar+ original; querying 129540 yields no public videos. Public videos/cercador searches also found no episodes. No resolver change made: aliasing to original Merlí would serve wrong episodes. HTTP/API inspection only; no claim about private/partner-gated playback.
+- **Prepared / verified:** display rename committed locally in addon commit 01e297b; node syntax checks and importing its manifest show 3Cat catalogue names, unchanged community.3alacarta ID/resources. No push, version bump, or live installation change. Preexisting staged fetchCache.js preserved outside this commit.
+- **Paused / continuation:** ask user to approve deploying display rename and choose whether standalone catalogue browsing must remain. Spain-only metadata requires selecting an always-on Spanish host; existing German tunnel alone is insufficient. Deferred catalogue/fetching cards retained in workspace TODO.md.
