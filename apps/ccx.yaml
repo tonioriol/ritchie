@@ -17,13 +17,19 @@ spec:
     path: charts/ccx
     helm:
       values: |
-        replicaCount: 0
         auth:
           externalSecret:
             enabled: true
             itemId: ccx
             fields:
               api_key: API_KEY
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
         externalDns:
           enabled: true
           hostname: ccx.tonioriol.com
