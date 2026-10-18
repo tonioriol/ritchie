@@ -1,6 +1,6 @@
 ---
 title: "AIOStreams max/mid/min tiers with untagged fallback after Real-Debrid expiry"
-status: paused
+status: done
 repos: [ritchie]
 tags: [deployment]
 related: [20260729115122-aiostreams-language-and-tier-fallback]
@@ -11,9 +11,24 @@ created: 2026-10-18
 
 ## TASK
 
-**Goal:** Make reality-TV episodes (Real Housewives, Love Island, Drag Race, Selling Sunset) return playable TorBox links, keep Catalan → Spanish → English sections, show per resolution tier (2160p, 1080p, 720p) the largest, median and smallest file, and show unknown-resolution / low-resolution / untagged-language releases only when no proper row exists — as fast as possible.
+**Goal:** Return playable TorBox/direct links with normal provider-neutral original → Catalan → Spanish quality ranking, an instant first row, and 3Cat catalogue browsing whose stream choices come exclusively through AIOStreams.
 
-**Done when:** the 17-episode reality test set returns links for episodes that were empty, first-request latency is no worse than baseline, and the saved config is recorded.
+**Done when:** the existing ranking remains verified, 3Cat is displayed consistently, and Stremio/Nuvio retain its catalogues and metadata without a separate stream provider. Catalogue/fetching redesign is deferred in the agent checklist; geo-restricted sizes remain blank.
+
+## SPEC
+
+Current accepted behavior is recorded in `docs/STREMIO-AIOSTREAMS.md`: provider-neutral ranking, first instant row, direct 3Cat streams and subtitles. Standalone installation is to advertise only catalogue/meta; the AIOStreams preset is to use only stream/subtitles.
+
+## FILES
+
+- `docs/STREMIO-AIOSTREAMS.md` — live configuration and operator notes.
+- Addon source repository `/Users/tr0n/Code/3alacarta-stremio-addon`: `addon.js`, `server.js`, `src/lib/catalogueAddon.js`, `tests/catalogue-addon.mjs`.
+- Workspace `.agent-runs/debrid-compare/3cat-unified/` — sensitive backup/config/account readbacks; never commit.
+
+## PLAN
+
+**Cursor:** Current stream-unification scope complete. Catalogue/category, search, pagination and metadata repairs remain deferred in the agent checklist; no implementation started.
+**Status:** done
 
 ## LOG
 
@@ -266,8 +281,8 @@ created: 2026-10-18
 
 ### 2026-10-18 17:32 — Further 3Cat integration fixes in progress
 
-- **Requested:** investigate using the existing tunnel for Spain-only sizes, missing Merlí: Sapere Aude, display rename to 3Cat and duplicate standalone stream source. Catalogue/categories and comprehensive data-fetching modernization explicitly deferred; tracked in workspace TODO cards CAT-001/CAT-002, current fixes CAT-003 (workspace commit 0c134e8).
-- **Decision pending:** Neumann's existing inbound Cloudflare tunnel terminates on a German host and cannot provide Spanish media egress. A metadata-only helper on an always-on Spanish device could be exposed by a tunnel, but no device/deployment selected or infrastructure changed.
+- **Requested:** investigate using the existing tunnel for Spain-only sizes, missing Merlí: Sapere Aude, display rename to 3Cat and duplicate standalone stream source. Catalogue/categories and comprehensive data-fetching modernization explicitly deferred; initially (incorrectly) tracked in workspace TODO cards CAT-001/CAT-002/CAT-003 (0c134e8); superseded by user correction on 2026-10-18 17:44: agent checklist only, file additions removed in fe63097.
+- **Investigatory (superseded decision gate: user chose blank sizes on 2026-10-18 17:44):** Neumann's existing inbound Cloudflare tunnel terminates on a German host and cannot provide Spanish media egress. A metadata-only helper on an always-on Spanish device could be exposed by a tunnel, but no device/deployment selected or infrastructure changed.
 - **Prepared locally:** manifest/catalogue and stream display name changed to 3Cat, stable `community.3alacarta` ID retained. Syntax checks and manifest import passed. No version bump/deploy yet. Missing-title investigation delegated; changes not yet integrated.
 - **Caution:** saved standalone addon entry includes two catalogues, not only streams; uninstalling it loses those catalogues. Do not remove it without confirming the desired browsing behavior. Preexisting staged addon `src/lib/fetchCache.js` belongs to user and must remain untouched.
 
@@ -276,4 +291,18 @@ created: 2026-10-18
 - **Diagnosed:** IMDb tt9415632 (Merlí. Sapere Aude) has no match among 1,320 public 3Cat programmes. Only original Merlí (54076) and Merlinari (56636) match related titles. Wikidata Q72664024's Catalan title normalizes identically, so aliases do not fix it. Original Merlí exposes only its 40 full T1–T3 episodes.
 - **Evidence:** `https://www.3cat.cat/3cat/merli/fitxa/merli-sapere-aude/129540/` is an informational PTVC_SECCIO about a Movistar+ original; querying 129540 yields no public videos. Public videos/cercador searches also found no episodes. No resolver change made: aliasing to original Merlí would serve wrong episodes. HTTP/API inspection only; no claim about private/partner-gated playback.
 - **Prepared / verified:** display rename committed locally in addon commit 01e297b; node syntax checks and importing its manifest show 3Cat catalogue names, unchanged community.3alacarta ID/resources. No push, version bump, or live installation change. Preexisting staged fetchCache.js preserved outside this commit.
-- **Paused / continuation:** ask user to approve deploying display rename and choose whether standalone catalogue browsing must remain. Spain-only metadata requires selecting an always-on Spanish host; existing German tunnel alone is insufficient. Deferred catalogue/fetching cards retained in workspace TODO.md.
+- **Superseded continuation (2026-10-18 17:44):** user approved continuing rename/unification, explicitly retains catalogues and metadata but wants all streams through AIOStreams; leave missing sizes blank, no helper. Deferred repairs belong only in the agent checklist; board additions removed.
+
+### 2026-10-18 17:56 — 3Cat browsing retained, all stream results unified through AIOStreams
+
+- **Decision / implemented:** user corrected that deferred work belongs in the agent checklist, not the workspace board. Restored TODO.md byte-for-byte to before our additions (workspace fe63097). User explicitly retains catalogues/metadata, wants all stream choices through AIOStreams, and chose blank geo-restricted sizes with no Spanish helper.
+- **Implemented:** addon 0.0.14 (53a11b9 plus display rename 01e297b), deployed via origin main and beamup main:master. Root remains the full compatible addon; `/catalogues/manifest.json` advertises catalogue/meta only with native `3alc:` IDs and no stream/subtitle routes. Full root now also exposes native-ID subtitles. Routing test `node --test tests/catalogue-addon.mjs` passes; stable ID community.3alacarta retained, staged user fetchCache.js untouched.
+- **Integration / verified:** fresh AIOStreams config PUT and exact readback; preset display name 3Cat, version query 0.0.14, resources only stream/subtitles, formatter matches new name. AIOStreams already merges native 3alc support and returns native streams despite no native metadata parser; no reverse IMDb mapping needed. Stremio collection Get/Set/readback preserved all 26 entries, changed only standalone 3Cat transport/manifest and refreshed AIO descriptor. Nuvio profile 1 single-row URL/name PATCH verified with unrelated rows unchanged; profile 2 has no own addons and inherits primary. PATCH returned successful empty 204, initially misparsed as non-JSON by the local helper; readback confirmed success, no repeated mutation required.
+- **HTTP verification:** Gènesi native episode 3alc:6424245 → 1080p + 720p; native movie 3alc:5644386 → 720p 1.7 GB + 480p 714.77 MB; Merlí IMDb 2×3 → four rows, best 3Cat 1080p 1.53 GB first; Alcarràs → eight rows, TB 1080p 17.17 GB first and 3Cat 720p below; Breaking Bad → nine rows, no 3Cat. Native Gènesi and IMDb Merlí subtitles each return one `cat` subtitle; standalone Gènesi meta retains six episodes. Catalogue endpoint stream/subtitle requests return 404. Checks/backups in workspace `.agent-runs/debrid-compare/3cat-unified/` (sensitive, never commit). No device playback test; clients may need sync/restart for cached manifests.
+
+### 2026-10-18 17:56 — Catalogue audit proves browsing defects; repairs remain deferred
+
+- **Diagnosed / read-only:** featured series source returns 40 programmes but Fanzone 75136 has no format; transformers.js reads source.format.map and fetchTopSeries catches the exception, returning an empty shelf. This is a real crash, not merely a small featured selection. All-programmes inventory has 1,320 entries, not necessarily 1,320 currently playable shows.
+- **Evidence:** movie API pages return 200 + 117 = 317 films, but catalogue handler ignores skip and fetches only page 1, hiding 117 (37%). Search discards PTVC_PROGRAMA items without programes_tv and builds programmes from video parents instead: Crims returns zero, Polseres vermelles yields unrelated Col·lapse/Tot es mou/No cardis. Movie search also filters only PUFF_FILM and omits animation-format hits. No A–Z or category browse is exposed.
+- **Additional findings:** 633 programmes have 288×422 art; fallback often chooses tiny logos, and 12 entries with no images can throw an empty reduce. Episodes with capitol<=0 are filtered, missing seasons are inferred from years, and sorting ISO date strings by subtraction yields NaN. Movie metadata first queries unrelated programme 49816, then falls back; catalogue years use publication date rather than original release year (146/317 show 2026). Audit working files in addon `.agent-runs/catalogue-audit/`.
+- **Verification / attribution:** `npm test -- --runInBand` has 6 passing/4 failing live-API tests: fetchTopSeries, fetchTopMovies, fetchMovie, searchMoviesOrSeries. Identical four failures reproduced from previous deployed d13758b via git archive plus existing node_modules, without changing the main checkout. New routing/live integration checks pass. Catalogue/search/poster/year/episode repairs are deliberately not included in this release; retained only in the agent checklist.

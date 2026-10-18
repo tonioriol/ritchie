@@ -352,17 +352,27 @@ rows each, row 1 instant (⚡) on all 17.
 
 ---
 
-## 3alacarta (3Cat) — our own addon, hosted on beamup
+## 3Cat — our own addon, hosted on beamup
 
 Free, legal 3Cat (TV3) streams in Catalan, used for Catalan originals that
-torrents lack (Gènesi, Crims) and as an extra Catalan row elsewhere.
+torrents lack (Gènesi, Crims), competing normally with other providers elsewhere.
 
 | What | Where |
 |---|---|
 | Live addon | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/manifest.json` |
+| Standalone catalogue/meta installation | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/catalogues/manifest.json?v=0.0.14` |
 | Source | `github.com/tonioriol/3alacarta-stremio-addon`, local `~/Code/3alacarta-stremio-addon` |
 | Hosting | beamup (free Stremio community hosting), **not** this cluster |
-| In AIOStreams | custom preset `3alacarta`, `manifestUrl …/manifest.json?v=<version>` |
+| In AIOStreams | custom preset instance `3alacarta`, display name `3Cat`, `manifestUrl …/manifest.json?v=<version>`, resources `stream` + `subtitles` only |
+
+**Unified streams (0.0.14):** the standalone installation keeps both catalogues
+and native `3alc:` metadata, but advertises no streams or subtitles. AIOStreams
+uses the full root endpoint for those resources, supporting both `tt` and
+`3alc:` IDs. This also works when a title is opened from the 3Cat catalogue;
+no IMDb reverse-mapping is required. The stable addon ID remains
+`community.3alacarta`. Stremio's saved descriptor was refreshed for both 3Cat
+and AIOStreams; Nuvio profile 1's 3Cat URL/name were updated in place, with
+profile 2 inheriting the primary addon list. Other addon entries were preserved.
 
 **Deploy:** `git push origin main && git push beamup main:master`. The push
 can fail once with `failed to push some refs`; push again. The container
@@ -393,7 +403,7 @@ every manifest catalog needs a `name`; every subtitle needs `id`, `url` and
 **Playback:** 3Cat geo-blocks to Spain; the stream URL is played by the
 client, so it works at home and fails abroad. Streams are direct, not P2P:
 AIOStreams types the adaptive HLS as `live` and the MP4s as `http`. The
-formatter labels them `🇦🇩 3Cat ⚡ <res>` via `{addon.name::=3alacarta[…]}`;
+formatter labels them `🇦🇩 3Cat ⚡ <res>` via `{addon.name::=3Cat[…]}`;
 without that, a service-less stream would print the default `P2P ⏳`.
 
 **What 3Cat offers per title:** adaptive HLS up to 1080p plus 720p and 480p
@@ -409,7 +419,8 @@ own Content-Length is not the video size. Values are exposed as
 `behaviorHints.videoSize`, which AIOStreams uses for ranking and display.
 When the Spanish media host is geo-blocked from beamup, measurement retries the
 same path on the international host, without changing the playback URL. Not all
-files exist there: an unavailable size stays blank. Gènesi 1×1 is a confirmed
+files exist there: an unavailable size stays blank (user decision: no Spanish
+measurement helper). Gènesi 1×1 is a confirmed
 example: the international HLS path returns 404 and the MP4 path 403, despite
 both Spanish URLs working from Spain. Merlí 2×3 measures ~1.53 GB
 for HLS and 1.54 GB for the 720p MP4. Size/bitrate is a ranking proxy, not proof
@@ -417,9 +428,20 @@ of visual quality across different codecs or sources.
 
 **Subtitles:** most titles have an external Catalan `.vtt`. AIOStreams'
 stream parser drops `stream.subtitles`, so the addon (since 0.0.10) also
-serves them through the `subtitles` resource (`idPrefixes: ['tt']`,
+serves them through the `subtitles` resource (`idPrefixes: ['tt', '3alc:']` since 0.0.14,
 `lang: 'cat'`). AIOStreams aggregates that resource and passes it to the player:
 `<aiostreams base>/subtitles/series/tt4580372:2:3.json` returns the Merlí VTT.
+
+**Catalogue audit (2026-10-18; not repaired by the stream integration release):**
+the featured-series endpoint returns 40 programmes, but one lacks `format`,
+making the transformer throw and the shelf return `[]`. Movie browsing fetches
+only page 1 (200 of 317 films) and ignores pagination. Search drops programme
+hits lacking `programes_tv`, sometimes returning unrelated parent programmes
+from video hits instead. The all-programmes API has 1,320 entries, but the
+addon exposes no A–Z or category browse. Poster fallback can select tiny logos
+and crashes on empty images; film years use publication dates, not release
+years; episode filtering/year-derived seasons also have coverage limitations.
+These fetching/catalogue repairs remain deferred, separately from stream unification.
 
 ---
 
