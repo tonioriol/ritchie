@@ -1,6 +1,6 @@
 ---
 title: "AIOStreams max/mid/min tiers with untagged fallback after Real-Debrid expiry"
-status: done
+status: active
 repos: [ritchie]
 tags: [deployment]
 related: [20260729115122-aiostreams-language-and-tier-fallback]
@@ -263,3 +263,10 @@ created: 2026-10-18
 - **Evidence:** from Spain the 720p MP4 HEAD returns 200 and 1,469,815,196 bytes; HLS master returns 200, highest average bandwidth 4,133,429 bit/s, duration 2,808 s (~1,450,834,629 bytes estimated). The same HLS path on `adaptive-int` returns 404, and MP4 on `mp4-down-high-int` returns 403. Thus the international measurement fallback does not cover this title, unlike titles where size is shown.
 - **Correction:** this Gènesi HLS master contains Català plus Audiodescripció audio renditions, contradicting the earlier universal single-track claim. The addon filters standalone audio-description variants, but HLS itself can contain both tracks. No playback URL changed.
 - **Outcome:** investigation complete; sizes remain honestly unknown from beamup. General live coverage would require Spain-based measurement (or an official metadata size/bitrate source); no new infrastructure or hard-coded per-title sizes added.
+
+### 2026-10-18 17:32 — Further 3Cat integration fixes in progress
+
+- **Requested:** investigate using the existing tunnel for Spain-only sizes, missing Merlí: Sapere Aude, display rename to 3Cat and duplicate standalone stream source. Catalogue/categories and comprehensive data-fetching modernization explicitly deferred; tracked in workspace TODO cards CAT-001/CAT-002, current fixes CAT-003 (workspace commit 0c134e8).
+- **Decision pending:** Neumann's existing inbound Cloudflare tunnel terminates on a German host and cannot provide Spanish media egress. A metadata-only helper on an always-on Spanish device could be exposed by a tunnel, but no device/deployment selected or infrastructure changed.
+- **Prepared locally:** manifest/catalogue and stream display name changed to 3Cat, stable `community.3alacarta` ID retained. Syntax checks and manifest import passed. No version bump/deploy yet. Missing-title investigation delegated; changes not yet integrated.
+- **Caution:** saved standalone addon entry includes two catalogues, not only streams; uninstalling it loses those catalogues. Do not remove it without confirming the desired browsing behavior. Preexisting staged addon `src/lib/fetchCache.js` belongs to user and must remain untouched.
