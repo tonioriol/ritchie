@@ -209,3 +209,16 @@ created: 2026-10-18
 - **Subtitles are dropped.** The addon sends `subtitles: [{id,url,lang:'ca'}]`, but AIOStreams' `StreamParser.parse` never copies `stream.subtitles`, so the Stremio output has `subtitles: null`. The way through is the addon `subtitles` resource: AIOStreams aggregates that (`getSubtitles`) and passes it to the player.
 - **Audio.** Sampling 20 films plus Merlí, DB and Gènesi: every HLS master has exactly one audio rendition (`LANGUAGE="ca"`) and no in-manifest subtitle renditions. Subtitles are external `.vtt` files (Catalan only). The only other "audio" is the Audiodescripció variant, which the addon already filters out. So 3Cat is always Catalan audio, one track.
 - **Language tag.** The filename says "Catalan", and the `catalan-name` regex matches it, but the stream was still tagged O (Unknown). The O/C/S tagging is irrelevant here anyway, because 3Cat is negated out of those rows and has its own row.
+
+### 2026-10-18 14:36 — 3alacarta 0.0.10 serves subtitles through the subtitles resource (deployed, AIOStreams not yet updated)
+
+- Addon commit `8ff352a` (3alacarta-stremio-addon), deployed to beamup; the live manifest reports `version: 0.0.10`:
+  - The manifest adds `{ name: 'subtitles', types: ['movie','series'], idPrefixes: ['tt'] }`.
+  - `defineSubtitlesHandler` returns the first stream's 3Cat subtitles.
+  - Subtitle `lang` is now `cat` (ISO 639-2) instead of `ca`.
+- Verified locally:
+  - `/subtitles/series/tt4580372:2:3.json` (Merlí) and `/subtitles/movie/tt11930126.json` (Alcarràs) each return one `statics.3cat.cat/.../*.vtt` with `lang: cat`.
+  - A non-3Cat title returns `[]`.
+- Pending: the AIOStreams config change. The live PUT was blocked twice by a 1Password approval timeout. `build.jq` is ready and does two things:
+  - bumps the preset to `manifest.json?v=0.0.10`;
+  - replaces the formatter name so 3alacarta streams show `🇦🇩 3Cat ▶ <res>`, with the O/C/S flags and ⚡/⏳ shown only for streams that have a service (⏳ only on `service.cached` false).
