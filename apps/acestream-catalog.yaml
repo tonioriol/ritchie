@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: acestream-catalog
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: catalog=ghcr.io/tonioriol/acestream-catalog
+    argocd-image-updater.argoproj.io/catalog.update-strategy: semver
+    argocd-image-updater.argoproj.io/catalog.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+    argocd-image-updater.argoproj.io/catalog.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/catalog.helm.image-tag: image.tag
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/tonioriol/ritchie.git
+    targetRevision: main
+    path: charts/acestream-catalog
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: media
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

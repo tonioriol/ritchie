@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-refresh
+spec:
+  schedule: {{ .Values.refresh.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: {{ .Values.refresh.activeDeadlineSeconds }}
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app: {{ .Release.Name }}-refresh
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            {{- toYaml .Values.imagePullSecrets | nindent 12 }}
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          initContainers:
+            # Native sidecar: Kubernetes terminates it when the worker completes.
+            # Use the production engine image/CMD, but never its service or state.
+            - name: engine
+              restartPolicy: Always
+              image: "{{ .Values.refresh.engine.image.repository }}:{{ .Values.refresh.engine.image.tag }}"
+              imagePullPolicy: {{ .Values.refresh.engine.image.pullPolicy }}
+              securityContext:
+                runAsUser: 0
+                runAsGroup: 0
+                privileged: true
+              startupProbe:
+                httpGet:
+                  path: /webui/api/service?method=get_version
+                  port: 6878
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 10
+                failureThreshold: 18
+              resources:
+                {{- toYaml .Values.refresh.engine.resources | nindent 16 }}
+              volumeMounts:
+                - name: engine-state
+                  mountPath: /dev/shm/.ACEStream
+          containers:
+            - name: refresh
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - /app/worker/refresh.sh
+              env:
+                - name: ENGINE_URL
+                  value: http://127.0.0.1:6878
+                - name: DATABASE
+                  value: /data/catalog.sqlite
+                - name: XMLTV_PATH
+                  value: /data/epg.xml
+                - name: WORK_DIR
+                  value: /data/work
+              resources:
+                {{- toYaml .Values.refresh.resources | nindent 16 }}
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: {{ .Release.Name }}-data
+            - name: engine-state
+              emptyDir: {}

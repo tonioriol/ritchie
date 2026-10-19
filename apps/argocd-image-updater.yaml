@@ -66,6 +66,18 @@ spec:
                         helm:
                           name: image.repository
                           tag: image.tag
+                - namePattern: acestream-catalog
+                  images:
+                    - alias: catalog
+                      imageName: ghcr.io/tonioriol/acestream-catalog
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                        pullSecret: pullsecret:argocd/ghcr-pull
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
                 - namePattern: acexy
                   images:
                     - alias: acexy
