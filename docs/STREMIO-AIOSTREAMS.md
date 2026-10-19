@@ -303,7 +303,12 @@ required ones pick rows):
 |---|---|
 | `C` | Catalan (name/`cat` regex) |
 | `S` | Spanish, minus `C` |
-| `O` | `Original` (file language = TMDB original language) ∪ `Unknown` (untagged) |
+| `O` | (`Original` (file language = TMDB original language) ∪ `Unknown` (untagged)) − `C` |
+
+`O` excludes `C` (2026-10-19): the AIOStreams parser leaves `languages[]` empty
+for `… WEB-DL Catalan.mp4`, so 3Cat rows fell into `Unknown` → `O` and lost the
+Original slot to bigger torrents. American History X went 8 TorBox / 0 3Cat →
+8 TorBox + 3Cat 1080p/720p in the Catalan rows.
 
 Preferred labels, disjoint in this order: Original (`O`), Catalan (`C` − `O`),
 Spanish (`S` − `O` − `C`). Sorting is resolution first, then that label, then
@@ -360,7 +365,7 @@ torrents lack (Gènesi, Crims), competing normally with other providers elsewher
 | What | Where |
 |---|---|
 | Live addon | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/manifest.json` |
-| Standalone catalogue/meta installation | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/catalogues/manifest.json?v=0.0.14` |
+| Standalone catalogue/meta installation | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/catalogues/manifest.json?v=0.1.0` |
 | Source | `github.com/tonioriol/3alacarta-stremio-addon`, local `~/Code/3alacarta-stremio-addon` |
 | Hosting | beamup (free Stremio community hosting), **not** this cluster |
 | In AIOStreams | custom preset instance `3alacarta`, display name `3Cat`, `manifestUrl …/manifest.json?v=<version>`, resources `stream` + `subtitles` only |
@@ -373,6 +378,20 @@ no IMDb reverse-mapping is required. The stable addon ID remains
 `community.3alacarta`. Stremio's saved descriptor was refreshed for both 3Cat
 and AIOStreams; Nuvio profile 1's 3Cat URL/name were updated in place, with
 profile 2 inheriting the primary addon list. Other addon entries were preserved.
+
+**Catalogues (0.1.0, deployed 2026-10-19):** `3Cat · Destacats` (series,
+search), `3Cat · Programes` (official 3Cat themes), `3Cat · Programes A–Z`,
+`3Cat · Pel·lícules` (search + films/animation/documentaries), `3Cat ·
+Pel·lícules A–Z`; ids `top` kept. Cards use the IMDb id when Wikidata proves an
+exact match (movies: 202 of 316 at build), so torrent addons see them too;
+otherwise native `3alc:`. The Beamup build runs `catalogue:snapshot`
+(`heroku-postbuild`); catalogues answer 503 + Retry-After for the first
+minutes after a restart.
+
+**Known gap (0.1.0):** `tt` **series** streams now require that exact proof
+(only 1 series has it), so the title/position matching below no longer runs for
+series: AIOStreams shows no 3Cat rows for e.g. Merlí or Dragon Ball. `tt`
+movies and every native `3alc:` id still work.
 
 **Deploy:** `git push origin main && git push beamup main:master`. The push
 can fail once with `failed to push some refs`; push again. The container
