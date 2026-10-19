@@ -3,18 +3,20 @@ kind: Application
 metadata:
   name: acestream-catalog
   namespace: argocd
-  annotations:
-    argocd-image-updater.argoproj.io/image-list: catalog=ghcr.io/tonioriol/acestream-catalog
-    argocd-image-updater.argoproj.io/catalog.update-strategy: semver
-    argocd-image-updater.argoproj.io/catalog.allow-tags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
-    argocd-image-updater.argoproj.io/catalog.helm.image-name: image.repository
-    argocd-image-updater.argoproj.io/catalog.helm.image-tag: image.tag
+  # Branch images are selected explicitly until v2 is released on main.
+  # Catalog is also excluded from the shared ImageUpdater CR during this period.
 spec:
   project: default
   source:
     repoURL: https://github.com/tonioriol/ritchie.git
     targetRevision: main
     path: charts/acestream-catalog
+    helm:
+      # Replace any old semver parameter written back by Image Updater.
+      parameters:
+        - name: image.tag
+          value: v2-latest
+          forceString: true
   destination:
     server: https://kubernetes.default.svc
     namespace: media

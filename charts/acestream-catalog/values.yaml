@@ -1,46 +1,52 @@
 image:
   repository: ghcr.io/tonioriol/acestream-catalog
-  tag: "v0.1.0"
-  pullPolicy: IfNotPresent
+  tag: v2-latest
+  pullPolicy: Always
 
 imagePullSecrets:
   - name: ghcr-pull
 
 persistence:
-  size: 2Gi
+  # Existing hcloud-volumes claim supports expansion (current physical capacity: 10Gi).
+  # Keep this request at least 5Gi on rollback: Kubernetes cannot shrink claims.
+  size: 5Gi
 
 env:
+  PORT: "8080"
+  DATABASE_PATH: /data/catalog.db
+  DATA_DIR: /data
   STREAM_BASE_URL: https://ace.tonioriol.com
   PUBLIC_BASE_URL: https://catalog.tonioriol.com
-  XMLTV_PATH: /data/epg.xml
+  ENGINE_URL: http://127.0.0.1:6878
+  PROBE_CONCURRENCY: "2"
+  ENGINE_RECYCLE_PROBES: "200"
+  ENGINE_RECYCLE_MINUTES: "120"
+  LLM_URL: http://ccx.tools.svc/ag/v1
+  LLM_MODEL: gemini-3-flash
+  LLM_MAX_CALLS_PER_HOUR: "600"
+  PUBLISH_FRESHNESS_H: "24"
+  RETIRE_AFTER_D: "14"
 
 resources:
   requests:
-    cpu: 10m
-    memory: 64Mi
+    cpu: 100m
+    memory: 128Mi
   limits:
-    memory: 256Mi
+    cpu: "2"
+    memory: 512Mi
 
-refresh:
-  schedule: "0 */3 * * *"
-  activeDeadlineSeconds: 7200
+engine:
+  image:
+    repository: ghcr.io/tonioriol/acestream-engine
+    tag: latest
+    pullPolicy: Always
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 256Mi
     limits:
-      memory: 512Mi
-  engine:
-    image:
-      repository: ghcr.io/tonioriol/acestream-engine
-      tag: latest
-      pullPolicy: Always
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        memory: 768Mi
+      cpu: "1"
+      memory: 768Mi
 
 externalDns:
   enabled: true

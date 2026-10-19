@@ -15,27 +15,35 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}
+      annotations:
+        checksum/engine-wrapper: {{ include (print $.Template.BasePath "/engine-wrapper.yaml") . | sha256sum }}
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
         fsGroup: 1000
       containers:
         - name: catalog
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          # Use the image's default publisher CMD.
+          args: ["serve"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
           ports:
             - name: http
               containerPort: 8080
           env:
-            - name: PUBLISH_TOKEN
+            {{- range $key := list "FEED_TOKEN" "ADMIN_TOKEN" "LLM_API_KEY" }}
+            - name: {{ $key }}
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-auth
-                  key: PUBLISH_TOKEN
+                  name: {{ $.Release.Name }}-auth
+                  key: {{ $key }}
+            {{- end }}
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
@@ -59,7 +67,29 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+        - name: engine
+          image: "{{ .Values.engine.image.repository }}:{{ .Values.engine.image.tag }}"
+          imagePullPolicy: {{ .Values.engine.image.pullPolicy }}
+          workingDir: /acestream
+          command: ["/bin/sh", "/wrapper/engine-entrypoint.sh"]
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+          resources:
+            {{- toYaml .Values.engine.resources | nindent 12 }}
+          volumeMounts:
+            - name: engine-state
+              mountPath: /dev/shm/.ACEStream
+            - name: engine-wrapper
+              mountPath: /wrapper
+              readOnly: true
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: {{ .Release.Name }}-data
+        - name: engine-state
+          emptyDir: {}
+        - name: engine-wrapper
+          configMap:
+            name: {{ .Release.Name }}-engine-wrapper

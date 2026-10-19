@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-engine-wrapper
+data:
+  # Keep in sync with deploy/engine-entrypoint.sh in the application repository.
+  engine-entrypoint.sh: |
+    #!/bin/sh
+    set -eu
+    # Dedicated probe sidecar only: never mount application data at this engine home.
+    # /dev/shm survives a container restart within a pod. This includes the engine's
+    # .acestream_cache, content_cache, buffers, checkpoints and resolver databases.
+    mkdir -p /dev/shm/.ACEStream
+    rm -rf /dev/shm/.ACEStream/* /dev/shm/.ACEStream/.[!.]* /dev/shm/.ACEStream/..?*
+    cd /acestream
+    # Preserve the image's original command except --bind-all: only the catalog
+    # container in this pod should reach this dedicated probe engine.
+    if [ "$#" -eq 0 ]; then
+        set -- /acestream/python/bin/python main.py \
+            --live-cache-type memory --live-mem-cache-size 104857600 \
+            --disable-sentry --log-stdout --disable-upnp
+    fi
+    exec "$@"
