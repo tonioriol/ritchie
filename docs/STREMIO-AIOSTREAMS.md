@@ -365,7 +365,7 @@ torrents lack (Gènesi, Crims), competing normally with other providers elsewher
 | What | Where |
 |---|---|
 | Live addon | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/manifest.json` |
-| Standalone catalogue/meta installation | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/catalogues/manifest.json?v=0.1.0` |
+| Standalone catalogue/meta installation | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/catalogues/manifest.json?v=0.2.0` (Stremio's saved entry refreshed 2026-10-19) |
 | Source | `github.com/tonioriol/3alacarta-stremio-addon`, local `~/Code/3alacarta-stremio-addon` |
 | Hosting | beamup (free Stremio community hosting), **not** this cluster |
 | In AIOStreams | custom preset instance `3alacarta`, display name `3Cat`, `manifestUrl …/manifest.json?v=<version>`, resources `stream` + `subtitles` only |
@@ -379,19 +379,13 @@ no IMDb reverse-mapping is required. The stable addon ID remains
 and AIOStreams; Nuvio profile 1's 3Cat URL/name were updated in place, with
 profile 2 inheriting the primary addon list. Other addon entries were preserved.
 
-**Catalogues (0.1.0, deployed 2026-10-19):** `3Cat · Destacats` (series,
+**Catalogues (0.2.0, deployed 2026-10-19):** `3Cat · Destacats` (series,
 search), `3Cat · Programes` (official 3Cat themes), `3Cat · Programes A–Z`,
-`3Cat · Pel·lícules` (search + films/animation/documentaries), `3Cat ·
-Pel·lícules A–Z`; ids `top` kept. Cards use the IMDb id when Wikidata proves an
-exact match (movies: 202 of 316 at build), so torrent addons see them too;
-otherwise native `3alc:`. The Beamup build runs `catalogue:snapshot`
-(`heroku-postbuild`); catalogues answer 503 + Retry-After for the first
-minutes after a restart.
-
-**Known gap (0.1.0):** `tt` **series** streams now require that exact proof
-(only 1 series has it), so the title/position matching below no longer runs for
-series: AIOStreams shows no 3Cat rows for e.g. Merlí or Dragon Ball. `tt`
-movies and every native `3alc:` id still work.
+`3Cat · Pel·lícules` (search + films/animation), `3Cat · Pel·lícules A–Z`,
+`3Cat · Documentaris` (all `PUFA_DOC` documentaries, searchable). Programmes
+with nothing playable are hidden; web-only programmes (PPW, e.g. Dies de
+coronavirus) list their episodes. Cards use the IMDb id when the mapping has
+it, so torrent addons see them too; otherwise native `3alc:`.
 
 **Deploy:** `git push origin main && git push beamup main:master`. The push
 can fail once with `failed to push some refs`; push again. The container
@@ -403,15 +397,25 @@ restarts for about a minute (empty / HTTP 000 replies).
 query string is the only way to pick up changes. AIOStreams forwards the query
 string to stream URLs too.
 
-**How an IMDb id becomes a 3Cat programme (automatic, no per-title mapping):**
-1. Title: the Cinemeta name, then the Catalan labels from Wikidata
-   (`Dragon Ball` → `Bola de Drac`), normalised and matched against 3Cat's
-   programme / film lists.
-2. Episode: when Cinemeta and 3Cat list the same number of episodes, the
-   episode is matched **by position** in airing order. This absorbs TV3's
-   different season splits and renumbering (Bola de Drac: 4 seasons on 3Cat vs
-   5 on IMDb). Otherwise it uses direct season/episode.
-3. File name `<IMDb title> <SxxEyy|year> <res> WEB-DL Catalan.mp4`. The IMDb
+**How an IMDb id becomes a 3Cat video (0.2.0): a generated mapping, never a
+request-time guess.** `npm run mapping:build` (run by `heroku-postbuild`)
+writes `generated/mapping.json`; the server loads it at start (no warm-up),
+rebuilds it in the background every 6 h, and recomputes a single series when an
+episode is asked for that it doesn't have (at most once per series per 30 min).
+An IMDb id that isn't in the mapping gets no 3Cat stream.
+1. Identity: Wikidata P10356 "TV3 show ID" (= programme slug) / P10357 "TV3
+   video ID" (films), then a unique exact title of the right type (ambiguous ⇒
+   none, so the 1954 *Terra baixa* no longer gets the 2011 film), then
+   `data/overrides.json` (Dragon Ball → tt0280249, both Dragon Ball Z ids, Crims,
+   rejections).
+2. Episode: unique episode title → same air date ∩ season/episode → plain
+   season/episode only for series where ≥5 such matches all agree with the
+   numbering → otherwise none. Equal episode counts are not trusted (Plats bruts
+   73/73 still had 5 wrong positions). Dragon Ball / DBZ use a reviewed
+   running-chapter rule from the overrides file.
+3. Build at deploy: 232 films, 139 series, 7,993 episodes; 1,119 of 1,321
+   programmes playable natively. Everything else plays from the 3Cat catalogues.
+4. File name `<IMDb title> <SxxEyy|year> <res> WEB-DL Catalan.mp4`. The IMDb
    title is required: AIOStreams' exact title matching drops `Bola de Drac …`
    on a `Dragon Ball` request.
 
@@ -451,16 +455,10 @@ serves them through the `subtitles` resource (`idPrefixes: ['tt', '3alc:']` sinc
 `lang: 'cat'`). AIOStreams aggregates that resource and passes it to the player:
 `<aiostreams base>/subtitles/series/tt4580372:2:3.json` returns the Merlí VTT.
 
-**Catalogue audit (2026-10-18; not repaired by the stream integration release):**
-the featured-series endpoint returns 40 programmes, but one lacks `format`,
-making the transformer throw and the shelf return `[]`. Movie browsing fetches
-only page 1 (200 of 317 films) and ignores pagination. Search drops programme
-hits lacking `programes_tv`, sometimes returning unrelated parent programmes
-from video hits instead. The all-programmes API has 1,320 entries, but the
-addon exposes no A–Z or category browse. Poster fallback can select tiny logos
-and crashes on empty images; film years use publication dates, not release
-years; episode filtering/year-derived seasons also have coverage limitations.
-These fetching/catalogue repairs remain deferred, separately from stream unification.
+**Catalogue audit (2026-10-18):** the shelf crash, film pagination, search
+drops, A–Z/category browse and poster fallback were fixed in 0.1.0;
+documentaries and web-only programmes in 0.2.0. Film years still come from
+publication dates (3Cat has no release year).
 
 ---
 
