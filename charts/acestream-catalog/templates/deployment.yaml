@@ -44,6 +44,12 @@ spec:
                   name: {{ $.Release.Name }}-auth
                   key: {{ $key }}
             {{- end }}
+            # acexy rejects playback URLs without its token.
+            - name: STREAM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: acexy-auth
+                  key: ACEXY_TOKEN
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
