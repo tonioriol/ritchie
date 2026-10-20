@@ -33,7 +33,7 @@ resources:
     memory: 128Mi
   limits:
     cpu: "2"
-    memory: 512Mi
+    memory: 1536Mi
 
 engine:
   image:
