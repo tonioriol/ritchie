@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}
+      annotations:
+        checksum/cleanup: {{ .Files.Get "files/engine_cleanup.py" | sha256sum }}
     spec:
       imagePullSecrets:
         - name: ghcr-pull
@@ -22,6 +24,15 @@ spec:
         - name: acestream
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-c"]
+          args:
+            - |
+              import runpy, sys
+              sys.path.insert(0, '/opt/acestream-cleanup')
+              import engine_cleanup
+              engine_cleanup.install()
+              sys.argv = ['main.py', '--bind-all', '--live-cache-type', 'memory', '--live-mem-cache-size', '104857600', '--disable-sentry', '--log-stdout', '--disable-upnp']
+              runpy.run_path('/acestream/main.py', run_name='__main__')
           {{- if .Values.resources }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
@@ -85,7 +96,13 @@ spec:
           volumeMounts:
             - name: acestream-data
               mountPath: {{ .Values.acestream.stateDir }}
+            - name: cleanup
+              mountPath: /opt/acestream-cleanup
+              readOnly: true
       volumes:
+        - name: cleanup
+          configMap:
+            name: {{ .Release.Name }}-cleanup
         - name: acestream-data
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:

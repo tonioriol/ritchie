@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-cleanup
+data:
+  engine_cleanup.py: |
+{{ .Files.Get "files/engine_cleanup.py" | indent 4 }}
