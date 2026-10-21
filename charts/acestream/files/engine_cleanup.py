@@ -47,10 +47,10 @@ def install():
 
     original_get_download = Session.get_download
 
-    def get_download(session, kind, infohash):
+    def get_download(session, type, infohash):
         with session.sesslock:
-            download = original_get_download(session, kind, infohash)
-            if download is not None and kind == 4:
+            download = original_get_download(session, type, infohash)
+            if download is not None and type == 4:
                 download._cleanup_last_access = time.monotonic()
             return download
 

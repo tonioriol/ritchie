@@ -1,7 +1,9 @@
 import importlib.util
 from pathlib import Path
 import threading
+import types
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location(
     "engine_cleanup",
@@ -38,6 +40,25 @@ class Session:
 
 
 class CleanupTests(unittest.TestCase):
+    def test_lookup_hook_preserves_keyword_api_and_records_under_session_lock(self):
+        d = Download()
+
+        class EngineSession(Session):
+            def get_download(self, type, infohash):
+                assert self.sesslock._is_owned()
+                return d if type == 4 and infohash == b"hash" else None
+
+        session_module = types.ModuleType("ACEStream.Core.Session")
+        session_module.Session = EngineSession
+        with patch.dict("sys.modules", {"ACEStream.Core.Session": session_module}), \
+                patch.object(module.threading, "Thread"), \
+                patch.object(module.time, "monotonic", return_value=55):
+            module.install()
+            session = EngineSession(d)
+            self.assertIs(session.get_download(type=4, infohash=b"hash"), d)
+            self.assertEqual(d._cleanup_last_access, 55)
+            self.assertIsNone(session.get_download(type=4, infohash=b"missing"))
+
     def test_stopped_live_download_is_removed_after_grace(self):
         d = Download()
         session = Session(d)
