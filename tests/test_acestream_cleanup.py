@@ -27,8 +27,8 @@ class Session:
         self.sesslock = threading.RLock()
         self.downloads = list(downloads)
 
-    def get_downloads(self):
-        return list(self.downloads)
+    def get_downloads(self, kind=0):
+        return [d for d in self.downloads if d.kind == kind]
 
     def remove_download(self, download, removecontent=False):
         assert self.sesslock._is_owned()

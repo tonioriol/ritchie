@@ -23,7 +23,7 @@ class Cleanup:
         now = time.monotonic() if now is None else now
         removed = 0
         with self.session.sesslock:
-            for download in self.session.get_downloads():
+            for download in self.session.get_downloads(4):
                 if download.get_type() != 4:  # DLTYPE_LIVE
                     continue
                 with download.dllock:
@@ -38,7 +38,7 @@ class Cleanup:
                     self.stopped_since.pop(download, None)
                     removed += 1
         LOGGER.info("retained live downloads: removed=%d total=%d", removed,
-                    len(self.session.get_downloads()))
+                    len(self.session.get_downloads(4)))
         return removed
 
 
