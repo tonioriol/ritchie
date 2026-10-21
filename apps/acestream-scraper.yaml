@@ -17,6 +17,8 @@ spec:
     path: charts/acestream-scraper
     helm:
       values: |
+        # Retired: players use acestream-catalog. Kept scaled to 0 with its PVC so it can be restored.
+        replicaCount: 0
         imagePullSecrets:
           - name: ghcr-pull
         auth:
