@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-engine-wrapper
 data:
-  # Keep in sync with deploy/engine-entrypoint.sh in the application repository.
+  # The chart adds cleanup and a hard lifetime bound to the application wrapper.
   engine-entrypoint.sh: |
     #!/bin/sh
     set -eu
@@ -16,8 +16,12 @@ data:
     # Preserve the image's original command except --bind-all: only the catalog
     # container in this pod should reach this dedicated probe engine.
     if [ "$#" -eq 0 ]; then
-        set -- /acestream/python/bin/python main.py \
+        set -- /acestream/python/bin/python /wrapper/engine_bootstrap.py \
             --live-cache-type memory --live-mem-cache-size 104857600 \
             --disable-sentry --log-stdout --disable-upnp
     fi
     exec "$@"
+  engine_cleanup.py: |
+{{ .Files.Get "files/engine_cleanup.py" | indent 4 }}
+  engine_bootstrap.py: |
+{{ .Files.Get "files/engine_bootstrap.py" | indent 4 }}
