@@ -8,7 +8,7 @@ Simple GitOps repo for the `neumann` k3s cluster.
 - Public hostnames:
   - `https://acestreamio.tonioriol.com` — Stremio addon
   - `https://ace.tonioriol.com` — Acexy stream proxy
-  - `https://scraper.tonioriol.com` — Acestream-scraper web UI & API
+  - `https://catalog.tonioriol.com` — Acestream catalog (token-gated M3U/XMLTV feeds, admin API, unauthenticated `/health`)
   - `https://tv.tonioriol.com` — IPTV relay
   - `https://neumann.tonioriol.com` — ArgoCD UI
 - Core services are internal ClusterIP; no public NodePorts for ArgoCD server / AceStream engine.
@@ -38,7 +38,7 @@ KUBECONFIG=ritchie/clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
 
 - ArgoCD app-of-apps root: [`apps/root.yaml`](apps/root.yaml:1)
 - Cloudflare tunnel connector app: [`apps/cloudflared.yaml`](apps/cloudflared.yaml:1)
-- Acestream-scraper (channel scraper + web UI): [`charts/acestream-scraper`](charts/acestream-scraper/Chart.yaml:1) — `default` ns
+- Acestream catalog (Rust; collects, probes and identifies channels, publishes M3U/XMLTV): [`charts/acestream-catalog`](charts/acestream-catalog/Chart.yaml:1) — `media` ns. Source and release procedure: [`acestream-catalog/AGENTS.md`](../acestream-catalog/AGENTS.md:1) (images are built manually and pinned to `v2-latest`).
 - Acestream engine: [`charts/acestream`](charts/acestream/Chart.yaml:1) — `media` ns (includes acestream-proxy sidecar)
 - Acexy (Go stream proxy, token-gated): [`charts/acexy`](charts/acexy/Chart.yaml:1) — `media` ns
 - Acestreamio Stremio addon: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1) — `media` ns
@@ -118,14 +118,17 @@ All application secrets are stored in the **1Password vault `neumann`** and sync
 
 ```
 1Password vault "neumann"
-  └─ item "acestream-scraper"
-       ├─ username   → AUTH_USERNAME  (acestream-scraper)
-       └─ password   → AUTH_PASSWORD  (acestream-scraper)
-                     → ACEXY_TOKEN    (acexy)
-                     → STREAM_TOKEN   (acestreamio)
+  ├─ item "acestream-scraper"   (name kept from the retired scraper)
+  │    └─ password   → FEED_TOKEN     (acestream-catalog)
+  │                  → ACEXY_TOKEN    (acexy)
+  │                  → STREAM_TOKEN   (acestreamio)
+  ├─ item "acestream-catalog"
+  │    └─ admin_token → ADMIN_TOKEN   (acestream-catalog)
+  └─ item "ccx"
+       └─ api_key     → LLM_API_KEY   (acestream-catalog)
 ```
 
-All three services share the **same password** from the single 1Password item. This simplifies rotation — change one field, everything updates.
+The three services share the **same `password`** from the `acestream-scraper` item. This simplifies rotation — change one field, everything updates. The Flask acestream-scraper itself is retired (app, chart and route removed); only its PVC `media/acestream-scraper-config` is kept.
 
 ### 1Password account
 
@@ -140,33 +143,38 @@ When using `op` CLI, always pass `--account PRBEZ6ELGNCMDIK6YVMRW5TTXQ` (or `--a
 
 | 1P Item | Vault | Fields | Used By |
 |---------|-------|--------|---------|
-| `acestream-scraper` (ID `hthexfrtih57dr5gf2dighfa4e`) | `neumann` | `username`, `password` | acestream-scraper (Basic Auth + `?token=`), acexy (`ACEXY_TOKEN`), acestreamio (`STREAM_TOKEN`) |
+| `acestream-scraper` (ID `hthexfrtih57dr5gf2dighfa4e`) | `neumann` | `password` | acestream-catalog (`FEED_TOKEN`, the `?token=` of the feeds), acexy (`ACEXY_TOKEN`), acestreamio (`STREAM_TOKEN`) |
+| `acestream-catalog` | `neumann` | `admin_token` | acestream-catalog (`ADMIN_TOKEN`, Bearer for the admin API) |
+| `ccx` | `neumann` | `api_key` | acestream-catalog (`LLM_API_KEY`) |
 
-> **Note**: The `password` field is used as the token everywhere — the `?token=` param in M3U URLs, `ACEXY_TOKEN`, and `STREAM_TOKEN` all use this same value. The `stream token` field in 1P is a legacy leftover and is **not** read by any ExternalSecret.
+> **Note**: The `password` field is the token everywhere — the `?token=` param in feed URLs, `ACEXY_TOKEN`, and `STREAM_TOKEN` all use this same value.
 
 ### Kubernetes Secrets (created by ESO)
 
 | Secret Name | Namespace | Keys | Source |
 |-------------|-----------|------|--------|
-| `acestream-scraper-auth` | `default` | `AUTH_USERNAME`, `AUTH_PASSWORD` | 1P `acestream-scraper` → `username`, `password` |
+| `acestream-catalog-auth` | `media` | `FEED_TOKEN`, `ADMIN_TOKEN`, `LLM_API_KEY` | 1P `acestream-scraper` → `password`; `acestream-catalog` → `admin_token`; `ccx` → `api_key` |
 | `acexy-auth` | `media` | `ACEXY_TOKEN` | 1P `acestream-scraper` → `password` |
+
+`acestreamio` still receives `STREAM_TOKEN` inline from `streamToken` in [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1).
 
 ### ExternalSecret definitions
 
-- [`charts/acestream-scraper/templates/externalsecret.yaml`](charts/acestream-scraper/templates/externalsecret.yaml:1) — refreshes every 1h
+- [`charts/acestream-catalog/templates/externalsecret.yaml`](charts/acestream-catalog/templates/externalsecret.yaml:1) — refreshes every 1h
 - [`charts/acexy/templates/externalsecret.yaml`](charts/acexy/templates/externalsecret.yaml:1) — refreshes every 1h
 
 ### Auto-reload on secret change
 
-[Stakater Reloader](https://github.com/stakater/Reloader) is deployed via [`apps/reloader.yaml`](apps/reloader.yaml:1). Both Deployments carry `secret.reloader.stakater.com/reload` annotations — when ESO syncs a new secret value from 1Password, Reloader triggers a rolling restart automatically.
+[Stakater Reloader](https://github.com/stakater/Reloader) is deployed via [`apps/reloader.yaml`](apps/reloader.yaml:1). The acestream-catalog and acexy Deployments carry `secret.reloader.stakater.com/reload` annotations — when ESO syncs a new secret value from 1Password, Reloader triggers a rolling restart automatically.
 
 ### Credential rotation
 
 1. Open **1Password** → vault `neumann` → item `acestream-scraper`
-2. Edit the `password` field (and/or `username`)
+2. Edit the `password` field
 3. Wait up to **1 hour** for ESO to sync (or force: `kubectl annotate externalsecret <name> force-sync=$(date +%s) --overwrite`)
 4. Stakater Reloader will automatically restart affected pods
-5. Update your M3U player URL with the new `?token=<password>` value
+5. Update `streamToken` in [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1) and push (it is inline, not ESO-managed)
+6. Update your M3U player URL with the new `?token=<password>` value
 
 ### Out-of-band secrets (not in ESO)
 

@@ -25,7 +25,7 @@ spec:
         # Created out-of-band in the cluster as: media/ghcr-pull
         imagePullSecrets:
           - name: ghcr-pull
-        # Must match AUTH_PASSWORD on acestream-scraper — addon.js appends it to stream URLs.
+        # Must match ACEXY_TOKEN on Acexy (same 1Password acestream-scraper/password value) — addon.js appends it to stream URLs.
         streamToken: "SntSIGdaunNbnAZfQzjT3fXN"
         externalDns:
           enabled: true

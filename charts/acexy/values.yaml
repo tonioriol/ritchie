@@ -17,7 +17,8 @@ service:
   port: 8080
 
 # Token auth — if enabled, all requests to Acexy must include ?token=<value>
-# Token is sourced from 1Password via ExternalSecret (key: acestream-scraper/password).
+# Token is sourced from 1Password via ExternalSecret (item acestream-scraper, field password;
+# the item name is historical and the value is shared with acestream-catalog and acestreamio).
 auth:
   enabled: false
 

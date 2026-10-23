@@ -29,8 +29,8 @@ env:
   enableLocalEngine: "false"
   localUrl: "http://127.0.0.1:6878"
 
-# Stream token — authenticates requests to the scraper's /ace/getstream proxy.
-# Must match AUTH_PASSWORD (ACEXY_TOKEN) on the acestream-scraper.
+# Stream token — authenticates requests to Acexy's /ace/getstream proxy.
+# Must match ACEXY_TOKEN on Acexy.
 # addon.js appends ?token=<value> to every stream URL returned to Stremio clients.
 streamToken: ""
 

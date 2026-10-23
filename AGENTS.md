@@ -96,52 +96,31 @@ Rotate by editing the 1Password field; Reloader rolls the Deployment.
    - cloudflared Deployment rolls (checksum annotation detects ConfigMap change) and picks up the new route.
    - external-dns reconciles and creates/updates the CNAME record (proxied).
 
-## Acestream-scraper API quirks
+## Acestream catalog, Acexy and engine
 
-- The Flask `app/` package is the custom overlay maintained in `tonioriol/acestream-scraper`. It is baked into the Docker image via `pyproject.toml`.
-- **Config API endpoint**: `PUT /api/config/<key>` (not `/api/v1/config/`). Each endpoint expects a specific JSON key:
-  ```bash
-  # Set base URL (used in playlist.m3u output) — point at Acexy (token-gated via ACEXY_TOKEN)
-  # IMPORTANT: use ?infohash= (NOT ?id=). The ?id= parameter requires acestream's
-  # content server which was decommissioned in April 2026. ?infohash= resolves
-  # directly via P2P/DHT and works for ALL channels.
-  curl -X PUT https://scraper.tonioriol.com/api/config/base_url \
-    -H "Content-Type: application/json" \
-    -d '{"base_url":"https://ace.tonioriol.com/ace/getstream?infohash="}'
-
-  # Set Ace Engine URL (external engine in media namespace)
-  curl -X PUT https://scraper.tonioriol.com/api/config/ace_engine_url \
-    -H "Content-Type: application/json" \
-    -d '{"ace_engine_url":"http://acestream.media.svc.cluster.local:6878"}'
-
-  # Set rescrape interval (key is "hours", not "rescrape_interval")
-  curl -X PUT https://scraper.tonioriol.com/api/config/rescrape_interval \
-    -H "Content-Type: application/json" \
-    -d '{"hours":6}'
-  ```
-- The **Config web UI** (`/config`) is a React SPA. If the "Update" button appears to do nothing (value disappears from the field), use the API directly — the frontend may have a bug with certain URL formats.
-- **URL management**: `POST /api/urls/` to add, `DELETE /api/urls/{id}` (no trailing slash) to remove. Trailing slash on DELETE returns 404.
-- **Channel data**: `GET /api/channels/` returns all channels; filter with `ch.status === 'active' && ch.is_online !== false`.
-- **Ports**: Flask on `8000` (acestream-scraper, `media` ns), Acexy on `8080` (standalone Deployment, `media` ns), Acestream Engine on `6878` (standalone Deployment, `media` ns).
+- The Flask acestream-scraper is retired (ArgoCD app, chart and tunnel route removed); only its PVC `media/acestream-scraper-config` (PV `Retain`, old SQLite DB) is kept on purpose. Its 1Password item is still named `acestream-scraper`.
+- **acestream-catalog** (Rust, repo `acestream-catalog/`) replaces it: app [`apps/acestream-catalog.yaml`](apps/acestream-catalog.yaml:1), chart [`charts/acestream-catalog`](charts/acestream-catalog/Chart.yaml:1), ns `media`, public `https://catalog.tonioriol.com`, internal `acestream-catalog.media.svc:80` (container `8080`). Operate it with the global `iptv` skill; code, admin API and release live in [`acestream-catalog/AGENTS.md`](../acestream-catalog/AGENTS.md:1) — don't duplicate them here.
+  - Feeds take `?token=<FEED_TOKEN>`: `/api/playlists/tv-channels/m3u` (alias `/playlist.m3u`), `/api/playlists/epg.xml`, `/api/channels/`. `/health` is unauthenticated. The admin API uses `Authorization: Bearer <ADMIN_TOKEN>`.
+  - The chart pins `image.tag: v2-latest`, overridden in [`apps/acestream-catalog.yaml`](apps/acestream-catalog.yaml:1); images are built manually (GitHub Actions billing blocks CI) and Image Updater does not track it.
+- **acestreamio** reads channels from the catalog (`env.scraperApiUrl` in [`charts/acestreamio/values.yaml`](charts/acestreamio/values.yaml:1); key name is code-facing).
+- **Ports** (all `media` ns): catalog `8080` (Service `80`), Acexy `8080`, Acestream Engine `6878`.
 - **Acexy vs raw engine**: Acexy (`ace.tonioriol.com`, publicly exposed via CF tunnel, token-gated by `ACEXY_TOKEN`) is a Go proxy wrapping the engine API. Key differences:
    - Acexy **rejects the `pid` parameter** with HTTP 400 ("PID parameter is not allowed"). Never include `&pid=` in Acexy URLs.
    - Acexy supports both `?id=<hash>` and `?infohash=<hash>` for `/ace/getstream`. **Always use `?infohash=`** — the `?id=` parameter requires acestream's content server (decommissioned since April 2026).
    - Acexy only supports MPEG-TS — no HLS (`/ace/manifest.m3u8` returns 404).
    - The raw engine (port 6878) supports both HLS and MPEG-TS, and accepts `pid`.
-   - The scraper Config page has an "Add PID parameter to URLs" checkbox — must be **unchecked** when using Acexy.
 - **Acestream engine image**: Custom `ghcr.io/tonioriol/acestream-engine:latest` based on `jopsis/acestream:latest` (engine 3.2.17). Includes attestation bypass via `ssl_fix.py` — patches Python SSL/socket to redirect attestation requests to a local fake HTTPS server. Source: [`docs/feat/20260510225602-acestream-scraper-health-audit/Dockerfile`](../docs/feat/20260510225602-acestream-scraper-health-audit/Dockerfile:1).
-- **Config is stored in SQLite** (`/app/config/acestream_scraper.db`), persisted via PVC at `/app/config`.
 
 ## Authentication
 
-Both `acestream-scraper` and `acestreamio` are protected. Credentials are stored in 1Password (`neumann` vault / `acestream-scraper` item) and injected into the cluster via **External Secrets Operator (ESO) + 1Password Connect**.
+Credentials live in 1Password (`neumann` vault) and are injected into the cluster via **External Secrets Operator (ESO) + 1Password Connect**.
 
 ### Secret management architecture
 
 - **1Password Connect** runs in-cluster (`1password` namespace) as the bridge between ESO and the 1Password cloud.
 - **ClusterSecretStore** `onepassword` points ESO at Connect's API (`http://onepassword-connect.1password.svc.cluster.local:8080`).
 - **ExternalSecret** CRs in each app's Helm chart pull individual fields from the 1Password item and create k8s Secrets.
-- No plaintext credentials in git. Only `auth.enabled: true` in Helm values.
+- No plaintext credentials in git. Charts only toggle `auth.enabled`.
 
 ### Out-of-band secrets (not in git, pre-created manually)
 
@@ -164,73 +143,24 @@ KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl create secret generic op-
 KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl create secret generic onepassword-token -n 1password --from-literal=token='<JWT from op connect token create>'
 ```
 
-### acestream-scraper auth
+### Catalog and Acexy tokens
 
-- All routes except `/api/health` require auth. Two methods accepted (see [`acestream-scraper/app/utils/auth.py`](../acestream-scraper/app/utils/auth.py:1)):
-  - **HTTP Basic Auth**: `Authorization: Basic <base64(username:password)>` — for browsers and `curl -u`.
-  - **`?token=<password>`**: embed password as query param — for media players (TiviMate, VLC) that can't do interactive auth.
-- Enabled via env vars `AUTH_USERNAME` + `AUTH_PASSWORD` (injected from k8s Secret `acestream-scraper-auth` via [`ExternalSecret`](charts/acestream-scraper/templates/externalsecret.yaml:1)).
-- k8s liveness/readiness/startup probes must use `/api/health` (auth-exempt). Any other probe path will get 401 and cause crash-loops.
-
-### Acexy token auth
-
-- Acexy is publicly exposed at `ace.tonioriol.com` via Cloudflare Tunnel, gated by `ACEXY_TOKEN` env var (all requests must include `?token=<value>`).
-- The scraper auto-embeds `AUTH_PASSWORD` as `&token=` in M3U stream URLs (see [`playlist_service.py`](../acestream-scraper/app/services/playlist_service.py:51)). This value must match `ACEXY_TOKEN` on the Acexy Deployment.
-- `ACEXY_TOKEN` injected via [`ExternalSecret`](charts/acexy/templates/externalsecret.yaml:1) from `acestream-scraper` 1Password item's `password` field.
-- acestreamio `PROXY_URL=https://ace.tonioriol.com` — Stremio stream URLs also go directly to Acexy with `?token=<STREAM_TOKEN>`.
-
-### acestreamio stream token
-
-- acestreamio has its own `STREAM_TOKEN` env var used to authenticate stream requests from Stremio clients.
-- Both secrets (`AUTH_PASSWORD` on scraper, `ACEXY_TOKEN` on Acexy, `STREAM_TOKEN` on acestreamio) use the same password value from 1Password (`neumann` vault / `acestream-scraper` item).
+- The catalog's feed token (`FEED_TOKEN`), `ACEXY_TOKEN` (Acexy) and `STREAM_TOKEN` (acestreamio) are all the 1Password `neumann / acestream-scraper` item's `password` field. The catalog's ExternalSecret ([`charts/acestream-catalog/templates/externalsecret.yaml`](charts/acestream-catalog/templates/externalsecret.yaml:1)) also maps `acestream-catalog.admin_token` → `ADMIN_TOKEN` and `ccx.api_key` → `LLM_API_KEY` into Secret `acestream-catalog-auth`.
+- Acexy is publicly exposed at `ace.tonioriol.com`, gated by `ACEXY_TOKEN` (all requests must include `?token=<value>`), injected via [`ExternalSecret`](charts/acexy/templates/externalsecret.yaml:1) into Secret `acexy-auth`.
+- acestreamio `PROXY_URL=https://ace.tonioriol.com`; stream URLs go directly to Acexy with `?token=<STREAM_TOKEN>` (`streamToken` is inline in [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1)).
+- Catalog probes must use `/health` (auth-exempt); other paths return 401.
 
 ### Credential rotation
 
 1. Update the `password` field in 1Password item `neumann / acestream-scraper`.
 2. ESO auto-refreshes every 1h, or force immediate sync: `kubectl annotate externalsecret <name> -n <ns> force-sync=$(date +%s) --overwrite`.
-3. **Stakater Reloader** ([`apps/reloader.yaml`](apps/reloader.yaml:1)) automatically performs a rolling restart of Deployments annotated with `secret.reloader.stakater.com/reload: <secret-name>` when the Secret data changes. Currently annotated: `acestream-scraper` (default ns) and `acexy` (media ns). No manual `kubectl rollout restart` needed.
-4. For `acestreamio` (still uses inline `STREAM_TOKEN` in Helm values): update [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1) and push.
+3. **Stakater Reloader** ([`apps/reloader.yaml`](apps/reloader.yaml:1)) rolls Deployments annotated with `secret.reloader.stakater.com/reload: <secret-name>` when the Secret changes. Currently annotated: `acestream-catalog` and `acexy` (`media` ns). No manual `kubectl rollout restart` needed.
+4. For `acestreamio` (inline `STREAM_TOKEN`): update [`apps/acestreamio.yaml`](apps/acestreamio.yaml:1) and push.
 
 **Full secret rotation flow:**
 ```
 1Password item edit → ESO refresh (≤1h) → k8s Secret updated → Reloader detects hash change → rolling restart
 ```
-
-## Acestream-scraper release process (CI pipeline)
-
-- The scraper repo (`tonioriol/acestream-scraper`) is a fork of `pipepito/acestream-scraper` with custom overlay code in `app/`.
-- CI/CD: [`.github/workflows/release.yml`](../acestream-scraper/.github/workflows/release.yml:1) runs **semantic-release** on every push to `main` (when `app/`, `migrations/`, `Dockerfile`, `requirements*.txt`, `wsgi.py`, etc. change).
-- **NEVER** deploy manually (no `docker build`, no `docker push`, no `kubectl rollout restart`). Just push to `main` with Conventional Commits.
-
-### Deploy steps
-
-1. Make code changes in the `acestream-scraper` repo. Use **Conventional Commits** (`fix:`, `feat:`, `BREAKING CHANGE:`) so semantic-release can compute the version:
-   ```bash
-   cd ../acestream-scraper
-   git add -A && git commit -m "fix: description of change"
-   git push origin main
-   ```
-
-2. That's it. The CI pipeline handles everything:
-   - **semantic-release** bumps the version, creates a GitHub release + git tag
-   - **Docker build** builds `linux/amd64` image and pushes to `ghcr.io/tonioriol/acestream-scraper:vX.Y.Z`
-   - **ArgoCD Image Updater** detects the new semver tag (polls every ~2 min) and rolls the deployment
-
-3. Verify deployment:
-   ```bash
-   # Check Image Updater logs
-   KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl logs -l app.kubernetes.io/name=argocd-image-updater --tail=20 -n argocd
-   # Check current image
-   KUBECONFIG=ritchie/clusters/neumann/kubeconfig kubectl get deploy acestream-scraper -o jsonpath='{.spec.template.spec.containers[*].image}'
-   ```
-
-### Important notes
-
-- The Image Updater is configured via the `ImageUpdater` CRD in [`apps/argocd-image-updater.yaml`](apps/argocd-image-updater.yaml:58) (not via Application annotations).
-- The `semver` strategy + `allowTags: regexp:^v?\d+\.\d+\.\d+$` means only proper semver tags are considered.
-- The chart [`charts/acestream-scraper/values.yaml`](charts/acestream-scraper/values.yaml:1) has a baseline tag but Image Updater overrides this at deploy time.
-- GHCR auth: the CI pipeline uses `GHCR_PAT` secret; the cluster uses `ghcr-pull` Secret in the `argocd` namespace.
-- If SSH to github.com times out, use HTTPS: `git push https://github.com/tonioriol/acestream-scraper.git main`
 
 ## kubectl context (important for agents)
 
