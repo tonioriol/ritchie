@@ -35,8 +35,6 @@ hosts:
   # All stream URLs embed ?token=<AUTH_PASSWORD> so clients authenticate without Basic Auth prompts.
   - hostname: ace.tonioriol.com
     service: http://acexy.media.svc.cluster.local:8080
-  - hostname: tv.tonioriol.com
-    service: http://iptv-relay.media.svc.cluster.local:80
   - hostname: catalog.tonioriol.com
     service: http://acestream-catalog.media.svc.cluster.local:80
   - hostname: neumann.tonioriol.com

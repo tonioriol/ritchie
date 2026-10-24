@@ -1,6 +1,0 @@
-apiVersion: v2
-name: iptv-relay
-description: "IPTV merger/proxy — unified Xtream API from multiple IPTV sources."
-type: application
-version: 0.2.0
-appVersion: "0.2.0"

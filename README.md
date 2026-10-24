@@ -9,7 +9,6 @@ Simple GitOps repo for the `neumann` k3s cluster.
   - `https://acestreamio.tonioriol.com` — Stremio addon
   - `https://ace.tonioriol.com` — Acexy stream proxy
   - `https://catalog.tonioriol.com` — Acestream catalog (token-gated M3U/XMLTV feeds, admin API, unauthenticated `/health`)
-  - `https://tv.tonioriol.com` — IPTV relay
   - `https://neumann.tonioriol.com` — ArgoCD UI
 - Core services are internal ClusterIP; no public NodePorts for ArgoCD server / AceStream engine.
 
@@ -42,7 +41,6 @@ KUBECONFIG=ritchie/clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
 - Acestream engine: [`charts/acestream`](charts/acestream/Chart.yaml:1) — `media` ns (includes acestream-proxy sidecar)
 - Acexy (Go stream proxy, token-gated): [`charts/acexy`](charts/acexy/Chart.yaml:1) — `media` ns
 - Acestreamio Stremio addon: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1) — `media` ns
-- IPTV relay: [`charts/iptv-relay`](charts/iptv-relay/Chart.yaml:1) — `media` ns
 
 Also running in cluster:
 - 1Password Connect + External Secrets Operator: [`apps/onepassword-connect.yaml`](apps/onepassword-connect.yaml:1), [`apps/external-secrets.yaml`](apps/external-secrets.yaml:1), [`apps/external-secrets-config.yaml`](apps/external-secrets-config.yaml:1)
@@ -106,7 +104,6 @@ argocd app get <APP>
 argocd app sync <APP>
 ```
 
-- For IPTV upstream/token changes, edit the `iptv-relay` Secret in-cluster (ArgoCD is configured to ignore secret value drift in [`apps/iptv-relay.yaml`](apps/iptv-relay.yaml:15)).
 - `argocd-ingress` health is kept green by publishing a fixed Ingress endpoint IP from Traefik (`providers.kubernetesIngress.ingressEndpoint.ip`) in [`apps/traefik.yaml`](apps/traefik.yaml:13), so Ingress gets a non-empty `.status.loadBalancer`.
 - Keep secrets local. Never commit `.env` or kubeconfigs (see [`.gitignore`](.gitignore:1)).
 
