@@ -30,6 +30,8 @@ hosts:
   # AIOStreams — Stremio addon aggregator holding the debrid credentials.
   - hostname: aiostreams.tonioriol.com
     service: http://aiostreams.media.svc.cluster.local:80
+  - hostname: catalogs.tonioriol.com
+    service: http://personal-catalogs.media.svc.cluster.local:80
   # ace.tonioriol.com → Acexy standalone Deployment in media namespace.
   # Token auth (ACEXY_TOKEN) is enforced at the Acexy level.
   # All stream URLs embed ?token=<AUTH_PASSWORD> so clients authenticate without Basic Auth prompts.

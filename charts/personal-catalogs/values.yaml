@@ -1,0 +1,17 @@
+image:
+  repository: ghcr.io/tonioriol/personal-catalogs
+  tag: sha-e604f17374729debe77c9b18facbad338711b32f
+  digest: ""
+hostname: catalogs.tonioriol.com
+tunnelTarget: 85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com
+persistence:
+  # Hetzner's minimum is 10 GB; 1Gi claims do not provision a smaller disk.
+  size: 10Gi
+  storageClass: hcloud-volumes
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
