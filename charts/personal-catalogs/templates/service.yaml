@@ -4,8 +4,11 @@ metadata:
   name: {{ .Release.Name }}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: {{ .Values.hostname | quote }}
+    external-dns.kubernetes.io/hostname: {{ .Values.hostname | quote }}
     external-dns.alpha.kubernetes.io/target: {{ .Values.tunnelTarget | quote }}
+    external-dns.kubernetes.io/target: {{ .Values.tunnelTarget | quote }}
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+    external-dns.kubernetes.io/cloudflare-proxied: "true"
 spec:
   type: ClusterIP
   selector:
