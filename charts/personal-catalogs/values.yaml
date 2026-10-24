@@ -1,7 +1,7 @@
 image:
   repository: ghcr.io/tonioriol/personal-catalogs
   tag: sha-e604f17374729debe77c9b18facbad338711b32f
-  digest: ""
+  digest: "sha256:e8bea9110765cbd79eab100206f52a2d210de103d2188f0ddc043513a7981d9a"
 hostname: catalogs.tonioriol.com
 tunnelTarget: 85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com
 persistence:
