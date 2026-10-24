@@ -37,7 +37,7 @@ KUBECONFIG=ritchie/clusters/neumann/kubeconfig.warp kubectl get nodes -o wide
 
 - ArgoCD app-of-apps root: [`apps/root.yaml`](apps/root.yaml:1)
 - Cloudflare tunnel connector app: [`apps/cloudflared.yaml`](apps/cloudflared.yaml:1)
-- Acestream catalog (Rust; collects, probes and identifies channels, publishes M3U/XMLTV): [`charts/acestream-catalog`](charts/acestream-catalog/Chart.yaml:1) — `media` ns. Source and release procedure: [`acestream-catalog/AGENTS.md`](../acestream-catalog/AGENTS.md:1) (images are built manually and pinned to `v2-latest`).
+- Acestream catalog (Rust; collects, probes and identifies channels, publishes M3U/XMLTV): [`charts/acestream-catalog`](charts/acestream-catalog/Chart.yaml:1) — `media` ns. Source and release procedure: [`acestream-catalog/AGENTS.md`](../acestream-catalog/AGENTS.md:1) (images are built manually and pinned to `latest`).
 - Acestream engine: [`charts/acestream`](charts/acestream/Chart.yaml:1) — `media` ns (includes acestream-proxy sidecar)
 - Acexy (Go stream proxy, token-gated): [`charts/acexy`](charts/acexy/Chart.yaml:1) — `media` ns
 - Acestreamio Stremio addon: [`charts/acestreamio`](charts/acestreamio/Chart.yaml:1) — `media` ns

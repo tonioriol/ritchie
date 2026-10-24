@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/tonioriol/acestream-catalog
-  tag: v2-latest
+  tag: latest
   pullPolicy: Always
 
 imagePullSecrets:

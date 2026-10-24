@@ -3,8 +3,8 @@ kind: Application
 metadata:
   name: acestream-catalog
   namespace: argocd
-  # Branch images are selected explicitly until v2 is released on main.
-  # Catalog is also excluded from the shared ImageUpdater CR during this period.
+  # Catalog images are built manually and pinned to the mutable `latest` tag;
+  # Image Updater does not track this app.
 spec:
   project: default
   source:
@@ -15,7 +15,7 @@ spec:
       # Replace any old semver parameter written back by Image Updater.
       parameters:
         - name: image.tag
-          value: v2-latest
+          value: latest
           forceString: true
   destination:
     server: https://kubernetes.default.svc
