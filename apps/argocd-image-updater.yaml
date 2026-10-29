@@ -54,7 +54,30 @@ spec:
                         helm:
                           name: image.repository
                           tag: image.tag
-                # Catalog branch images are pinned explicitly during v2 evaluation.
+                - namePattern: acestream-catalog
+                  images:
+                    - alias: catalog
+                      imageName: ghcr.io/tonioriol/acestream-catalog
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                        pullSecret: pullsecret:argocd/ghcr-pull
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
+                - namePattern: personal-catalogs
+                  images:
+                    - alias: catalogs
+                      imageName: ghcr.io/tonioriol/personal-catalogs
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                        pullSecret: pullsecret:argocd/ghcr-pull
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
                 - namePattern: acexy
                   images:
                     - alias: acexy

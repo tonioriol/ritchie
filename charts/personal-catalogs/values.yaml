@@ -1,7 +1,7 @@
 image:
   repository: ghcr.io/tonioriol/personal-catalogs
-  tag: sha-0ab6d6ed50fe9b914eff03ac717c1396dfec0226
-  digest: "sha256:1911a11e46ad4111aecd1293289f6d5e1daa57503a00b9c27edf54bffda32d43"
+  # Image Updater bumps this to the highest vX.Y.Z release.
+  tag: v1.0.0
 hostname: catalogs.tonioriol.com
 tunnelTarget: 85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com
 persistence:

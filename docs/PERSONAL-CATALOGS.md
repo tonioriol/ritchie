@@ -4,7 +4,7 @@ Independent private household catalog addon at `https://catalogs.tonioriol.com`,
 
 ## Release and runtime
 
-Source is the private `tonioriol/personal-catalogs` repository. GitHub Actions tests on Node.js 24 and publishes a private `ghcr.io/tonioriol/personal-catalogs:sha-<full-commit>` image. Update the chart's pinned image tag through GitOps; there is no Image Updater for this application. The existing `media/ghcr-pull` registry credential is used for image pulls.
+Source is the private `tonioriol/personal-catalogs` repository. On push to `main`, GitHub Actions tests on Node.js 24, semantic-release cuts `vX.Y.Z` from Conventional Commits, and the private `ghcr.io/tonioriol/personal-catalogs:vX.Y.Z` image is pushed. ArgoCD Image Updater ([`apps/argocd-image-updater.yaml`](../apps/argocd-image-updater.yaml)) deploys the highest version; nobody edits the chart per release. While CI cannot run, build from a clean `git archive` locally, push the git tag and the `vX.Y.Z` image yourself. The existing `media/ghcr-pull` registry credential is used for image pulls. (Releases before 2026-10-29 were pinned by `sha-<commit>` tag plus digest in the chart; `v1.0.0` is the `0ab6d6e` image retagged.)
 
 One non-root container, port 7000, with an explicit Recreate strategy avoids overlapping SQLite writers during upgrades. Startup/readiness use `/readyz`; liveness uses `/healthz`. Warmup can take several minutes, so the startup probe permits ten minutes. Container resources start at 50m CPU/128Mi memory requests, 1 CPU/512Mi limits; measure before increasing.
 

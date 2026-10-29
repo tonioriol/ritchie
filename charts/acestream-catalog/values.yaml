@@ -1,7 +1,8 @@
 image:
   repository: ghcr.io/tonioriol/acestream-catalog
-  tag: latest
-  pullPolicy: Always
+  # Image Updater bumps this to the highest vX.Y.Z release.
+  tag: v1.0.0
+  pullPolicy: IfNotPresent
 
 imagePullSecrets:
   - name: ghcr-pull
