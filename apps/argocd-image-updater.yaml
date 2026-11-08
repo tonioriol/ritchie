@@ -170,6 +170,18 @@ spec:
                         helm:
                           name: image.repository
                           tag: image.tag
+                - namePattern: detour-radio-web
+                  images:
+                    - alias: app
+                      imageName: ghcr.io/tonioriol/detour-radio-web
+                      commonUpdateSettings:
+                        updateStrategy: semver
+                        allowTags: "regexp:^v?\\d+\\.\\d+\\.\\d+$"
+                        pullSecret: pullsecret:argocd/ghcr-pull
+                      manifestTargets:
+                        helm:
+                          name: image.repository
+                          tag: image.tag
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
