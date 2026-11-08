@@ -60,28 +60,6 @@ p2p:
   port: 8621
   i2iPort: 62062
 
-# Optional: provide a portless HTTPS endpoint (like the legacy ritchie nginx reverse-proxy)
-# by running an in-cluster nginx reverse proxy + Traefik Ingress.
-proxy:
-  enabled: true
-
-  resources:
-    requests:
-      cpu: "10m"
-      memory: "32Mi"
-    limits:
-      cpu: "200m"
-      memory: "256Mi"
-
-ingress:
-  # Traffic is served via Cloudflare Tunnel (no public Ingress required).
-  enabled: false
-  host: ace.tonioriol.com
-  tls:
-    enabled: true
-    issuer: letsencrypt-prod
-    secretName: ace-tonioriol-com-tls
-
 # Optional fallback only; stopped live downloads are evicted by the cleanup hook.
 restartCronJob:
   enabled: false
