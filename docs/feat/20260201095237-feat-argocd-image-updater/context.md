@@ -1,3 +1,9 @@
+---
+title: "feat-argocd-image-updater Argo CD Image Updater (no git commits)"
+status: done
+created: 2026-02-01
+---
+
 # feat-argocd-image-updater Argo CD Image Updater (no git commits)
 
 ## TASK
@@ -81,6 +87,9 @@ See [`apps/argocd-image-updater.yaml`](apps/argocd-image-updater.yaml:1) and the
 
 ## Next Steps
 
-- [ ] Create/update `argocd/ghcr-pull` secret (if GHCR is private)
-- [ ] Push a new SemVer tag/image in the addon repo and verify Image Updater rolls the deployment
+- [x] Create/update `argocd/ghcr-pull` secret (if GHCR is private) — **done** (2026-11-08): `argocd/ghcr-pull` exists
+- [x] Push a new SemVer tag/image in the addon repo and verify Image Updater rolls the deployment — **done** (2026-11-08): acestreamio v1.17.2 rolled 2026-10-28
 
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: `kubectl -n argocd get secret ghcr-pull` exists; acestreamio runs v1.17.2 and ccx runs `ghcr.io/tonioriol/ccx:1.23.3`, both rolled by Image Updater.

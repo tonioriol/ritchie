@@ -1,3 +1,9 @@
+---
+title: "2026-02-10-23-03-51-warp-zerotrust-kubectl Cloudflare Zero Trust WARP enrollment + kubectl via private route (10.0.0.2)"
+status: paused
+created: 2026-02-10
+---
+
 # 2026-02-10-23-03-51-warp-zerotrust-kubectl Cloudflare Zero Trust WARP enrollment + kubectl via private route (10.0.0.2)
 
 ## TASK
@@ -106,8 +112,13 @@ ALWAYS use absolute paths.
 ## Next Steps
 
 - [x] Ensure `/Users/tr0n/Code/ritchie/clusters/neumann/kubeconfig.warp` cannot be accidentally committed (confirm ignore patterns).
-- [ ] Optional hardening: restrict public `:6443` (Hetzner firewall) after confirming WARP works reliably from the home ISP.
+- [ ] Optional hardening: restrict public `:6443` (Hetzner firewall) after confirming WARP works reliably from the home ISP. — **still open** (2026-11-08): rule still open; needs a decision on which source IPs keep direct access
 - [x] Update main runbook event log to reflect the successful WARP enrollment + split tunnel fix.
-- [ ] Validate Cloudflare hostname path end-to-end from DIGI home network during an actual match-time block window and capture evidence.
-- [ ] Rotate `HCLOUD_TOKEN` and update affected cluster secrets.
-- [ ] If scaling is needed later, reintroduce autoscaler via GitOps with explicit Hetzner node group config.
+- [ ] Validate Cloudflare hostname path end-to-end from DIGI home network during an actual match-time block window and capture evidence. — **still open** (2026-11-08): needs a live ISP block window
+- [ ] Rotate `HCLOUD_TOKEN` and update affected cluster secrets. — **still open** (2026-11-08): token printed in 2026-02 terminal output; rotation needs a Hetzner Console login
+- [x] ~~If scaling is needed later, reintroduce autoscaler via GitOps with explicit Hetzner node group config.~~ — **obsolete** (2026-11-08): single node, no scaling need
+
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: firewall `neumann` rule `tcp 6443 from 0.0.0.0/0` is still present; `kubeconfig.warp` exists locally and is git-ignored.
+- Remaining (needs the owner): restrict 6443 (lock-out risk: the default kubeconfig reaches 6443 over the public IP), validate WARP during a real match-time block, rotate `HCLOUD_TOKEN` (needs a Hetzner Console login; the API cannot mint tokens).

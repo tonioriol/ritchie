@@ -1,3 +1,9 @@
+---
+title: "feat-acestream-p2p AceStream: improve inbound connectivity (P2P ports)"
+status: done
+created: 2026-02-01
+---
+
 # feat-acestream-p2p AceStream: improve inbound connectivity (P2P ports)
 
 ## TASK
@@ -69,6 +75,9 @@ Note: some infohashes are simply dead/slow regardless of connectivity.
 
 ## Next Steps
 
-- [ ] Ensure Hetzner firewall allows inbound TCP/UDP 8621 and TCP 62062 to the node.
-- [ ] Validate HLS playlist generation for multiple infohashes after firewall changes.
+- [x] Ensure Hetzner firewall allows inbound TCP/UDP 8621 and TCP 62062 to the node. — **done** (2026-11-08): firewall `neumann` allows tcp/udp 8621 and tcp 62062
+- [x] ~~Validate HLS playlist generation for multiple infohashes after firewall changes.~~ — **obsolete** (2026-11-08): playback goes through Acexy, which serves MPEG-TS only; the raw engine's HLS is not exposed
 
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: `hcloud firewall describe neumann` (ID 10418455, applied to the server) allows inbound tcp+udp 8621 and tcp 62062 from 0.0.0.0/0 and ::/0.

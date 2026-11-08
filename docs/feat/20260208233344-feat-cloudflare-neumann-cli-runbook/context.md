@@ -1,3 +1,9 @@
+---
+title: "feat-cloudflare-neumann-cli-runbook Cloudflare Tunnel + DNS cutover (CLI-first runbook)"
+status: done
+created: 2026-02-08
+---
+
 # feat-cloudflare-neumann-cli-runbook Cloudflare Tunnel + DNS cutover (CLI-first runbook)
 
 ## TASK
@@ -406,9 +412,13 @@ Once you confirm WARP private routing works end-to-end, you can consider locking
 
 ## Next Steps
 
-- [ ] Optional hardening: once confident WARP works reliably during blocks, restrict public access to `:6443` in the Hetzner firewall.
-- [ ] (Operational) Keep any WARP kubeconfig local-only and never committed (note `.gitignore` already ignores `clusters/*/kubeconfig`).
+- [ ] Optional hardening: once confident WARP works reliably during blocks, restrict public access to `:6443` in the Hetzner firewall. — **still open** (2026-11-08): 6443 still open to 0.0.0.0/0; tracked in 20260210230351-warp-zerotrust-kubectl
+- [x] (Operational) Keep any WARP kubeconfig local-only and never committed (note `.gitignore` already ignores `clusters/*/kubeconfig`). — **done** (2026-11-08): `.gitignore:7` ignores `clusters/*/kubeconfig.warp`
 
 ## Next Steps
 
-- [ ] When executing this runbook, append progress notes to EVENT LOG via `/update-context`.
+- [x] ~~When executing this runbook, append progress notes to EVENT LOG via `/update-context`.~~ — **obsolete** (2026-11-08): process instruction, not a step
+
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: `clusters/neumann/kubeconfig.warp` is ignored by `.gitignore:7`; firewall `neumann` still allows tcp 6443 from 0.0.0.0/0 (hardening left open, see 20260210230351-warp-zerotrust-kubectl).

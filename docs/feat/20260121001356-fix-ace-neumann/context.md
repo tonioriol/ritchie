@@ -1,3 +1,9 @@
+---
+title: "fix-ace-neumann Fix ace.tonioriol.com on neumann"
+status: done
+created: 2026-01-21
+---
+
 # fix-ace-neumann Fix ace.tonioriol.com on neumann
 
 ## TASK
@@ -109,7 +115,11 @@ ALWAYS use absolute paths.
 
 ## Next Steps
 
-- [ ] Decide whether to keep nginx proxy + ingress permanently, or expose only NodePort.
-- [ ] Investigate/mitigate the `apsw.ConstraintError` spam (if it correlates with playback failures).
-- [ ] (Optional) Install metrics-server so `kubectl top` works (see `/Users/tr0n/Code/ritchie/docs/feat/2026-01-21-00-13-56-feat-install-metrics/context.md`).
-- [ ] COMPLETED: DNS cutover + working playback verified for at least some IDs.
+- [x] Decide whether to keep nginx proxy + ingress permanently, or expose only NodePort. — **done 2026-11-08**: neither: Acexy serves ace.tonioriol.com through the tunnel; the unused nginx proxy (no request logged since 2026-02-27) and its disabled ingress were removed in fa34f51 and pruned by ArgoCD
+- [x] ~~Investigate/mitigate the `apsw.ConstraintError` spam (if it correlates with playback failures).~~ — **obsolete** (2026-11-08): 0 `ConstraintError` lines in 24h of engine logs (39,951 lines) on 2026-11-08
+- [x] (Optional) Install metrics-server so `kubectl top` works (see `/Users/tr0n/Code/ritchie/docs/feat/2026-01-21-00-13-56-feat-install-metrics/context.md`). — **done** (2026-11-08): `apps/metrics-server.yaml`; `kubectl top node` returns 1617m / 6052Mi
+- [x] COMPLETED: DNS cutover + working playback verified for at least some IDs. — **done** (2026-11-08): recorded as completed in this file; ace.tonioriol.com now served by Acexy
+
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: proxy and ingress templates removed from `charts/acestream` in fa34f51 (Acexy fronts the engine through the tunnel); ArgoCD `acestream` Synced/Healthy at fa34f51 with only the engine Deployment, Service and PVC left; engine logs had 0 `ConstraintError` lines in the last 24h (39,951 lines); `kubectl top node` works.

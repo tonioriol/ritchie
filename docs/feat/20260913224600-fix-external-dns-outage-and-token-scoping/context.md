@@ -1,6 +1,6 @@
 ---
 title: "Recover from external-dns record wipe, pin chart versions, migrate annotation prefix, scope the Cloudflare credential"
-status: active
+status: done
 repos: [ritchie]
 tags: [deployment, dns, incident, secrets]
 related: [20260219160000-feat-cloudflare-tunnel-gitops, 20260131111332-feat-external-dns]
@@ -43,7 +43,7 @@ conversation. The approved shape is recorded in the LOG decisions below.
 user decision: retire the superseded Global API key, and decommission
 nullclaw/openclaw (teardown order drafted in the 2026-09-14 00:03 entry, not
 approved).
-**Status:** active
+**Status:** done
 
 ## LOG
 
@@ -178,3 +178,8 @@ approved).
 - Key info: **not executed** — irreversible (destroys two 10Gi volumes and stops
   `claw.tonioriol.com` resolving), so it is held for explicit approval per the
   safety guard. **Partial.**
+
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: external-dns pod has 0 restarts since 2026-09-13; all 29 ArgoCD apps Synced/Healthy. The two operator follow-ups are separate decisions: the Global API key is still used for manual remote-tunnel-config calls (`.env` `CF_API_KEY`), so retiring it needs the owner; nullclaw/openclaw are scaled to 0 (20261004190700-stop-cluster-model-callers) and their teardown is owned by the OpenClaw follow-up task.
+- Decision: the incident work is complete, so status is **done**; the follow-ups do not keep it open.

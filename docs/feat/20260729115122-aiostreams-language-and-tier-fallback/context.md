@@ -37,7 +37,7 @@ The current 12 ordered movie selectors intentionally omit sparse fixed-size tier
 
 ## PLAN
 
-**Plan:** [plan.md](./plan.md) — completed baseline, candidate, trust, amended automated rollout and language-flag work; preserves the intentionally skipped physical-client and recovery-template steps as unchecked historical gates.
+**Plan:** [plan.md](./plan.md) — completed baseline, candidate, trust, amended automated rollout and language-flag work; the intentionally skipped physical-client and recovery-template steps are marked obsolete (2026-11-08), not passed.
 **Cursor:** Complete — live selection and three-language formatter retained; durable reconstruction committed locally.
 **Status:** done; no live mutation, 1Password edit, deployment or push remains authorized or pending
 

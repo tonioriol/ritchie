@@ -1,3 +1,9 @@
+---
+title: "feat-vscode-settings-sync VS Code Settings Sync (Remote Tunnel)"
+status: done
+created: 2026-02-04
+---
+
 # feat-vscode-settings-sync VS Code Settings Sync (Remote Tunnel)
 
 ## TASK
@@ -54,5 +60,8 @@ If you don’t want an extension or token, you can manually copy:
 
 ## Next Steps
 
-- [ ] Update this doc if the cluster’s VS Code deployment model changes (tunnel vs in-cluster code-server).
+- [x] ~~Update this doc if the cluster’s VS Code deployment model changes (tunnel vs in-cluster code-server).~~ — **obsolete** (2026-11-08): standing reminder, not a step
 
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- The only open line was a standing maintenance reminder, not a step.

@@ -1,6 +1,6 @@
 ---
 title: "Acestream Scraper Integration"
-status: active
+status: done
 repos: [ritchie, acestream-scraper, acestreamio]
 tags: [acestream, deployment, kubernetes]
 created: 2026-02-17
@@ -107,7 +107,12 @@ Secrets injected via External Secrets Operator → 1Password Connect.
 
 ## Next Steps
 
-- [ ] Clean up legacy static channel list from acestreamio if still present
-- [ ] Rename `acestream` chart to `acestream-engine` for clarity
-- [ ] Investigate external-dns restart loop (44 restarts in 4d)
-- [ ] Monitor memory usage (78% on single node)
+- [x] Clean up legacy static channel list from acestreamio if still present — **done 2026-11-08**: removed in acestreamio e4daaa4
+- [x] ~~Rename `acestream` chart to `acestream-engine` for clarity~~ — **obsolete** (2026-11-08): rejected: recreates the PVC for a cosmetic gain
+- [x] Investigate external-dns restart loop (44 restarts in 4d) — **done** (2026-11-08): fixed in 20260913224600-fix-external-dns-outage-and-token-scoping; 0 restarts since 2026-09-13
+- [ ] Monitor memory usage (78% on single node) — **still open** (2026-11-08): still 78% (6052Mi) on 2026-11-08; listed as remaining work
+
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: acestreamio e4daaa4 removed `list.js`, `converter.js`, `process_logos.js` and `scripts/regen-posters.js` (`npm test` 4/4 pass, `addon.js` loads); external-dns pod `external-dns-67dfbddfb8-qdsvd` has 0 restarts since 2026-09-13; `kubectl top node` 6052Mi (78%).
+- Decision: the `acestream` → `acestream-engine` rename is **rejected**: renaming the ArgoCD app/chart prunes and recreates the Deployment, Service and the 10Gi hcloud PVC for a cosmetic gain, and the retired Flask scraper no longer makes the name ambiguous.

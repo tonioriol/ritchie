@@ -1,3 +1,9 @@
+---
+title: "feat-ritchie-migration Ritchie Server Migration to Hetzner k3s"
+status: done
+created: 2026-01-18
+---
+
 # feat-ritchie-migration Ritchie Server Migration to Hetzner k3s
 
 ## TASK
@@ -33,24 +39,24 @@ ALWAYS use absolute paths.
 ## PLAN
 
 ### Phase 1: Simplified Acestream Migration to Hetzner k3s
-- [ ] Set up Hetzner account and API access
-- [ ] Install hetzner-k3s tool locally
-- [ ] Create CX22 instance (€6.99/month) using hetzner-k3s tool
-- [ ] Deploy Acestream proxy: `kubectl apply -k k8s/apps/acestream/`
-- [ ] Update Nginx on original Ritchie server to proxy to new Hetzner IP
-- [ ] Test Acestream functionality thoroughly
-- [ ] Monitor new service performance
+- [x] Set up Hetzner account and API access — **done** (2026-11-08): `HCLOUD_TOKEN` in `.env`; `hcloud firewall list` returns firewall `neumann`
+- [x] Install hetzner-k3s tool locally — **done** (2026-11-08): cluster built with hetzner-k3s (20260119211309-feat-k3-cluster-hetzner)
+- [x] Create CX22 instance (€6.99/month) using hetzner-k3s tool — **done** (2026-11-08): `neumann-master1` Ready, age 292d
+- [x] Deploy Acestream proxy: `kubectl apply -k k8s/apps/acestream/` — **done** (2026-11-08): deployed via ArgoCD app `acestream` (`charts/acestream`), not kustomize; Synced/Healthy
+- [x] ~~Update Nginx on original Ritchie server to proxy to new Hetzner IP~~ — **obsolete** (2026-11-08): the DigitalOcean server was destroyed 2026-10-07; ace.tonioriol.com is Acexy behind the Cloudflare tunnel
+- [x] Test Acestream functionality thoroughly — **done** (2026-11-08): Acexy serves `ace.tonioriol.com` (401 without token); acestream-catalog probes streams continuously
+- [x] ~~Monitor new service performance~~ — **obsolete** (2026-11-08): ongoing operations, not a step; covered by the acestream-catalog/iptv skills
 
 ### Phase 2: Future VPN Deployment (When Needed)
-- [ ] Deploy VPN: `kubectl apply -k k8s/apps/vpn/`
-- [ ] Configure WireGuard peers (phone, laptop, desktop)
-- [ ] Update DNS for vpn.ritchie.tonioriol.com
-- [ ] Test VPN connectivity
+- [x] ~~Deploy VPN: `kubectl apply -k k8s/apps/vpn/`~~ — **obsolete** (2026-11-08): never deployed; no VPN manifests in the GitOps repo, and kubectl access during ISP blocks is covered by WARP (20260210230351-warp-zerotrust-kubectl). Reopen as a new feature if a VPN is wanted
+- [x] ~~Configure WireGuard peers (phone, laptop, desktop)~~ — **obsolete** (2026-11-08): never deployed; no VPN manifests in the GitOps repo, and kubectl access during ISP blocks is covered by WARP (20260210230351-warp-zerotrust-kubectl). Reopen as a new feature if a VPN is wanted
+- [x] ~~Update DNS for vpn.ritchie.tonioriol.com~~ — **obsolete** (2026-11-08): never deployed; no VPN manifests in the GitOps repo, and kubectl access during ISP blocks is covered by WARP (20260210230351-warp-zerotrust-kubectl). Reopen as a new feature if a VPN is wanted
+- [x] ~~Test VPN connectivity~~ — **obsolete** (2026-11-08): never deployed; no VPN manifests in the GitOps repo, and kubectl access during ISP blocks is covered by WARP (20260210230351-warp-zerotrust-kubectl). Reopen as a new feature if a VPN is wanted
 
 ### Phase 3: Consider Additional Service Migration (Optional)
-- [ ] Evaluate if other services should migrate
-- [ ] If yes, create Kubernetes manifests for additional services
-- [ ] Migrate incrementally
+- [x] Evaluate if other services should migrate — **done** (2026-11-08): done: every service runs on the cluster (29 ArgoCD apps Synced/Healthy on 2026-11-08) and the DigitalOcean droplet was destroyed 2026-10-07
+- [x] If yes, create Kubernetes manifests for additional services — **done** (2026-11-08): done: every service runs on the cluster (29 ArgoCD apps Synced/Healthy on 2026-11-08) and the DigitalOcean droplet was destroyed 2026-10-07
+- [x] Migrate incrementally — **done** (2026-11-08): done: every service runs on the cluster (29 ArgoCD apps Synced/Healthy on 2026-11-08) and the DigitalOcean droplet was destroyed 2026-10-07
 
 ---
 
@@ -334,32 +340,32 @@ kubectl logs -l app=acestream-http-proxy -n acestream
 ## Next Steps
 
 ### Immediate Priorities (Simplified Acestream Migration)
-- [ ] Set up Hetzner account and API access
-- [ ] Create CX22 instance using hetzner-k3s tool
-- [ ] Deploy Acestream proxy using Kubernetes manifests
-- [ ] Update Nginx configuration on original server to proxy to new Hetzner IP
-- [ ] Test Acestream functionality thoroughly
-- [ ] Monitor new service performance
+- [x] Set up Hetzner account and API access — **done** (2026-11-08): see Phase 1
+- [x] Create CX22 instance using hetzner-k3s tool — **done** (2026-11-08): see Phase 1
+- [x] Deploy Acestream proxy using Kubernetes manifests — **done** (2026-11-08): see Phase 1
+- [x] ~~Update Nginx configuration on original server to proxy to new Hetzner IP~~ — **obsolete** (2026-11-08): DigitalOcean server destroyed 2026-10-07
+- [x] Test Acestream functionality thoroughly — **done** (2026-11-08): see Phase 1
+- [x] ~~Monitor new service performance~~ — **obsolete** (2026-11-08): ongoing operations, not a step
 
 ### Short-term Infrastructure Tasks
-- [ ] Create backup strategy for Acestream configuration
-- [ ] Set up basic monitoring for Acestream service
-- [ ] Test failover and recovery procedures
-- [ ] Configure proper logging for Acestream proxy
+- [x] ~~Create backup strategy for Acestream configuration~~ — **obsolete** (2026-11-08): engine state is disposable; the configuration lives in git (`charts/acestream`)
+- [x] ~~Set up basic monitoring for Acestream service~~ — **obsolete** (2026-11-08): acestream-catalog probes every stream through the engine; ArgoCD reports health
+- [x] ~~Test failover and recovery procedures~~ — **obsolete** (2026-11-08): single node, no failover target
+- [x] ~~Configure proper logging for Acestream proxy~~ — **obsolete** (2026-11-08): the nginx proxy was removed on 2026-11-08 (fa34f51); Acexy is the proxy
 
 ### Medium-term Enhancements
-- [ ] Deploy VPN when needed using prepared manifests
-- [ ] Evaluate performance and scalability
-- [ ] Consider migrating other services incrementally
-- [ ] Implement CI/CD for Kubernetes updates
-- [ ] Set up comprehensive monitoring and alerting
+- [x] ~~Deploy VPN when needed using prepared manifests~~ — **obsolete** (2026-11-08): never deployed; no VPN manifests in the GitOps repo, and kubectl access during ISP blocks is covered by WARP (20260210230351-warp-zerotrust-kubectl). Reopen as a new feature if a VPN is wanted
+- [x] ~~Evaluate performance and scalability~~ — **obsolete** (2026-11-08): measured 2026-11-08: node at 1617m CPU (40%), 6052Mi memory (78%); headroom is listed as remaining work
+- [x] Consider migrating other services incrementally — **done** (2026-11-08): done: every service runs on the cluster (29 ArgoCD apps Synced/Healthy on 2026-11-08) and the DigitalOcean droplet was destroyed 2026-10-07
+- [x] Implement CI/CD for Kubernetes updates — **done** (2026-11-08): ArgoCD app-of-apps (`apps/root.yaml`) plus Image Updater semver rollouts
+- [ ] Set up comprehensive monitoring and alerting — **still open** (2026-11-08): no metrics/alerting stack exists in `apps/` (only metrics-server); real, multi-hour work, not started — listed as remaining work
 
 ### Long-term Modernization
-- [ ] If needed: Migrate additional services to k3s
-- [ ] Implement CI/CD pipeline for infrastructure changes
-- [ ] Set up comprehensive monitoring and alerting stack
-- [ ] Document all procedures and runbooks
-- [ ] Consider full migration to k3s for all services
+- [x] If needed: Migrate additional services to k3s — **done** (2026-11-08): done: every service runs on the cluster (29 ArgoCD apps Synced/Healthy on 2026-11-08) and the DigitalOcean droplet was destroyed 2026-10-07
+- [x] Implement CI/CD pipeline for infrastructure changes — **done** (2026-11-08): ArgoCD auto-sync from `main`
+- [ ] Set up comprehensive monitoring and alerting stack — **still open** (2026-11-08): no metrics/alerting stack exists in `apps/` (only metrics-server); real, multi-hour work, not started — listed as remaining work
+- [x] Document all procedures and runbooks — **done** (2026-11-08): ritchie `AGENTS.md`, `docs/STREMIO-AIOSTREAMS.md` and the operations skills
+- [x] Consider full migration to k3s for all services — **done** (2026-11-08): done: every service runs on the cluster (29 ArgoCD apps Synced/Healthy on 2026-11-08) and the DigitalOcean droplet was destroyed 2026-10-07
 
 ## RECOMMENDATION
 
@@ -385,3 +391,9 @@ kubectl logs -l app=acestream-http-proxy -n acestream
 **Alternative**: If cost is primary concern, keep Acestream on current server, but this misses the opportunity to modernize infrastructure and gain Kubernetes experience.
 
 **Immediate Action**: Proceed with simplified Acestream migration to Hetzner k3s using the provided manifests and hetzner-k3s tool, then evaluate additional service migrations based on performance and needs.
+
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Why: 34 steps were still unchecked ten months after the migration finished.
+- Evidence: `neumann-master1` Ready (k3s v1.31.4, age 292d); 29 ArgoCD apps Synced/Healthy; `hcloud firewall list` works with `HCLOUD_TOKEN` from `.env`; DigitalOcean droplet destroyed 2026-10-07 (20261007163300-do-ritchie-compromise-and-migration); `https://ace.tonioriol.com/ace/getstream` answers 401 without a token (Acexy).
+- Decision: migration **done**. VPN steps obsolete. Monitoring/alerting is the only real remainder and is a new feature, not part of this migration.

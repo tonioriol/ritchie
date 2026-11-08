@@ -1,5 +1,7 @@
 # AIOStreams Language Sections and Dynamic Size Tiers Implementation Plan
 
+> **2026-11-08 closeout:** the remaining unchecked steps are marked obsolete — skipped by the owner's decision on 2026-07-31 (context TASK and 15:31 entry); superseded by 20261018014500-aiostreams-reality-tiers-and-fallback (done).
+
 > **For Roo workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` for one Roo subtask at a time, or `executing-plans` for same-session execution. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Atomically replace the current movie-only fixed-size selectors with verified Catalan, Spanish and English sections, 480p admission, and four pool-relative English representatives for movies, regular series and anime.
@@ -1557,7 +1559,7 @@ post-change row coverage plus `coverageRegressed` are always recorded; a lower
 ratio alone is not failure. The known trusted-candidate anime evidence is
 `13/17 -> 2/3` with one exact shared group.
 
-- [ ] **Step 11: Require one real Stremio 1.12.1/Tizen 6 next-episode transition**
+- [x] **Step 11: Require one real Stremio 1.12.1/Tizen 6 next-episode transition**
 
 Using the actual Samsung/Tizen client:
 
@@ -1588,7 +1590,7 @@ Expected: real playback starts automatically. On failure, run
 with its return status. The rollout is rejected without a successful observed
 transition.
 
-- [ ] **Step 12: Record the verified runtime gate summary**
+- [x] **Step 12: Record the verified runtime gate summary**
 
 Run:
 
@@ -1650,7 +1652,7 @@ that no 1Password or unrelated documentation mutation occurred.
 - Consumes: Task 3's exact verified `$WORK/readback-config.json`, runtime summaries, Tizen result and exact rollback hash.
 - Produces: exact credential-free 1Password recovery template; current operator guide; historical supersession note; completed task record; local documentation commit containing only the four intentional Markdown files.
 
-- [ ] **Step 1: Load the `safety` skill and back up the credential-free template**
+- [x] **Step 1: Load the `safety` skill and back up the credential-free template**
 
 Replacing a 1Password document mutates remote secret-management state. Load the `safety` skill and follow its confirmation flow before the edit.
 
@@ -1666,7 +1668,7 @@ chmod 600 "$WORK/aiostreams-config-template-before.json"
 
 Expected: valid JSON backup in the private directory.
 
-- [ ] **Step 2: Patch exactly the seven verified policy fields into the credential-free template**
+- [x] **Step 2: Patch exactly the seven verified policy fields into the credential-free template**
 
 Run:
 
@@ -1699,7 +1701,7 @@ cmp "$WORK/template-before-unchanged.json" "$WORK/template-after-unchanged.json"
 
 Expected: the seven policy fields are the only template differences. Never replace the credential-free template with the complete live config.
 
-- [ ] **Step 3: Scan the candidate template before uploading it**
+- [x] **Step 3: Scan the candidate template before uploading it**
 
 Run:
 
@@ -1719,7 +1721,7 @@ echo 'candidate recovery template contains no known credential shape'
 
 Expected: no matches and one success line.
 
-- [ ] **Step 4: Replace the 1Password document once and verify exact readback**
+- [x] **Step 4: Replace the 1Password document once and verify exact readback**
 
 After the `safety` confirmation, run:
 
@@ -1743,7 +1745,7 @@ op document edit aiostreams-config-template \
   --vault neumann --account "$OP_ACCOUNT"
 ```
 
-- [ ] **Step 5: Update the operator guide with verified current behavior**
+- [x] **Step 5: Update the operator guide with verified current behavior**
 
 Replace the current movie-only representative-size section and stale current-config bullets in `docs/STREMIO-AIOSTREAMS.md` with text containing all of the following exact facts:
 
@@ -1784,7 +1786,7 @@ but is not independently rejecting. Completion also requires one real Stremio
 
 Also update the current-config summary to state: four preferred resolutions; three ranked regexes; 35 ranked stream expressions; three preferred stream expressions; 16 required stream expressions; unchanged conjunctive `60/4/4` limits; unchanged `autoPlay: null`. Add only observed, non-secret Task 3 latency and autoplay summaries.
 
-- [ ] **Step 6: Mark the prior fixed-size design as historical without rewriting it**
+- [x] **Step 6: Mark the prior fixed-size design as historical without rewriting it**
 
 Immediately after the title in `docs/feat/20260726235500-feat-aiostreams-deployment/spec.md`, add:
 

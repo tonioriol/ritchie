@@ -1,3 +1,9 @@
+---
+title: "feat-acestreamio-logos-release-docs Acestreamio logos, release, and docs"
+status: done
+created: 2026-02-04
+---
+
 # feat-acestreamio-logos-release-docs Acestreamio logos, release, and docs
 
 ## TASK
@@ -53,5 +59,9 @@ ALWAYS use absolute paths.
 
 ## Next Steps
 
-- [ ] Decide whether to push the GitOps repo doc updates (`README.md`, `AGENTS.md`).
-- [ ] Provide explicit logo URLs for remaining text-poster channels (e.g., Motors TV, RU channels) if you want them replaced.
+- [x] Decide whether to push the GitOps repo doc updates (`README.md`, `AGENTS.md`). — **done** (2026-11-08): pushed; ritchie main = origin/main
+- [x] ~~Provide explicit logo URLs for remaining text-poster channels (e.g., Motors TV, RU channels) if you want them replaced.~~ — **obsolete** (2026-11-08): the static list is gone (acestreamio e4daaa4); posters come from catalog logos through `/posters/proxy`
+
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: ritchie `main` equals `origin/main`; acestreamio e4daaa4 removed the static `list.js` dataset.

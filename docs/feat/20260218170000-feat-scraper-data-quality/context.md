@@ -1,3 +1,9 @@
+---
+title: "feat-scraper-data-quality: Fix TaskManager singleton, EPG matching, and status checker quality"
+status: done
+created: 2026-02-18
+---
+
 # feat-scraper-data-quality: Fix TaskManager singleton, EPG matching, and status checker quality
 
 ## TASK
@@ -126,5 +132,9 @@ kubectl logs acestream-scraper-<POD_ID> -n default --tail=40 | grep -E "Status c
 
 ## Next Steps
 
-- [ ] Remove `list.js`, `converter.js` from `acestreamio` repo (legacy files no longer needed)
-- [ ] Retire `charts/acestream` helm chart in `ritchie` (engine + proxy now consolidated in acestream-scraper pod)
+- [x] Remove `list.js`, `converter.js` from `acestreamio` repo (legacy files no longer needed) — **done 2026-11-08**: removed in acestreamio e4daaa4 (with `process_logos.js` and `scripts/regen-posters.js`)
+- [x] Retire `charts/acestream` helm chart in `ritchie` (engine + proxy now consolidated in acestream-scraper pod) — **done 2026-11-08**: partly: the nginx proxy was removed in fa34f51; the engine itself still lives in `charts/acestream` and is in use, so the chart stays
+
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: acestreamio e4daaa4 removed the static dataset; ritchie fa34f51 removed the unused nginx proxy from `charts/acestream`. The engine stays in that chart: Acexy and acestream-catalog use `acestream.media.svc:6878`.

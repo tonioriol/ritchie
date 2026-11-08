@@ -1,3 +1,9 @@
+---
+title: "feat-dns-digitalocean DigitalOcean DNS for neumann (doctl) + options for app hostnames"
+status: done
+created: 2026-01-31
+---
+
 # feat-dns-digitalocean DigitalOcean DNS for neumann (doctl) + options for app hostnames
 
 ## TASK
@@ -65,6 +71,9 @@ Given the single-node architecture, the wildcard approach above is typically the
 
 ## Next Steps
 
-- [ ] Decide DNS model: one-off records vs wildcard vs external-dns
-- [ ] If choosing external-dns: provision DO token + in-cluster Secret and validate record creation
+- [x] Decide DNS model: one-off records vs wildcard vs external-dns — **done** (2026-11-08): external-dns with Cloudflare (20260131111332-feat-external-dns)
+- [x] ~~If choosing external-dns: provision DO token + in-cluster Secret and validate record creation~~ — **obsolete** (2026-11-08): DigitalOcean DNS is not used
 
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: DNS is managed by external-dns against Cloudflare with a zone-scoped token (20260913224600-fix-external-dns-outage-and-token-scoping); DigitalOcean is no longer used (droplet destroyed 2026-10-07).

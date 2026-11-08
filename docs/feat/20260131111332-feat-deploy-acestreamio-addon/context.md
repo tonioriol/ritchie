@@ -1,3 +1,9 @@
+---
+title: "feat-deploy-acestreamio-addon Deploy Acestreamio (Stremio addon) to neumann"
+status: done
+created: 2026-01-31
+---
+
 # feat-deploy-acestreamio-addon Deploy Acestreamio (Stremio addon) to neumann
 
 ## TASK
@@ -131,8 +137,11 @@ If you want the addon to use the in-cluster proxy hostname, set `PROXY_URL=https
 
 ## Next Steps
 
-- [ ] Build and push `ghcr.io/tonioriol/acestreamio:main` (or a SemVer tag if using Image Updater)
-- [ ] Create `media/acestreamio` secret with required runtime config
-- [ ] Ensure DNS points at the cluster (manual `doctl` or external-dns)
-- [ ] Verify addon manifest loads and playback works for known IDs
+- [x] Build and push `ghcr.io/tonioriol/acestreamio:main` (or a SemVer tag if using Image Updater) — **done** (2026-11-08): built by the acestreamio release workflow (semantic-release, `.releaserc.json`); latest tag v1.17.2 is live
+- [x] ~~Create `media/acestreamio` secret with required runtime config~~ — **obsolete** (2026-11-08): runtime config is inline in `apps/acestreamio.yaml` (`streamToken`), no separate secret
+- [x] Ensure DNS points at the cluster (manual `doctl` or external-dns) — **done** (2026-11-08): tunnel route `acestreamio.tonioriol.com` in `charts/cloudflared/values.yaml:28`
+- [x] Verify addon manifest loads and playback works for known IDs — **done** (2026-11-08): manifest 200 (v1.17.2), 2027 channels loaded; playback not re-tested 2026-11-08
 
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: `curl https://acestreamio.tonioriol.com/manifest.json` → 200, version 1.17.2; pod `acestreamio-8bd5bfc4d-qxjbp` (rolled 2026-10-28) logs `Fetched 2027 channels`. Stream playback itself was not exercised in this check.

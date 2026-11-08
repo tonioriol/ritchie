@@ -1,3 +1,9 @@
+---
+title: "feat-acestreamio-ci Acestreamio addon repo: detailed CI/release plan (SemVer releases → GHCR → auto-deploy)"
+status: done
+created: 2026-02-01
+---
+
 # feat-acestreamio-ci Acestreamio addon repo: detailed CI/release plan (SemVer releases → GHCR → auto-deploy)
 
 ## TASK
@@ -325,7 +331,10 @@ This GitOps repo should hold only deployment config (Helm/ArgoCD). Keeping Docke
 
 ## Next Steps
 
-- [ ] Confirm addon repo ownership + Actions permissions (Phase 0)
-- [ ] Implement semantic-release + workflows in addon repo (Phases 2–4)
-- [ ] Validate: release tag → GHCR image → Image Updater rollout (Phase 5)
+- [x] Confirm addon repo ownership + Actions permissions (Phase 0) — **done** (2026-11-08): release workflow runs in `tonioriol/acestreamio`
+- [x] Implement semantic-release + workflows in addon repo (Phases 2–4) — **done** (2026-11-08): `.releaserc.json` + `release.yml` in acestreamio
+- [x] Validate: release tag → GHCR image → Image Updater rollout (Phase 5) — **done** (2026-11-08): tag v1.17.2 → live manifest version 1.17.2
 
+### 2026-11-08 17:00 — Stale open steps closed out against live state
+
+- Evidence: acestreamio has `.github/workflows/release.yml`, `ci.yml` and `.releaserc.json`; tags up to v1.17.2; that version is what the live manifest reports, rolled by Image Updater on 2026-10-28.
