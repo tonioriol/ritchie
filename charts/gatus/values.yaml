@@ -1,0 +1,103 @@
+image:
+  repository: twinproduction/gatus
+  tag: v5.38.0
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 24Mi
+  limits:
+    cpu: 200m
+    memory: 96Mi
+
+# 1Password item (vault neumann) holding the Gmail app password used as SMTP login.
+smtp:
+  itemId: gatus
+  passwordField: smtp_password
+
+# Rendered verbatim into /config/config.yaml. Gatus expands ${SMTP_PASSWORD}
+# from the env at load time and hot-reloads the file when the ConfigMap changes
+# (the pod is deliberately not rolled on config changes, so alert state survives).
+config:
+  storage:
+    type: sqlite
+    path: /data/data.db
+  alerting:
+    email:
+      from: tonioriol@gmail.com
+      username: tonioriol@gmail.com
+      password: ${SMTP_PASSWORD}
+      host: smtp.gmail.com
+      port: 587
+      to: tonioriol@gmail.com
+      default-alert:
+        enabled: true
+        failure-threshold: 3
+        success-threshold: 2
+        send-on-resolved: true
+  endpoints:
+    # Every check goes through the public hostname (Cloudflare -> tunnel -> cluster).
+    - name: catalog
+      group: public
+      url: https://catalog.tonioriol.com/health
+      interval: 1m
+      conditions: ["[STATUS] == 200"]
+      alerts: [{type: email}]
+    - name: acestreamio
+      group: public
+      url: https://acestreamio.tonioriol.com/manifest.json
+      interval: 1m
+      conditions: ["[STATUS] == 200"]
+      alerts: [{type: email}]
+    - name: aiostreams
+      group: public
+      url: https://aiostreams.tonioriol.com/
+      interval: 1m
+      conditions: ["[STATUS] == 200"]
+      alerts: [{type: email}]
+    # Acexy is token-gated: an untokened /ace/status answering 401 means Acexy
+    # itself is up behind the tunnel (5xx / timeout = down).
+    - name: acexy
+      group: public
+      url: https://ace.tonioriol.com/ace/status
+      interval: 1m
+      conditions: ["[STATUS] == 401"]
+      alerts: [{type: email}]
+    - name: argocd
+      group: public
+      url: https://neumann.tonioriol.com/
+      interval: 1m
+      conditions: ["[STATUS] == 200"]
+      alerts: [{type: email}]
+    - name: adamnfinecupof.coffee
+      group: public
+      url: https://adamnfinecupof.coffee
+      interval: 1m
+      conditions: ["[STATUS] == 200"]
+      alerts: [{type: email}]
+    - name: bertomeuiglesias.com
+      group: public
+      url: https://bertomeuiglesias.com
+      interval: 1m
+      conditions: ["[STATUS] == 200"]
+      alerts: [{type: email}]
+    - name: boira.band
+      group: public
+      url: https://boira.band
+      interval: 1m
+      conditions: ["[STATUS] == 200"]
+      alerts: [{type: email}]
+    - name: lodrago.net
+      group: public
+      url: https://lodrago.net
+      interval: 1m
+      conditions: ["[STATUS] == 200"]
+      alerts: [{type: email}]
+    # TEMPORARY: deliberately failing target to prove alert + resolve emails. Remove after proof.
+    - name: alert-test
+      group: test
+      url: https://catalog.tonioriol.com/health
+      interval: 1m
+      conditions: ["[STATUS] == 418"]
+      alerts: [{type: email, failure-threshold: 2, success-threshold: 1}]
