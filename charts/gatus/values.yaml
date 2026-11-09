@@ -99,5 +99,5 @@ config:
       group: test
       url: https://catalog.tonioriol.com/health
       interval: 1m
-      conditions: ["[STATUS] == 418"]
+      conditions: ["[STATUS] == 200"]
       alerts: [{type: email, failure-threshold: 2, success-threshold: 1}]
