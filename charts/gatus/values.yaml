@@ -94,10 +94,3 @@ config:
       interval: 1m
       conditions: ["[STATUS] == 200"]
       alerts: [{type: email}]
-    # TEMPORARY: deliberately failing target to prove alert + resolve emails. Remove after proof.
-    - name: alert-test
-      group: test
-      url: https://catalog.tonioriol.com/health
-      interval: 1m
-      conditions: ["[STATUS] == 200"]
-      alerts: [{type: email, failure-threshold: 2, success-threshold: 1}]
