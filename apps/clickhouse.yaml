@@ -15,6 +15,9 @@ spec:
           enabled: true
           hostname: clickhouse.tonioriol.com
           target: "85e6bc75-0025-4fc3-9341-d4e517fea614.cfargotunnel.com"
+        backup:
+          enabled: true
+          endpoint: https://nbg1.your-objectstorage.com/ccx-clickhouse-backup/ccx
   destination:
     server: https://kubernetes.default.svc
     namespace: data
