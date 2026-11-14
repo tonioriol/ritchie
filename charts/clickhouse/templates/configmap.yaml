@@ -13,7 +13,7 @@ data:
         <console>1</console>
       </logger>
       <listen_host>0.0.0.0</listen_host>
-      <max_server_memory_usage>{{ .Values.maxServerMemoryBytes }}</max_server_memory_usage>
+      <max_server_memory_usage>{{ .Values.maxServerMemoryBytes | int64 }}</max_server_memory_usage>
       <background_pool_size>2</background_pool_size>
       <background_merges_mutations_concurrency_ratio>2</background_merges_mutations_concurrency_ratio>
       <background_schedule_pool_size>16</background_schedule_pool_size>
@@ -50,7 +50,7 @@ data:
     <clickhouse>
       <profiles>
         <default>
-          <max_memory_usage>{{ .Values.maxQueryMemoryBytes }}</max_memory_usage>
+          <max_memory_usage>{{ .Values.maxQueryMemoryBytes | int64 }}</max_memory_usage>
           <max_threads>2</max_threads>
           <min_insert_block_size_bytes>33554432</min_insert_block_size_bytes>
           <max_insert_block_size_bytes>33554432</max_insert_block_size_bytes>
