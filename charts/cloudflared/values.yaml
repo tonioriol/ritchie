@@ -47,6 +47,9 @@ hosts:
     service: ssh://code.tools.svc.cluster.local:22
   - hostname: claw.tonioriol.com
     service: http://openclaw.tools.svc.cluster.local:80
+  # ClickHouse HTTP interface for ccx (password auth for users ccx/admin).
+  - hostname: clickhouse.tonioriol.com
+    service: http://clickhouse.data.svc.cluster.local:8123
   - hostname: ccx.tonioriol.com
     service: http://ccx.tools.svc.cluster.local:80
   - hostname: adamnfinecupof.coffee

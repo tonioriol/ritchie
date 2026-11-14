@@ -1,0 +1,41 @@
+image:
+  repository: clickhouse/clickhouse-server
+  tag: "26.10.4.207"
+  pullPolicy: IfNotPresent
+
+# Server memory cap. neumann has ~7.7 GB and other pods; 1.5 GB is the smallest
+# cap that kept ccx's queries and imports working in the 2026-11-14 measurement
+# (1 GB failed large request fetches and image-heavy inserts).
+maxServerMemoryBytes: 1500000000
+maxQueryMemoryBytes: 1000000000
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 1792Mi
+
+persistence:
+  storageClass: hcloud-volumes
+  size: 50Gi
+
+# 1Password item (neumann vault) holding `password` (user ccx) and `admin_password`.
+auth:
+  itemId: clickhouse
+
+backup:
+  enabled: false
+  # Daily at 03:15 UTC. Sundays (or when no full backup is recorded) take a full
+  # backup; other days an incremental one based on the latest full.
+  schedule: "15 3 * * *"
+  endpoint: ""   # e.g. https://nbg1.your-objectstorage.com/<bucket>/ccx
+  # 1Password item fields with the S3 credentials (same item as auth).
+  accessKeyField: s3_access_key
+  secretKeyField: s3_secret_key
+
+externalDns:
+  enabled: false
+  hostname: ""
+  target: ""
