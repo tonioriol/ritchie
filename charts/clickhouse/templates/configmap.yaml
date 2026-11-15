@@ -74,6 +74,9 @@ data:
           <grants>
             <query>GRANT ALL ON ccx.*</query>
             <query>GRANT CREATE DATABASE ON ccx.*</query>
+            <!-- the neumann ccx pod's own store, apart from the Mac's -->
+            <query>GRANT ALL ON ccx_neumann.*</query>
+            <query>GRANT CREATE DATABASE ON ccx_neumann.*</query>
           </grants>
         </ccx>
       </users>

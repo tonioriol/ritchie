@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "clickhouse.labels" . | nindent 4 }}
 data:
-  # Backs up database ccx to Object Storage with ClickHouse's own BACKUP.
+  # Backs up databases ccx and ccx_neumann to Object Storage with ClickHouse's own BACKUP.
   # Full on Sundays or when no full is recorded; otherwise incremental on the
   # latest full, so a restore needs at most two backups. Nothing is ever
   # deleted from the bucket. LATEST_FULL in the bucket names the current base.
@@ -19,10 +19,10 @@ data:
     latest=$(q "SELECT line FROM s3('$E/LATEST_FULL', $K, 'LineAsString') LIMIT 1" 2>/dev/null || true)
     if [ "$(date -u +%u)" = 7 ] || [ -z "$latest" ]; then
       name="full-$stamp"
-      id=$(q "BACKUP DATABASE ccx TO S3('$E/$name', $K) ASYNC" | cut -f1)
+      id=$(q "BACKUP DATABASE ccx, DATABASE ccx_neumann TO S3('$E/$name', $K) ASYNC" | cut -f1)
     else
       name="inc-$stamp"
-      id=$(q "BACKUP DATABASE ccx TO S3('$E/$name', $K) SETTINGS base_backup = S3('$E/$latest', $K) ASYNC" | cut -f1)
+      id=$(q "BACKUP DATABASE ccx, DATABASE ccx_neumann TO S3('$E/$name', $K) SETTINGS base_backup = S3('$E/$latest', $K) ASYNC" | cut -f1)
     fi
     echo "backup $name (base: ${latest:-none}) id $id"
     while :; do
@@ -37,7 +37,7 @@ data:
     case "$name" in
       full-*) q "INSERT INTO FUNCTION s3('$E/LATEST_FULL', $K, 'LineAsString') SETTINGS s3_truncate_on_insert = 1 VALUES ('$name')" ;;
     esac
-    q "SELECT table, sum(rows) FROM system.parts WHERE database = 'ccx' AND active GROUP BY table ORDER BY table"
+    q "SELECT database, table, sum(rows) FROM system.parts WHERE database IN ('ccx', 'ccx_neumann') AND active GROUP BY database, table ORDER BY database, table"
 ---
 apiVersion: batch/v1
 kind: CronJob
