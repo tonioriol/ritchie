@@ -41,6 +41,12 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /home/ccx/.config/ccx
+            {{- if .Values.clickhouse.enabled }}
+            - name: clickhouse
+              mountPath: /home/ccx/.config/ccx/clickhouse.json
+              subPath: clickhouse.json
+              readOnly: true
+            {{- end }}
           readinessProbe:
             httpGet:
               path: /health
@@ -67,3 +73,8 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        {{- if .Values.clickhouse.enabled }}
+        - name: clickhouse
+          secret:
+            secretName: {{ .Release.Name }}-clickhouse
+        {{- end }}

@@ -34,6 +34,16 @@ auth:
     # Example: { api_key: API_KEY }
     fields: {}
 
+# ClickHouse for request data: ccx loads its state from it at start and ships
+# there every minute. Rendered as ~/.config/ccx/clickhouse.json from the
+# 1Password item's `password` (ClickHouse user ccx).
+clickhouse:
+  enabled: false
+  itemId: clickhouse
+  url: http://clickhouse.data.svc.cluster.local:8123/
+  user: ccx
+  database: ""
+
 resources:
   requests:
     cpu: 10m
