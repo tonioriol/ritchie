@@ -23,6 +23,9 @@ spec:
             itemId: ccx
             fields:
               api_key: API_KEY
+        clickhouse:
+          enabled: true
+          database: ccx_neumann
         resources:
           requests:
             cpu: 10m
