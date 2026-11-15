@@ -32,7 +32,7 @@ spec:
             memory: 32Mi
           limits:
             cpu: 500m
-            memory: 256Mi
+            memory: 512Mi
         externalDns:
           enabled: true
           hostname: ccx.tonioriol.com
