@@ -42,6 +42,25 @@ A copy-only verification job can be created from the CronJob's job template afte
 
 Do not use `rclone sync`, remove backup objects, or add a lifecycle retention rule. Incrementals need their referenced full, and request data is retained permanently. Watch Drive capacity as the archive grows; a quota error fails the copy and alerts through Gatus.
 
+## Bucket versioning — enabled 2026-11-16
+
+Versioning is **Enabled** on the Hetzner bucket `ccx-clickhouse-backup` (set at 22:23:21 UTC with `aws s3api put-bucket-versioning --endpoint-url https://nbg1.your-objectstorage.com --bucket ccx-clickhouse-backup --versioning-configuration Status=Enabled`). No infrastructure code in this repo manages the bucket (only the chart values and this page name it), so this page is the record of the setting. Object Lock is **not** enabled, and no lifecycle rule or bucket policy exists: retention cannot be undone, so that decision stays with the owner.
+
+- **Why:** `LATEST_FULL` is the one key a backup run rewrites (`s3_truncate_on_insert = 1`, [`backup-cronjob.yaml`](../charts/clickhouse/templates/backup-cronjob.yaml)). Before versioning an overwrite on Hetzner was final, and the Drive copy also overwrites in place, so a previous pointer value existed on neither remote. Now every overwrite or plain delete keeps the previous version.
+- **Existing objects:** all 6,196 objects keep VersionId `null` and stay current until overwritten. Inventory (key, size, ETag) is identical before and after enabling.
+- **Recover an old value:** `aws s3api list-object-versions --endpoint-url https://nbg1.your-objectstorage.com --bucket ccx-clickhouse-backup --prefix ccx/LATEST_FULL`, then `aws s3api get-object ... --version-id ID out`. A plain delete only adds a delete marker; only a delete with an explicit version ID removes data. `rclone` lists current versions only (no `--s3-versions`).
+- **Cost:** noncurrent versions are billed and nothing expires them. Hetzner supports `NoncurrentVersionExpiration` with `NoncurrentDays` only; none is configured, in line with the no-lifecycle rule above. The weekly `LATEST_FULL` rewrite adds a few bytes; the items below add more.
+- **ClickHouse side effects (observed):** each backup creates `<name>/.lock` (36 bytes) and deletes it at the end, which now leaves one noncurrent version and one delete marker per backup. `rclone` hides keys whose latest version is a delete marker, so the Drive copy is unchanged. When ClickHouse retries a PUT that timed out (`Poco::TimeoutException`, then `Attempt 2/1001 succeeded` in its log), both PUTs land and the file keeps an identical noncurrent duplicate. In two scratch backups run over a slow home uplink this hit 3 files (6.8 MB in the first; 3.2 MB and 6.8 MB in the second, which held 10,033,084 noncurrent bytes, its `.lock` included, next to 62,177,507 current). It was not seen on every large file, and in-cluster timeouts should be rarer. Duplicates do not affect restore and only cost storage.
+- **Hetzner limits:** configuration changes take up to 15 minutes to apply consistently, and conditional PUT/DELETE are unsupported on versioned buckets. The chart sends no conditional requests, and the ClickHouse backup, restore and `LATEST_FULL` writes below all completed on the versioned bucket. Versioning can later be Suspended but not disabled.
+
+Proof (scratch keys under `ccx-versioning-test-20261116/`, outside `ccx/`, run 15 minutes after enabling; ClickHouse 26.10.4.207 and rclone 1.75.2, the chart's versions):
+
+- `test.txt` written three times returned three distinct VersionIds. `list-object-versions` showed 3 versions (one `IsLatest`), each version fetched by ID matched the uploaded bytes, and an unversioned GET returned the newest.
+- ClickHouse with the chart's settings (`--backup_threads=2 --s3_max_inflight_parts_for_one_file=1`): `BACKUP` full, then an incremental on it with `base_backup`, then `RESTORE` of the incremental into another database gave 150,000 rows and an identical `sum(cityHash64(id, s))` on both sides. Repeating a backup name failed with `BACKUP_ALREADY_EXISTS` before writing anything.
+- `LATEST_FULL` written twice with `s3_truncate_on_insert = 1` produced 2 versions; reading it through `s3()` returned the newer value, and `get-object --version-id` returned the older one.
+- `rclone copy` and `rclone check --size-only` with the `drive.sh` flags over the scratch prefix: 24 matching files, 0 differences. `rclone lsf -R` over `ccx/` returned exactly the 6,196 pre-enable keys.
+- Cleanup: all 68 scratch versions and delete markers were removed with explicit version IDs (0 errors, 0 left). `ccx/` afterwards had 6,196 versions, 0 delete markers, all `null`, inventory unchanged.
+
 ## Deployment verification — 2026-11-16
 
 - Initial archive: **5,597 objects / 14,063,104,523 bytes**. Initial Drive quota: 2,201,170,739,200 bytes total, 1,570,745,207,825 used, **630,425,531,375 free**.
