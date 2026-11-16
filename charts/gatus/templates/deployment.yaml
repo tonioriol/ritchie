@@ -38,6 +38,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-smtp
                   key: SMTP_PASSWORD
+            - name: BACKUP_HEARTBEAT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-smtp
+                  key: BACKUP_HEARTBEAT_TOKEN
           readinessProbe:
             httpGet:
               path: /health

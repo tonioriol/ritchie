@@ -12,6 +12,11 @@ data:
   # deleted from the bucket. LATEST_FULL in the bucket names the current base.
   backup.sh: |
     set -eu
+    {{- if .Values.backup.drive.enabled }}
+    . /scripts/notify.sh
+    monitor=clickhouse-backup
+    trap 'rc=$?; if [ "$rc" -ne 0 ]; then notify false backup-failed-see-Kubernetes-job-logs; fi' EXIT
+    {{- end }}
     E="$S3_ENDPOINT"
     K="'$S3_ACCESS_KEY', '$S3_SECRET_KEY'"
     # Two upload threads, one part in flight per file: the defaults need over 1 GiB and
@@ -40,6 +45,30 @@ data:
       full-*) q "INSERT INTO FUNCTION s3('$E/LATEST_FULL', $K, 'LineAsString') SETTINGS s3_truncate_on_insert = 1 VALUES ('$name')" ;;
     esac
     q "SELECT database, table, sum(rows) FROM system.parts WHERE database IN ('ccx', 'ccx_neumann') AND active GROUP BY database, table ORDER BY database, table"
+    {{- if .Values.backup.drive.enabled }}
+    notify true
+  notify.sh: |
+    notify() {
+      wget -q -O - --timeout=20 --header="Authorization: Bearer $HEARTBEAT_TOKEN" \
+        --post-data="" "$GATUS_URL/api/v1/endpoints/backups_$monitor/external?success=$1&error=${2:-}"
+    }
+  drive.sh: |
+    set -eu
+    . /scripts/notify.sh
+    monitor=clickhouse-drive-copy
+    trap 'rc=$?; if [ "$rc" -ne 0 ]; then notify false drive-copy-failed-see-Kubernetes-job-logs; fi' EXIT
+    # Secret volumes are read-only; rclone refreshes its dedicated Drive token here.
+    cp /credentials/rclone.conf /config/rclone.conf
+    export RCLONE_CONFIG=/config/rclone.conf
+    export AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY"
+    # copy never removes objects from either provider. LATEST_FULL is also copied.
+    rclone copy "$COPY_SOURCE" "$COPY_DESTINATION" --transfers=2 --checkers=4 --stats=1m
+    # Check every path and byte count; a partial or failed copy must not send success.
+    rclone check "$COPY_SOURCE" "$COPY_DESTINATION" --size-only --checkers=4
+    rclone size "$COPY_SOURCE" --json
+    rclone size "$COPY_DESTINATION" --json
+    notify true
+    {{- end }}
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -59,7 +88,11 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          {{- if .Values.backup.drive.enabled }}
+          initContainers:
+          {{- else }}
           containers:
+          {{- end }}
             - name: backup
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               command: ["/bin/sh", "/scripts/backup.sh"]
@@ -68,6 +101,15 @@ spec:
                   value: {{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local
                 - name: S3_ENDPOINT
                   value: {{ required "backup.endpoint" .Values.backup.endpoint | quote }}
+                {{- if .Values.backup.drive.enabled }}
+                - name: GATUS_URL
+                  value: {{ .Values.backup.drive.gatusUrl | quote }}
+                - name: HEARTBEAT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-drive-backup
+                      key: HEARTBEAT_TOKEN
+                {{- end }}
               envFrom:
                 - secretRef:
                     name: {{ .Release.Name }}-backup
@@ -80,8 +122,53 @@ spec:
                   memory: 64Mi
                 limits:
                   memory: 256Mi
+          {{- if .Values.backup.drive.enabled }}
+          containers:
+            - name: drive-copy
+              image: {{ .Values.backup.drive.image | quote }}
+              command: ["/bin/sh", "/scripts/drive.sh"]
+              env:
+                - name: COPY_SOURCE
+                  value: {{ .Values.backup.drive.source | quote }}
+                - name: COPY_DESTINATION
+                  value: {{ .Values.backup.drive.destination | quote }}
+                - name: GATUS_URL
+                  value: {{ .Values.backup.drive.gatusUrl | quote }}
+                - name: HEARTBEAT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-drive-backup
+                      key: HEARTBEAT_TOKEN
+              envFrom:
+                - secretRef:
+                    name: {{ .Release.Name }}-backup
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+                  readOnly: true
+                - name: drive-credentials
+                  mountPath: /credentials
+                  readOnly: true
+                - name: rclone-config
+                  mountPath: /config
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+          {{- end }}
           volumes:
             - name: script
               configMap:
                 name: {{ .Release.Name }}-backup-script
+            {{- if .Values.backup.drive.enabled }}
+            - name: drive-credentials
+              secret:
+                secretName: {{ .Release.Name }}-drive-backup
+            - name: rclone-config
+              emptyDir:
+                medium: Memory
+                sizeLimit: 1Mi
+            {{- end }}
 {{- end }}

@@ -34,6 +34,14 @@ backup:
   # 1Password item fields with the S3 credentials (same item as auth).
   accessKeyField: s3_access_key
   secretKeyField: s3_secret_key
+  drive:
+    enabled: false
+    image: rclone/rclone:1.75.2
+    # Dedicated drive.file OAuth grant and heartbeat token, provisioned out of band.
+    itemId: clickhouse-drive-backup
+    destination: drive:ccx-clickhouse-backup/ccx
+    source: s3:ccx-clickhouse-backup/ccx
+    gatusUrl: http://gatus.tools.svc.cluster.local
 
 externalDns:
   enabled: false

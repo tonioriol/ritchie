@@ -16,6 +16,10 @@ smtp:
   itemId: gatus
   passwordField: smtp_password
 
+backupMonitor:
+  itemId: clickhouse-drive-backup
+  tokenField: heartbeat_token
+
 # Rendered verbatim into /config/config.yaml. Gatus expands ${SMTP_PASSWORD}
 # from the env at load time and hot-reloads the file when the ConfigMap changes
 # (the pod is deliberately not rolled on config changes, so alert state survives).
@@ -36,6 +40,27 @@ config:
         failure-threshold: 3
         success-threshold: 2
         send-on-resolved: true
+  external-endpoints:
+    - name: clickhouse-backup
+      group: backups
+      token: ${BACKUP_HEARTBEAT_TOKEN}
+      heartbeat:
+        interval: 26h
+      alerts:
+        - type: email
+          failure-threshold: 1
+          success-threshold: 1
+          description: ClickHouse nightly S3 backup failed or missed its daily heartbeat.
+    - name: clickhouse-drive-copy
+      group: backups
+      token: ${BACKUP_HEARTBEAT_TOKEN}
+      heartbeat:
+        interval: 30h
+      alerts:
+        - type: email
+          failure-threshold: 1
+          success-threshold: 1
+          description: ClickHouse Google Drive copy failed or missed its daily heartbeat.
   endpoints:
     # Every check goes through the public hostname (Cloudflare -> tunnel -> cluster).
     - name: catalog

@@ -18,6 +18,8 @@ spec:
         backup:
           enabled: true
           endpoint: https://nbg1.your-objectstorage.com/ccx-clickhouse-backup/ccx
+          drive:
+            enabled: true
   destination:
     server: https://kubernetes.default.svc
     namespace: data
