@@ -139,9 +139,16 @@ spec:
                     secretKeyRef:
                       name: {{ .Release.Name }}-drive-backup
                       key: HEARTBEAT_TOKEN
-              envFrom:
-                - secretRef:
-                    name: {{ .Release.Name }}-backup
+                - name: S3_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-backup
+                      key: S3_ACCESS_KEY
+                - name: S3_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-backup
+                      key: S3_SECRET_KEY
               volumeMounts:
                 - name: script
                   mountPath: /scripts
