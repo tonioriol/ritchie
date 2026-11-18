@@ -125,7 +125,7 @@ All application secrets are stored in the **1Password vault `neumann`** and sync
        └─ api_key     → LLM_API_KEY   (acestream-catalog)
 ```
 
-The three services share the **same `password`** from the `acestream-scraper` item. This simplifies rotation — change one field, everything updates. The Flask acestream-scraper itself is retired (app, chart and route removed); only its PVC `media/acestream-scraper-config` is kept.
+The three services share the **same `password`** from the `acestream-scraper` item. This simplifies rotation — change one field, everything updates. The Flask acestream-scraper itself is retired (app, chart and route removed); its PVC `media/acestream-scraper-config` was deleted 2026-11-18 after a verified backup (S3 `ccx-clickhouse-backup/retired-pvcs/acestream-scraper-config/`, plus a Google Drive copy).
 
 ### 1Password account
 
