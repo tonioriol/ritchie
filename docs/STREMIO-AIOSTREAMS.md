@@ -366,7 +366,7 @@ torrents lack (Gènesi, Crims), competing normally with other providers elsewher
 |---|---|
 | Live addon | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/manifest.json` |
 | Standalone catalogue/meta installation | `https://60b9a578d49f-3alacarta-stremio-addon.baby-beamup.club/catalogues/manifest.json?v=0.2.0` (Stremio's saved entry refreshed 2026-10-19) |
-| Source | `github.com/tonioriol/3alacarta-stremio-addon`, local `~/Code/3alacarta-stremio-addon` |
+| Source | `github.com/tonioriol/3alacarta-stremio-addon`, local `~/Code/neumann/3alacarta-stremio-addon` |
 | Hosting | beamup (free Stremio community hosting), **not** this cluster |
 | In AIOStreams | custom preset instance `3alacarta`, display name `3Cat`, `manifestUrl …/manifest.json?v=<version>`, resources `stream` + `subtitles` only |
 
