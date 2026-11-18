@@ -29,6 +29,15 @@ This file provides guidance to agents when working with code in this repository.
 
 - `hetzner-k3s` uses `HCLOUD_TOKEN` (not `HETZNER_TOKEN`) per the event log in [`docs/feat/2026-01-19-21-13-09-feat-k3-cluster-hetzner/context.md`](docs/feat/2026-01-19-21-13-09-feat-k3-cluster-hetzner/context.md:333).
 - Single-node cluster scheduling relies on `schedule_workloads_on_masters: true` in [`clusters/neumann/cluster.yaml`](clusters/neumann/cluster.yaml:24).
+- Hetzner Cloud firewall `neumann` (id 10418455, label selector `cluster=neumann`) is edited by hand with `hcloud --context neumann firewall add-rule …`; it is not in this repo. Rules beyond the hetzner-k3s defaults: AceStream TCP/UDP 8621 and TCP 62062, WireGuard UDP 51821.
+- UDP 51820 on the node is k3s `flannel-wg` (flannel WireGuard backend). Don't reuse it.
+
+## Host-level personal WireGuard hub (not GitOps)
+
+- `wg-quick@wg-personal` on neumann-master1 (enabled): interface `wg-personal`, `10.88.0.1/24`, UDP 51821, config `/etc/wireguard/wg-personal.conf` (root 0600; keys in 1Password Private "WireGuard personal – …", never in git).
+- PostUp/PostDown add/remove `iptables FORWARD -i wg-personal -o wg-personal -j ACCEPT` so peers reach each other. No NAT, no route into pod (`10.244.0.0/16`), service (`10.43.0.0/16`) or private (`10.0.0.0/16`) networks.
+- Peers: `10.88.0.2` owner's Mac, `10.88.0.3` Metal (old MacBook, userspace wireproxy exposing its sshd). Add a peer by appending a `[Peer]` and `systemctl restart wg-quick@wg-personal`; idle peers re-handshake within ~2 min.
+- Separate from the work `roomote` WireGuard (`10.66.66.0/24`) and the home Deck VPN (`10.77.0.0/24`).
 
 ## ArgoCD ingress/TLS redirect-loop fix
 
