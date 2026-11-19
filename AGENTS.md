@@ -36,7 +36,7 @@ This file provides guidance to agents when working with code in this repository.
 
 - `wg-quick@wg-personal` on neumann-master1 (enabled): interface `wg-personal`, `10.88.0.1/24`, UDP 51821, config `/etc/wireguard/wg-personal.conf` (root 0600; keys in 1Password Private "WireGuard personal – …", never in git).
 - PostUp/PostDown add/remove `iptables FORWARD -i wg-personal -o wg-personal -j ACCEPT` so peers reach each other. No NAT, no route into pod (`10.244.0.0/16`), service (`10.43.0.0/16`) or private (`10.0.0.0/16`) networks.
-- Peers: `10.88.0.2` owner's Mac, `10.88.0.3` Metal (old MacBook, userspace wireproxy exposing its sshd). Add a peer by appending a `[Peer]` and `systemctl restart wg-quick@wg-personal`; idle peers re-handshake within ~2 min.
+- Peers: `10.88.0.2` owner's Mac, `10.88.0.3` Metal (old MacBook, userspace wireproxy exposing its sshd), `10.88.0.4` Steam Deck (NM connection `wg-personal`; key in 1Password Private "WireGuard personal – Steam Deck"). Pre-change config backup: `/etc/wireguard/wg-personal.conf.bak-20261119`. Apply peer edits without dropping others: `wg syncconf wg-personal <(wg-quick strip wg-personal)`. Add a peer by appending a `[Peer]` and `systemctl restart wg-quick@wg-personal`; idle peers re-handshake within ~2 min.
 - Separate from the work `roomote` WireGuard (`10.66.66.0/24`) and the home Deck VPN (`10.77.0.0/24`).
 
 ## ArgoCD ingress/TLS redirect-loop fix
